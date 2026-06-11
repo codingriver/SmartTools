@@ -772,7 +772,7 @@ var sections = [
         dynamic: true,
         label: '💟私人项目',
         visible: true,
-        encrypted: true,
+        private: true,
         enc: {
             v: 1,
             alg: 'AES-GCM-256/PBKDF2-SHA256',

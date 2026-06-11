@@ -39,6 +39,8 @@ textarea { min-height: 80px; resize: vertical; font-family: Consolas, Monaco, mo
 .section-tab.is-custom.active { background: #ff9800; color: #fff; border-color: transparent; }
 .section-tab.is-manage { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 .section-tab.is-manage:hover { background: #c8e6c9; }
+.section-tab.is-private { background: #e8f5e9; color: #166534; border: 1px solid #86efac; }
+.section-tab.is-private.active { background: #16a34a; color: #fff; border-color: transparent; }
 .section-tab.is-encrypted { background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8; }
 .section-tab.is-encrypted.active { background: #9c27b0; color: #fff; border-color: transparent; }
 .section-tab.is-locked { background: #ffebee; color: #c62828; border: 1px dashed #ef9a9a; }
@@ -104,6 +106,7 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 .sec-row .badge-builtin { background: #e3f2fd; color: #1976d2; }
 .sec-row .badge-custom { background: #ffe0b2; color: #e65100; }
 .sec-row .badge-dynamic { background: #f3e5f5; color: #7b1fa2; margin-left: 4px; }
+.sec-row .badge-private { background: #e8f5e9; color: #166534; margin-left: 4px; }
 .sec-row .badge-encrypted { background: #f3e5f5; color: #6a1b9a; margin-left: 4px; }
 .sec-row .badge-locked { background: #ffebee; color: #c62828; margin-left: 4px; }
 .locked-panel { text-align: center; padding: 40px 20px; background: #fff; border: 2px dashed #ce93d8; border-radius: 10px; }
@@ -625,11 +628,10 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
             <p class="muted" style="font-size:11px; margin-top:6px; line-height:1.5;" data-i18n="secDynamicHint">勾选后效果与「视频聚合」一致：手机/平板默认只显示前 4/6 张卡片，其余可点击「展开」按钮查看；桌面端默认全部展开。</p>
         </div>
         <div class="form-row">
-            <label><input type="checkbox" id="se_encrypted"> <span data-i18n="secEncryptedField">🔐 加密存储（AES-GCM-256）</span></label>
+            <label><input type="checkbox" id="se_encrypted"> <span data-i18n="secEncryptedField">🔒 私密分类（仅登录后可见）</span></label>
             <div class="enc-hint" data-i18n-html="secEncryptedHint">
-                🔒 勾选后，此大类的所有卡片会以 AES-256-GCM 加密形式写入 data.js / KV。<br>
-                🔑 使用当前<b>登录密码</b>派生密钥（PBKDF2 300,000 轮）。只有登录后才能解密查看。<br>
-                ⚠️ <b>修改登录密码后需立即保存，否则原加密数据将无法解锁！</b>
+                🔒 勾选后，此大类仅在登录后显示；数据以明文保存到 data.js / KV。<br>
+                适合防普通访客查看，不用于防仓库或 Cloudflare 管理员读取。
             </div>
         </div>
         <div class="modal-footer">
@@ -1738,6 +1740,7 @@ const I18N = {
         secCustomTag: '自定义', secCustomTitle: '自定义大类',
         btnAddCard: '➕ 新增卡片', titleItems: '（共 {n} 项）',
         customBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffe0b2; color:#e65100; border-radius:10px; vertical-align:middle;">自定义</span>',
+        privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 私密</span>',
         encBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#f3e5f5; color:#6a1b9a; border-radius:10px; vertical-align:middle;">🔐 加密</span>',
         lockedBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffebee; color:#c62828; border-radius:10px; vertical-align:middle;">🔒 已锁定</span>',
         emptyCards: '暂无数据，点击右上角「➕ 新增卡片」',
@@ -1799,7 +1802,7 @@ const I18N = {
         sectionBadgeHidden: '🚫 已隐藏',
         sectionBadgeDeleted: '🗑 已删除',
         sectionBadgeBuiltin: '🔒 内置', sectionBadgeCustom: '⚙️ 自定义',
-        sectionBadgeDynamic: '展开/折叠', sectionBadgeEncrypted: '🔐 加密',
+        sectionBadgeDynamic: '展开/折叠', sectionBadgeEncrypted: '🔐 加密', sectionBadgePrivate: '🔒 私密',
         sectionBadgeLocked: '🔒 已锁定',
         sectionMetaSuffix: ' · {kind} · {cnt} 项',
         sectionMetaCustom: '{key} · {cnt} 项',
@@ -1808,8 +1811,8 @@ const I18N = {
         secLabelField: '显示名称（建议带 emoji 前缀）', secLabelPh: '🎵 音乐资源',
         secDynamicField: '启用展开/折叠',
         secDynamicHint: '勾选后效果与「视频聚合」一致：手机/平板默认只显示前 4/6 张卡片，其余可点击「展开」按钮查看；桌面端默认全部展开。',
-        secEncryptedField: '🔐 加密存储（AES-GCM-256）',
-        secEncryptedHint: '🔒 勾选后，此大类的所有卡片会以 AES-256-GCM 加密形式写入 data.js / KV。<br>🔑 加密密钥<b>复用当前登录密码</b>派生（PBKDF2 300,000 轮）；目前不支持为大类单独设置密码。<br>🔁 如需更换:在顶栏的"修改登录密码"中改密 → 立即点 💾 保存,旧加密会用旧密码解出后用新密码重新加密。<br>⚠️ <b>修改登录密码后未立即保存,原加密数据将无法解锁!</b>',
+        secEncryptedField: '🔒 私密分类（仅登录后可见）',
+        secEncryptedHint: '🔒 勾选后，此大类仅在登录后显示；数据以明文保存到 data.js / KV。<br>适合防普通访客查看，不用于防仓库或 Cloudflare 管理员读取。',
         unlockTitle: '🔓 解锁加密大类', unlockPwdLabel: '登录密码', unlockConfirm: '解锁',
         unlockDescOne: '大类「{label}」已加密，请输入登录密码解锁。',
         unlockDescAll: '当前有 <b>{n}</b> 个加密大类处于锁定状态。输入登录密码即可全部解锁。',
@@ -1902,8 +1905,8 @@ const I18N = {
         toastEncLocked: '此大类已锁定，请先解锁',
         toastEncCantEditLocked: '请先解锁此加密大类',
         toastEncCantDisableLocked: '请先解锁，再关闭加密',
-        toastEncEnabled: '已标记为加密（保存时生效）',
-        toastEncDisabled: '已取消加密（保存时生效）',
+        toastEncEnabled: '已标记为私密，保存后仅登录可见',
+        toastEncDisabled: '已取消私密，保存后公开可见',
         toastLockedSkippedInMove: '跨大类移动到加密已锁定的大类需先解锁',
         confirmDelCard: '确认删除此卡片？', confirmDelSub: '删除此子卡片？',
         confirmRestoreOnline: '确定把 "{name}" 恢复为当前主数据？\n（当前数据会自动备份）',
@@ -2285,6 +2288,7 @@ const I18N = {
         secCustomTag: 'Custom', secCustomTitle: 'Custom section',
         btnAddCard: '➕ Add Card', titleItems: ' ({n} items)',
         customBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffe0b2; color:#e65100; border-radius:10px; vertical-align:middle;">Custom</span>',
+        privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 Private</span>',
         encBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#f3e5f5; color:#6a1b9a; border-radius:10px; vertical-align:middle;">🔐 Encrypted</span>',
         lockedBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffebee; color:#c62828; border-radius:10px; vertical-align:middle;">🔒 Locked</span>',
         emptyCards: 'No data. Click "➕ Add Card" at top right.',
@@ -2346,7 +2350,7 @@ const I18N = {
         sectionBadgeHidden: '🚫 Hidden',
         sectionBadgeDeleted: '🗑 Deleted',
         sectionBadgeBuiltin: '🔒 Built-in', sectionBadgeCustom: '⚙️ Custom',
-        sectionBadgeDynamic: 'Expand/Collapse', sectionBadgeEncrypted: '🔐 Encrypted',
+        sectionBadgeDynamic: 'Expand/Collapse', sectionBadgeEncrypted: '🔐 Encrypted', sectionBadgePrivate: '🔒 Private',
         sectionBadgeLocked: '🔒 Locked',
         sectionMetaSuffix: ' · {kind} · {cnt} items',
         sectionMetaCustom: '{key} · {cnt} items',
@@ -2355,8 +2359,8 @@ const I18N = {
         secLabelField: 'Display name (emoji prefix recommended)', secLabelPh: '🎵 Music',
         secDynamicField: 'Enable expand/collapse',
         secDynamicHint: 'When checked, behaves like "Videos": first 4/6 cards shown on mobile/tablet, rest expandable. Desktop shows all.',
-        secEncryptedField: '🔐 Encrypted storage (AES-GCM-256)',
-        secEncryptedHint: '🔒 When checked, all cards of this section are AES-256-GCM encrypted before writing to data.js / KV.<br>🔑 The encryption key is derived from your <b>current login password</b> (PBKDF2 300,000 rounds); separate passwords per section are not supported.<br>🔁 To rotate: change your login password in the top bar, then click 💾 Save immediately. The old data is decrypted with the old password and re-encrypted with the new one.<br>⚠️ <b>If you change the login password without saving immediately, the old encrypted data can no longer be unlocked!</b>',
+        secEncryptedField: '🔒 Private section (visible after login only)',
+        secEncryptedHint: '🔒 When checked, this section is shown only after login. Data is stored as plaintext in data.js / KV.<br>This hides content from regular visitors, not from repository or Cloudflare administrators.',
         unlockTitle: '🔓 Unlock Encrypted Sections', unlockPwdLabel: 'Login password', unlockConfirm: 'Unlock',
         unlockDescOne: 'Section "{label}" is encrypted. Enter login password to unlock.',
         unlockDescAll: 'There are <b>{n}</b> locked encrypted section(s). Enter login password to unlock all.',
@@ -2439,8 +2443,8 @@ const I18N = {
         toastEncLocked: 'Section is locked, unlock first',
         toastEncCantEditLocked: 'Unlock this encrypted section first',
         toastEncCantDisableLocked: 'Unlock first, then disable encryption',
-        toastEncEnabled: 'Marked as encrypted (applied on save)',
-        toastEncDisabled: 'Encryption removed (applied on save)',
+        toastEncEnabled: 'Marked as private (visible after login only)',
+        toastEncDisabled: 'Private disabled (public after save)',
         toastLockedSkippedInMove: 'Unlock target encrypted section before moving into it',
         confirmDelCard: 'Delete this card?', confirmDelSub: 'Delete this sub-card?',
         confirmRestoreOnline: 'Restore "{name}" as current data?\n(Current data will be auto-backed up)',
@@ -2576,7 +2580,7 @@ function getSections() {
         label: (c.key === UNCLASSIFIED_KEY) ? t('secUnclassified') : c.label,
         kind: 'card', builtin: false,
         visible: c.visible !== false,
-        dynamic: !!c.dynamic, encrypted: !!c.encrypted, locked: !!c.locked,
+        dynamic: !!c.dynamic, private: !!c.private, encrypted: !!c.encrypted, locked: !!c.locked,
         anchor: c.anchor || ''   // ★ P3-5：透传 anchor 给 generateDataJs / renderSectionTabs 使用
     }));
     return [...cardB, ...customs, ...otherB];
@@ -2588,7 +2592,7 @@ function getFirstAvailableSectionKey() {
 }
 function ensureUnclassifiedSection() {
     if (!customSectionsMeta.find(c => c.key === UNCLASSIFIED_KEY)) {
-        customSectionsMeta.push({ key: UNCLASSIFIED_KEY, label: t('secUnclassified'), visible: true, dynamic: false, encrypted: false, locked: false });
+        customSectionsMeta.push({ key: UNCLASSIFIED_KEY, label: t('secUnclassified'), visible: true, dynamic: false, private: false, encrypted: false, locked: false });
     }
     if (!Array.isArray(store[UNCLASSIFIED_KEY])) store[UNCLASSIFIED_KEY] = [];
 }
@@ -3906,7 +3910,7 @@ async function parseAndLoad(text) {
                     if (!c || !c.key) return;
                     // ★ P3-5: 老格式 customSections 也兼容 anchor
                     var oa = (typeof c.anchor === 'string' && /^[a-zA-Z0-9_-]+$/.test(c.anchor)) ? c.anchor : '';
-                    s.push({ builtin:false, key:c.key, kind:'card', defaultLabel:c.label||c.key, label:c.label||c.key, visible:true, dynamic:!!c.dynamic, encrypted:!!c.encrypted, enc:c.enc||null, cards:c.cards||[], anchor: oa });
+                    s.push({ builtin:false, key:c.key, kind:'card', defaultLabel:c.label||c.key, label:c.label||c.key, visible:true, dynamic:!!c.dynamic, private:!!(c.private || c.encrypted), encrypted:!!c.encrypted, enc:c.enc||null, cards:c.cards||[], anchor: oa });
                 });
             }
             await parseSectionsArray(s, false);
@@ -3959,25 +3963,10 @@ async function parseSectionsArray(rawSections, preserveMissingBuiltins) {
             var label = (sec.key === UNCLASSIFIED_KEY) ? t('secUnclassified') : (sec.label || sec.key);
             // ★ P3-5: 读取 anchor 字段；非法或缺失 → 空字符串（视为未设置）
             var rawAnchor = (typeof sec.anchor === 'string' && /^[a-zA-Z0-9_-]+$/.test(sec.anchor)) ? sec.anchor : '';
-            var meta = { key: sec.key, label: label, anchor: rawAnchor, visible: sec.visible !== false, dynamic: !!sec.dynamic, encrypted: false, locked: false, _enc: null };
+            var meta = { key: sec.key, label: label, anchor: rawAnchor, visible: sec.visible !== false, dynamic: !!sec.dynamic, private: !!(sec.private || sec.encrypted), encrypted: false, locked: false, _enc: null };
 
-            if (sec.encrypted && sec.enc) {
-                meta.encrypted = true;
-                var pwd = getEncPassword();
-                if (pwd) {
-                    try {
-                        var dec = await decryptJSON(pwd, sec.enc);
-                        meta.locked = false;
-                        store[sec.key] = Array.isArray(dec) ? dec : [];
-                    } catch (e) {
-                        meta.locked = true; meta._enc = sec.enc; store[sec.key] = [];
-                    }
-                } else {
-                    meta.locked = true; meta._enc = sec.enc; store[sec.key] = [];
-                }
-            } else {
-                store[sec.key] = Array.isArray(sec.cards) ? sec.cards : [];
-            }
+            // 旧 encrypted 数据自动迁移为 private 明文分类。若旧密文无法解开，内容无法恢复，只保留分类壳。
+            store[sec.key] = Array.isArray(sec.cards) ? sec.cards : [];
             customSectionsMeta.push(meta);
         }
     }
@@ -4128,20 +4117,8 @@ async function generateDataJs() {
             const c = customSectionsMeta.find(x => x.key === s.key);
             if (c) {
                 secObj.visible = c.visible !== false;
-                secObj.encrypted = !!c.encrypted;
-                if (c.encrypted) {
-                    if (c.locked) {
-                        secObj.enc = c._enc;
-                        secObj.cards = [];
-                    } else {
-                        const pwd = getEncPassword();
-                        if (!pwd) throw new Error(t('toastEncNoSessionPwd'));
-                        secObj.enc = await encryptJSON(pwd, store[s.key] || []);
-                        secObj.cards = [];
-                    }
-                } else {
-                    secObj.cards = store[s.key] || [];
-                }
+                if (c.private) secObj.private = true;
+                secObj.cards = store[s.key] || [];
             }
         } else {
             secObj.cards = store[s.key] || [];
@@ -4208,12 +4185,14 @@ function renderSectionTabs() {
         if (s.key === currentSection) cls += ' active';
         if (!s.builtin) {
             if (s.locked) cls += ' is-locked';
+            else if (s.private) cls += ' is-private';
             else if (s.encrypted) cls += ' is-encrypted';
             else cls += ' is-custom';
         }
         el.className = cls;
         let label = s.label;
         if (s.locked) label = '🔒 ' + label;
+        else if (s.private) label = '🔒 ' + label;
         else if (s.encrypted) label = '🔐 ' + label;
         el.textContent = label;
         if (!s.builtin) el.title = t('secCustomTitle');
@@ -4229,6 +4208,7 @@ function renderCurrentSection() {
     let badges = '';
     if (!sec.builtin) {
         badges += t('customBadgeHtml');
+        if (sec.private) badges += t('privateBadgeHtml');
         if (sec.encrypted) badges += t('encBadgeHtml');
         if (sec.locked) badges += t('lockedBadgeHtml');
     }
@@ -4562,6 +4542,7 @@ function renderSectionsModalLists() {
         const el = document.createElement('div'); el.className = 'sec-row custom';
         let badges = '';
         if (c.dynamic)   badges += '<span class="sec-badge badge-dynamic">'   + escapeHtml(t('sectionBadgeDynamic'))   + '</span>';
+        if (c.private)   badges += '<span class="sec-badge badge-private">'   + escapeHtml(t('sectionBadgePrivate'))   + '</span>';
         if (c.encrypted) badges += '<span class="sec-badge badge-encrypted">' + escapeHtml(t('sectionBadgeEncrypted')) + '</span>';
         if (c.locked)    badges += '<span class="sec-badge badge-locked">'    + escapeHtml(t('sectionBadgeLocked'))    + '</span>';
         if (c.visible === false) badges += '<span class="sec-badge badge-locked">' + escapeHtml(t('sectionBadgeHidden')) + '</span>';
@@ -4796,7 +4777,7 @@ function openSectionEditModal(target) {
         $('se_label').value = c.label;
         $('se_anchor').value = c.anchor || '';
         $('se_dynamic').checked = !!c.dynamic;
-        $('se_encrypted').checked = !!c.encrypted;
+        $('se_encrypted').checked = !!c.private;
     }
     updateSectionDirectLinkPreview();
     show('sectionEditModal');
@@ -4838,23 +4819,20 @@ function saveSectionEdit() {
     }
 
     const dynamic = $('se_dynamic').checked;
-    const encrypted = $('se_encrypted').checked;
+    const privateSection = $('se_encrypted').checked;
 
     if (editingCustomSectionIdx === -1) {
-        if (encrypted && !getEncPassword()) { toast(t('toastEncNoSessionPwd')); return; }
         const key = genCustomKey();
-        customSectionsMeta.push({ key, label, anchor, visible: true, dynamic, encrypted, locked: false, _enc: null });
+        customSectionsMeta.push({ key, label, anchor, visible: true, dynamic, private: privateSection, encrypted: false, locked: false, _enc: null });
         store[key] = [];
         toast(t('toastAddedSectionUnsaved'));
     } else {
         const c = customSectionsMeta[editingCustomSectionIdx];
         c.label = label; c.dynamic = dynamic; c.anchor = anchor;
-        if (encrypted && !c.encrypted) {
-            if (!getEncPassword()) { toast(t('toastEncNoSessionPwd')); return; }
-            c.encrypted = true; toast(t('toastEncEnabled'));
-        } else if (!encrypted && c.encrypted) {
-            if (c.locked) { toast(t('toastEncCantDisableLocked')); return; }
-            c.encrypted = false; c._enc = null; toast(t('toastEncDisabled'));
+        if (privateSection && !c.private) {
+            c.private = true; c.encrypted = false; c.locked = false; c._enc = null; toast(t('toastEncEnabled'));
+        } else if (!privateSection && c.private) {
+            c.private = false; c.encrypted = false; c.locked = false; c._enc = null; toast(t('toastEncDisabled'));
         } else {
             toast(t('toastUpdatedUnsaved'));
         }

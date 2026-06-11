@@ -6,8 +6,8 @@
  * 依赖（必须在本文件之前加载）：
  *   1. data.js                → 提供 usbDriveData / teachingData / onlineAIData /
  *                               videoData / contactData / emailData / customSections
- *   2. shared/enc-unlock.js   → 加密大类解锁模块（可选）
- *   3. shared/enc-rerender.js → 加密模块锁/解锁无刷新重渲染（可选）
+ *   2. shared/enc-unlock.js   → 旧版加密模块（兼容保留，不再主动使用）
+ *   3. shared/enc-rerender.js → 旧版加密重渲染模块（兼容保留，不再主动使用）
  *   4. shared/note-modal.js   → 卡片注释模态框（可选）
  *
  * 每个页面在引入本文件之前，需要设置：
@@ -84,7 +84,7 @@ function normalizeData() {
         if (Array.isArray(window.customSections)) {
             window.customSections.forEach(function(c) {
                 // ★ P3-5: 透传 anchor 字段(老格式),fav-page 渲染时会过 __safeAnchor
-                s.push({ builtin:false, key:c.key, kind:'card', defaultLabel:c.label, label:c.label, visible:true, dynamic:!!c.dynamic, encrypted:!!c.encrypted, enc:c.enc||null, cards:c.cards||[], anchor: c.anchor || '' });
+                s.push({ builtin:false, key:c.key, kind:'card', defaultLabel:c.label, label:c.label, visible:true, dynamic:!!c.dynamic, private:!!(c.private || c.encrypted), cards:c.cards||[], anchor: c.anchor || '' });
             });
         }
         contactDefs.forEach(function(d) {
@@ -144,6 +144,18 @@ var currentLayout    = 'mobile';
 var currentEmailData = null;  // ★ 动态设置（首个 email 类型 section 的第一张卡片）
 var isAnimating      = false;
 var __allSections    = window.__sections;  // ★ 统一数据源
+var __privateAccess  = false;              // 登录后才显示 private section
+
+async function detectPrivateAccess() {
+    try {
+        var r = await fetch('/api/check', { credentials: 'include', cache: 'no-store' });
+        if (!r.ok) return false;
+        var data = await r.json();
+        return !!(data && data.ok && data.loggedIn);
+    } catch (e) {
+        return false;
+    }
+}
 
 
 /* ════════════════════════════════════════════════════════════════════════════════
@@ -155,7 +167,7 @@ var __allSections    = window.__sections;  // ★ 统一数据源
  *   cardIndex    → 在该大类数组里的下标
  *   subIndex     → 子卡片下标（仅子卡片）
  *   emailIndex   → 邮箱 Tab 下标（仅邮箱卡）
- *   encrypted    → 是否加密大类
+ *   encrypted    → 旧字段：是否来自加密大类
  *   uniqueKey    → 会话级备份用的稳定 key
  * ──────────────────────────────────────────────────────────────────────────────── */
 var __cardRegistry = {};
@@ -951,7 +963,7 @@ function openEmail(url) {
 
 
 /* ════════════════════════════════════════════════════════════════════════════════
- * 【区块 10】对外 API（enc-rerender.js / note-modal.js 使用）
+ * 【区块 10】对外 API（note-modal.js 使用；旧 enc-rerender 兼容保留）
  * ════════════════════════════════════════════════════════════════════════════════ */
 window.__favPageAPI = {
     getLayout: function() { return currentLayout; },
@@ -959,12 +971,7 @@ window.__favPageAPI = {
     renderSection: function(sec, layout) {
         var contentEl = document.getElementById(sec.key + '-content');
         if (!contentEl) return;
-        if (window.EncUnlock && EncUnlock.isLocked(sec)) {
-            contentEl.innerHTML = '';
-            contentEl.appendChild(EncUnlock.makeLockedPlaceholder(sec));
-        } else {
-            renderOneSection(sec, layout || currentLayout);
-        }
+        renderOneSection(sec, layout || currentLayout);
     },
     getCardById: function(id) { return __cardRegistry[id] || null; },
     clearExpandedState: function() {
@@ -1012,12 +1019,6 @@ function toggleStyleMenu(e) {
 function renderOneSection(sec, layout) {
     var contentEl = document.getElementById(sec.key + '-content');
     if (!contentEl) return;
-
-    if (window.EncUnlock && EncUnlock.isLocked(sec)) {
-        contentEl.innerHTML = '';
-        contentEl.appendChild(EncUnlock.makeLockedPlaceholder(sec));
-        return;
-    }
 
     var cards = Array.isArray(sec.cards) ? sec.cards : [];
     if (!cards.length) {
@@ -1072,22 +1073,13 @@ function renderAllSections(layout) {
 
     getDisplayOrderedSections().forEach(function(sec) {
         if (sec.visible === false) return;
+        if (sec.private && !__privateAccess) return;
         // ★ contactData 合并到 email section 中渲染，此处跳过
         if (sec.key === 'contactData') return;
-        // 2026-05-24 修订:所有 card kind 大类(含自定义、含加密)统一规则 — 空白就隐藏。
-        //   邮箱(emailData)/联系方式(contactData)不参与本规则(永远显示,即使无卡)。
-        //   加密大类的特殊判定:
-        //     - 已解锁 + cards 数组为空 → 视为空,隐藏
-        //     - 未解锁 → 用密文 base64 长度估算(空 enc 约 24 字符,阈值 36)
-        //       密文非空 → 显示药丸;密文实质为空 → 也隐藏(连药丸都不出现)
+        // 所有 card kind 大类(含自定义/私密)统一规则：空白就隐藏。
+        // 邮箱(emailData)/联系方式(contactData)不参与本规则。
         if (sec.kind === 'card') {
-            if (window.EncUnlock && sec.encrypted && !sec.__unlocked) {
-                // 未解锁加密大类:用密文长度判断
-                var encEmpty = window.EncUnlock && typeof EncUnlock === 'object'
-                    && sec.enc && typeof sec.enc.data === 'string'
-                    && sec.enc.data.length <= 36;
-                if (encEmpty) return;
-            } else if (!sec.cards || sec.cards.length === 0) {
+            if (!sec.cards || sec.cards.length === 0) {
                 return;
             }
         }
@@ -1095,18 +1087,13 @@ function renderAllSections(layout) {
         sectionEl.className = 'section';
         if (sec.builtin === false) sectionEl.dataset.customKey = sec.key;
 
-        if (window.EncUnlock && EncUnlock.isLocked(sec)) {
-            sectionEl.classList.add('section-locked-pill');
-            sectionEl.innerHTML = '<div id="' + __attr(sec.key) + '-content"></div>';
-        } else {
-            // ★ P3-5：<h2> 的 id 用独立 anchor 字段（用户可自定义短锚点，如 #video）；
-            //   未设或非法时降级到 sec.key 保持向后兼容。
-            //   <div>...-content> 内部容器仍用 sec.key（renderOneSection / __favPageAPI 都靠它定位）。
-            var anchorId = __safeAnchor(sec.anchor) || sec.key;
-            sectionEl.innerHTML =
-                '<h2 class="section-title" id="' + __attr(anchorId) + '">' + __txt(sec.label || sec.key) + '</h2>' +
-                '<div id="' + __attr(sec.key) + '-content"></div>';
-        }
+        // ★ P3-5：<h2> 的 id 用独立 anchor 字段（用户可自定义短锚点，如 #video）；
+        //   未设或非法时降级到 sec.key 保持向后兼容。
+        //   <div>...-content> 内部容器仍用 sec.key（renderOneSection / __favPageAPI 都靠它定位）。
+        var anchorId = __safeAnchor(sec.anchor) || sec.key;
+        sectionEl.innerHTML =
+            '<h2 class="section-title" id="' + __attr(anchorId) + '">' + __txt(sec.label || sec.key) + '</h2>' +
+            '<div id="' + __attr(sec.key) + '-content"></div>';
         root.appendChild(sectionEl);
         renderOneSection(sec, layout);
     });
@@ -1127,10 +1114,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     currentLayout = detectLayout();
-
-    if (window.EncUnlock) {
-        try { await EncUnlock.bootstrap(); } catch (e) { console.warn('EncUnlock bootstrap error:', e); }
-    }
+    __privateAccess = await detectPrivateAccess();
 
     // ★ 初始化第一个 email section 的 currentEmailData
     var emailSec = __allSections.find(function(s) { return s.kind === 'email' && s.visible !== false; });
@@ -1142,15 +1126,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     var containerEl = document.querySelector('.container');
     if (typeof ResizeObserver !== 'undefined' && containerEl) {
         new ResizeObserver(function() { alignStyleSwitcher(); }).observe(containerEl);
-    }
-
-    if (window.EncUnlock && EncUnlock.mountLockButton) {
-        EncUnlock.mountLockButton();
-    }
-    // 2026-05-24:有加密大类未解锁 或 任一卡片有 comment → 显示解锁浮动按钮
-    // 公开访问模式 /@<slug> 与 admin 视图行为一致,统一显示(用户 2026-05-24 明确要求)
-    if (window.EncUnlock && EncUnlock.mountUnlockButton) {
-        EncUnlock.mountUnlockButton();
     }
 
     var ol = document.getElementById('overlay');

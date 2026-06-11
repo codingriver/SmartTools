@@ -47,6 +47,101 @@ var customSections = [];
 function userDataKey(uid)   { return 'user:' + uid + ':data_js'; }
 function userSourceKey(uid) { return 'user:' + uid + ':data_source'; }
 
+function findMatchingBracket(src, openIdx, openChar, closeChar) {
+    let depth = 0;
+    let quote = null;
+    let escape = false;
+    let lineComment = false;
+    let blockComment = false;
+    for (let i = openIdx; i < src.length; i++) {
+        const ch = src[i];
+        const next = src[i + 1];
+        if (lineComment) {
+            if (ch === '\n') lineComment = false;
+            continue;
+        }
+        if (blockComment) {
+            if (ch === '*' && next === '/') { blockComment = false; i++; }
+            continue;
+        }
+        if (quote) {
+            if (escape) { escape = false; continue; }
+            if (ch === '\\') { escape = true; continue; }
+            if (ch === quote) quote = null;
+            continue;
+        }
+        if (ch === '/' && next === '/') { lineComment = true; i++; continue; }
+        if (ch === '/' && next === '*') { blockComment = true; i++; continue; }
+        if (ch === '"' || ch === "'" || ch === '`') { quote = ch; continue; }
+        if (ch === openChar) depth++;
+        else if (ch === closeChar) {
+            depth--;
+            if (depth === 0) return i;
+        }
+    }
+    return -1;
+}
+
+function splitTopLevelItems(src) {
+    const items = [];
+    let start = 0;
+    let depthBrace = 0;
+    let depthBracket = 0;
+    let depthParen = 0;
+    let quote = null;
+    let escape = false;
+    let lineComment = false;
+    let blockComment = false;
+    for (let i = 0; i < src.length; i++) {
+        const ch = src[i];
+        const next = src[i + 1];
+        if (lineComment) {
+            if (ch === '\n') lineComment = false;
+            continue;
+        }
+        if (blockComment) {
+            if (ch === '*' && next === '/') { blockComment = false; i++; }
+            continue;
+        }
+        if (quote) {
+            if (escape) { escape = false; continue; }
+            if (ch === '\\') { escape = true; continue; }
+            if (ch === quote) quote = null;
+            continue;
+        }
+        if (ch === '/' && next === '/') { lineComment = true; i++; continue; }
+        if (ch === '/' && next === '*') { blockComment = true; i++; continue; }
+        if (ch === '"' || ch === "'" || ch === '`') { quote = ch; continue; }
+        if (ch === '{') depthBrace++;
+        else if (ch === '}') depthBrace--;
+        else if (ch === '[') depthBracket++;
+        else if (ch === ']') depthBracket--;
+        else if (ch === '(') depthParen++;
+        else if (ch === ')') depthParen--;
+        else if (ch === ',' && depthBrace === 0 && depthBracket === 0 && depthParen === 0) {
+            items.push(src.slice(start, i));
+            start = i + 1;
+        }
+    }
+    const tail = src.slice(start);
+    if (tail.trim()) items.push(tail);
+    return items;
+}
+
+function stripPrivateSections(content) {
+    if (!content || typeof content !== 'string') return content;
+    const m = /var\s+sections\s*=\s*\[/.exec(content);
+    if (!m) return content;
+    const arrayStart = m.index + m[0].lastIndexOf('[');
+    const arrayEnd = findMatchingBracket(content, arrayStart, '[', ']');
+    if (arrayEnd < 0) return content;
+    const body = content.slice(arrayStart + 1, arrayEnd);
+    const items = splitTopLevelItems(body);
+    const publicItems = items.filter(item => !/\b(?:private|encrypted)\s*:\s*true\b/.test(item));
+    const nextBody = publicItems.length ? '\n' + publicItems.join(',') + '\n' : '\n';
+    return content.slice(0, arrayStart + 1) + nextBody + content.slice(arrayEnd);
+}
+
 function getClientIP(request) {
     const cf = request.headers.get('CF-Connecting-IP');
     if (cf) return cf.trim();
@@ -239,6 +334,9 @@ export async function onRequestGet({ request, env }) {
         actualSource = (ns === 'user') ? 'user-empty' : 'empty';
     }
 
+    const canViewPrivateSections = isLoggedIn && !isPublicSlugMode;
+    const responseContent = canViewPrivateSections ? content : stripPrivateSections(content);
+
     // A1.5 增强 A:在响应内容首行前置 window.__publicSlugInfo
     // 前端 indexN.html 据此撤销/保留 data-public-mode(slug 失败时显示正常 admin UI)
     // A1.5 增强 D(2026-05-23):命中老 slug 重定向时,info.oldSlug 携带原始请求 slug,前端显示改名 banner
@@ -287,19 +385,20 @@ export async function onRequestGet({ request, env }) {
     if (format === 'json') {
         return jsonResponse({
             ok: true,
-            content,
+            content: responseContent,
             source: actualSource,
             configured: source,
             namespace: ns,
             uid: uid,
             publicSlug: isPublicSlugMode ? publicSlug : null,
             publicSlugHit: isPublicSlugMode,
-            publicOldSlug: publicOldSlug || null
+            publicOldSlug: publicOldSlug || null,
+            privateFiltered: !canViewPrivateSections
         });
     }
 
     // 前置 __publicSlugInfo + __viewerInfo(仅 JS 路径)
-    const finalContent = publicSlugInfoLine + viewerInfoLine + content;
+    const finalContent = publicSlugInfoLine + viewerInfoLine + responseContent;
 
     // 缓存策略:
     //   登录态(非 slug 模式) → 严格 no-store
@@ -313,7 +412,8 @@ export async function onRequestGet({ request, env }) {
         'Content-Type': 'application/javascript;charset=utf-8',
         'Cache-Control': cacheHeader,
         'X-Data-Source': actualSource,
-        'X-Data-Namespace': ns
+        'X-Data-Namespace': ns,
+        'X-Private-Filtered': canViewPrivateSections ? '0' : '1'
     };
     if (isPublicSlugMode) {
         headers['X-Public-Slug'] = publicSlug;
