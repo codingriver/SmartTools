@@ -4244,7 +4244,8 @@ function renderAllCardsView() {
         if (!arr.length) return;
         const header = document.createElement('div');
         header.className = 'tree-section-header';
-        header.innerHTML = escapeHtml(s.label) + ' <span class="tree-sec-badge kind">' + escapeHtml(s.kind || 'card') + '</span>';
+        const badge = s.builtin ? 'builtin' : 'custom';
+        header.innerHTML = escapeHtml(s.label) + ' <span class="tree-sec-badge ' + badge + '">' + (s.builtin ? '内置' : '自定义') + '</span>';
         list.appendChild(header);
         const wrap = document.createElement('div');
         wrap.className = 'tree-card-wrap';
