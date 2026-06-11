@@ -2734,6 +2734,53 @@ function moveArrayItem(arr, from, to) {
     return true;
 }
 
+function bindSwipeSafeCardClick(el, handler) {
+    if (!el || typeof handler !== 'function') return;
+    const interactiveSelector = 'button,.drag-handle,input,select,textarea,a,label';
+    const threshold = 8;
+    let startX = 0, startY = 0, tracking = false, moved = false, pointerId = null;
+
+    el.addEventListener('pointerdown', e => {
+        if (e.button != null && e.button !== 0) return;
+        if (e.target && e.target.closest && e.target.closest(interactiveSelector)) return;
+        tracking = true;
+        moved = false;
+        pointerId = e.pointerId;
+        startX = e.clientX;
+        startY = e.clientY;
+    }, { passive: true });
+
+    el.addEventListener('pointermove', e => {
+        if (!tracking || (pointerId != null && e.pointerId !== pointerId)) return;
+        if (Math.abs(e.clientX - startX) > threshold || Math.abs(e.clientY - startY) > threshold) {
+            moved = true;
+        }
+    }, { passive: true });
+
+    el.addEventListener('pointercancel', () => {
+        if (tracking) moved = true;
+        tracking = false;
+        pointerId = null;
+    }, { passive: true });
+
+    el.addEventListener('pointerup', e => {
+        if (pointerId != null && e.pointerId !== pointerId) return;
+        tracking = false;
+        pointerId = null;
+    }, { passive: true });
+
+    el.addEventListener('click', e => {
+        if (e.target && e.target.closest && e.target.closest(interactiveSelector)) return;
+        if (moved) {
+            e.preventDefault();
+            e.stopPropagation();
+            moved = false;
+            return;
+        }
+        handler(e);
+    });
+}
+
 const store = { usbDriveData: [], teachingData: [], onlineAIData: [], videoData: [], emailData: [], contactData: [] };
 let currentSection = DEFAULT_SECTIONS[0].key;
 let editingCardIndex = -1, editingSubIndex = -1, editingCardDraft = null;
@@ -4297,7 +4344,7 @@ function renderAllCardsView() {
             act.innerHTML = '<button class="btn btn-primary btn-sm" data-act="edit">✏️</button><button class="btn btn-danger btn-sm" data-act="del">🗑</button>';
             act.querySelectorAll('button').forEach(b => { b.onclick = (e) => { e.stopPropagation(); handleAllCardAction(b.dataset.act, s.key, cardIdx); }; });
             row.appendChild(act);
-            if (hasSub) row.onclick = () => { toggleCardExpanded(s.key, cardIdx); renderAllCardsView(); };
+            if (hasSub) bindSwipeSafeCardClick(row, () => { toggleCardExpanded(s.key, cardIdx); renderAllCardsView(); });
             wrap.appendChild(row);
 
             if (hasSub && expanded) {
@@ -4450,7 +4497,7 @@ function renderCurrentSection() {
         act.querySelectorAll('button').forEach(b => b.onclick = (e) => { e.stopPropagation(); handleCardAction(b.dataset.act, idx); });
         el.appendChild(act); list.appendChild(el);
         if (hasSub) {
-            el.onclick = () => { toggleCardExpanded(sec.key, idx); renderCurrentSection(); };
+            bindSwipeSafeCardClick(el, () => { toggleCardExpanded(sec.key, idx); renderCurrentSection(); });
         }
         // §13:列表行内的 📌 删除按钮(在 info 里,不在 act 容器,需单独绑)
         const pushedDel = info.querySelector('.card-pushed-del');
