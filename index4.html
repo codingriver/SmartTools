@@ -130,6 +130,8 @@
             padding-bottom: 60px;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            display: flex;
+            flex-direction: column;
         }
 
         body::before {
@@ -159,6 +161,9 @@
             margin: 0 auto;
             padding-top: 4px;
             transition: max-width 0.4s var(--fr-ease);
+            min-height: calc(100vh - 72px);
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
@@ -181,14 +186,19 @@
             color: var(--fr-text-2);
             font-size: 14px;
             line-height: 1.6;
-            margin-bottom: 8px;
+            margin-top: -4px;
+            margin-bottom: 16px;
         }
 
         .site-header-extra a { color: inherit; }
 
+        #sectionsRoot {
+            flex: 1 0 auto;
+        }
+
         .footer {
             text-align: center;
-            margin-top: 1px;
+            margin-top: auto;
             color: var(--fr-text-3);
             font-size: 12px;
         }
@@ -1454,7 +1464,7 @@
         }
 
         @media (max-width: 480px) {
-            .container { width: 96%; max-width: none; padding: 0; }
+            .container { width: 96%; max-width: none; padding: 0; min-height: calc(100vh - 36px); }
             .section-title::after { flex: 0.45; }
             body { padding: 6px; padding-bottom: 30px; }
             .title { font-size: 24px; }
@@ -1873,8 +1883,8 @@
     <div class="container">
         <!-- ==================== 页头 ==================== -->
         <div class="header">
-            <div class="site-header-extra"></div>
             <h1 class="title">⭐️收藏夹🌹</h1>
+            <div class="site-header-extra"></div>
 
         </div>
 
