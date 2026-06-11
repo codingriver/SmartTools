@@ -331,17 +331,25 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     }
     .tree-card-row .tree-icon { flex-shrink: 0; }
     .tree-subcards-list { margin: 4px 0 8px 24px; border-left: 2px solid #e0e3f0; padding-left: 12px; }
+    .card-item + .tree-subcards-list { margin-left: 64px; margin-right: 8px; }
+    .tree-card-row + .tree-subcards-list { margin-left: 52px; margin-right: 8px; }
     .tree-subcard-row {
         display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 12px;
         background: #fcfcfc; border: 1px dashed #d8d8d8; border-radius: 6px; margin-bottom: 4px;
     }
     .tree-subcard-row:hover { background: #f5f7ff; border-color: #b0bcf0; }
-    .tree-subcard-row .tree-sub-icon { flex-shrink: 0; font-size: 18px; }
+    .tree-subcard-row .tree-sub-icon { flex: 0 0 32px; font-size: 18px; }
     .tree-subcard-info { flex: 1; min-width: 0; }
     .tree-subcard-info .tsc-title { font-weight: 600; font-size: 13px; }
     .tree-subcard-info .tsc-meta { font-size: 11px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tree-subcard-actions { display: flex; gap: 3px; flex-shrink: 0; }
     .tree-subcard-actions .btn { padding: 3px 6px; font-size: 11px; }
+    @media (max-width: 640px) {
+        .card-item + .tree-subcards-list,
+        .tree-card-row + .tree-subcards-list { margin-left: 28px; }
+        .tree-subcard-row { align-items: flex-start; }
+        .tree-subcard-actions { flex-direction: column; }
+    }
 }
 </style>
 </head>
@@ -4304,7 +4312,7 @@ function renderAllCardsView() {
                     renderIconTo(subIc, sub);
                     const subTitle = sub.title || sub.content || t('noTitle');
                     subRow.innerHTML = '<div class="tree-subcard-info"><div class="tsc-title">' + escapeHtml(subTitle) + '</div><div class="tsc-meta">🔗 ' + escapeHtml(sub.url || '') + '</div></div>';
-                    subRow.querySelector('.tree-subcard-info').prepend(subIc);
+                    subRow.insertBefore(subIc, subRow.firstChild);
                     const subAct = document.createElement('div');
                     subAct.className = 'tree-subcard-actions';
                     subAct.innerHTML = '<button class="btn btn-ghost btn-sm" data-act="edit-sub">✏️</button><button class="btn btn-danger btn-sm" data-act="del-sub">🗑</button>';
@@ -4455,7 +4463,7 @@ function renderCurrentSection() {
                 renderIconTo(subIc, sub);
                 const subTitle = sub.title || sub.content || t('noTitle');
                 subRow.innerHTML = '<div class="tree-subcard-info"><div class="tsc-title">' + escapeHtml(subTitle) + '</div><div class="tsc-meta">🔗 ' + escapeHtml(sub.url || '') + '</div></div>';
-                subRow.querySelector('.tree-subcard-info').prepend(subIc);
+                subRow.insertBefore(subIc, subRow.firstChild);
                 const subAct = document.createElement('div');
                 subAct.className = 'tree-subcard-actions';
                 subAct.innerHTML = '<button class="btn btn-ghost btn-sm" data-act="edit-sub">✏️</button><button class="btn btn-danger btn-sm" data-act="del-sub">🗑</button>';
