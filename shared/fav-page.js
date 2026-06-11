@@ -122,9 +122,13 @@ normalizeData();
         .then(function (r) { return r.json(); })
         .then(function (cfg) {
             if (!cfg.ok) return;
-            if (cfg.title) document.title = cfg.title;
             var titleEl = document.querySelector('.title');
-            if (cfg.header && titleEl) titleEl.innerHTML = cfg.header;
+            if (cfg.title) {
+                document.title = cfg.title;
+                if (titleEl) titleEl.innerHTML = cfg.title;
+            }
+            var headerEl = document.querySelector('.site-header-extra');
+            if (cfg.header && headerEl) headerEl.innerHTML = cfg.header;
             var footerEl = document.querySelector('.footer');
             if (cfg.footer && footerEl) footerEl.innerHTML = cfg.footer;
         })
