@@ -2737,6 +2737,7 @@ function moveArrayItem(arr, from, to) {
 const store = { usbDriveData: [], teachingData: [], onlineAIData: [], videoData: [], emailData: [], contactData: [] };
 let currentSection = DEFAULT_SECTIONS[0].key;
 let editingCardIndex = -1, editingSubIndex = -1, editingCardDraft = null;
+let listSubEditContext = null;
 let folderHandle = null, dataJsHandle = null;
 let moveFromIndex = -1;
 let movingCardSourceSection = null, movingCardSourceIndex = -1;
@@ -4315,8 +4316,15 @@ function renderAllCardsView() {
                     subRow.insertBefore(subIc, subRow.firstChild);
                     const subAct = document.createElement('div');
                     subAct.className = 'tree-subcard-actions';
-                    subAct.innerHTML = '<button class="btn btn-ghost btn-sm" data-act="edit-sub">✏️</button><button class="btn btn-danger btn-sm" data-act="del-sub">🗑</button>';
-                    subAct.querySelectorAll('button').forEach(b => { b.onclick = () => handleAllCardAction(b.dataset.act, s.key, cardIdx, subIdx); });
+                    const subPushBtn = currentUser.username ? '<button class="btn btn-info btn-sm" data-act="push-sub" title="' + escapeHtml(t('cardOpPushTitle')) + '">📤</button>' : '';
+                    subAct.innerHTML = '<button class="btn btn-ghost btn-sm" data-act="up-sub">⬆</button>' +
+                        '<button class="btn btn-ghost btn-sm" data-act="down-sub">⬇</button>' +
+                        '<button class="btn btn-warn btn-sm" data-act="move-sub">➡</button>' +
+                        '<button class="btn btn-success btn-sm" data-act="promote-sub" title="' + escapeHtml(t('promoteConfirm')) + '">🆙</button>' +
+                        subPushBtn +
+                        '<button class="btn btn-ghost btn-sm" data-act="edit-sub">✏️</button>' +
+                        '<button class="btn btn-danger btn-sm" data-act="del-sub">🗑</button>';
+                    subAct.querySelectorAll('button').forEach(b => { b.onclick = (e) => { e.stopPropagation(); handleAllCardAction(b.dataset.act, s.key, cardIdx, subIdx); }; });
                     subRow.appendChild(subAct);
                     subList.appendChild(subRow);
                 });
@@ -4336,10 +4344,8 @@ function handleAllCardAction(act, sectionKey, cardIdx, subIdx) {
         openCardModal(cardIdx, sectionKey);
     } else if (act === 'del') {
         if (confirm(t('confirmDelCard'))) { clearSectionExpanded(sectionKey); arr.splice(cardIdx, 1); renderAllCardsView(); markConfigDirty(); toast(t('toastDeletedUnsaved')); }
-    } else if (act === 'edit-sub') {
-        openSubModal(cardIdx, subIdx, sectionKey);
-    } else if (act === 'del-sub') {
-        if (confirm(t('confirmDelCard'))) { arr[cardIdx].subCards.splice(subIdx, 1); if (!arr[cardIdx].subCards.length) expandedCardKeys.delete(getCardExpandKey(sectionKey, cardIdx)); renderAllCardsView(); markConfigDirty(); toast(t('toastDeletedUnsaved')); }
+    } else if (act && act.endsWith('-sub')) {
+        handleListSubAction(act, sectionKey, cardIdx, subIdx, ALL_CARDS_SECTION);
     }
 }
 
@@ -4466,7 +4472,14 @@ function renderCurrentSection() {
                 subRow.insertBefore(subIc, subRow.firstChild);
                 const subAct = document.createElement('div');
                 subAct.className = 'tree-subcard-actions';
-                subAct.innerHTML = '<button class="btn btn-ghost btn-sm" data-act="edit-sub">✏️</button><button class="btn btn-danger btn-sm" data-act="del-sub">🗑</button>';
+                const subPushBtn = currentUser.username ? '<button class="btn btn-info btn-sm" data-act="push-sub" title="' + escapeHtml(t('cardOpPushTitle')) + '">📤</button>' : '';
+                subAct.innerHTML = '<button class="btn btn-ghost btn-sm" data-act="up-sub">⬆</button>' +
+                    '<button class="btn btn-ghost btn-sm" data-act="down-sub">⬇</button>' +
+                    '<button class="btn btn-warn btn-sm" data-act="move-sub">➡</button>' +
+                    '<button class="btn btn-success btn-sm" data-act="promote-sub" title="' + escapeHtml(t('promoteConfirm')) + '">🆙</button>' +
+                    subPushBtn +
+                    '<button class="btn btn-ghost btn-sm" data-act="edit-sub">✏️</button>' +
+                    '<button class="btn btn-danger btn-sm" data-act="del-sub">🗑</button>';
                 subAct.querySelectorAll('button').forEach(b => { b.onclick = (e) => { e.stopPropagation(); handleCardSubAction(b.dataset.act, idx, subIdx); }; });
                 subRow.appendChild(subAct);
                 subList.appendChild(subRow);
@@ -4503,16 +4516,93 @@ function handleCardAction(act, idx) {
     else if (act === 'del') { if (confirm(t('confirmDelCard'))) { clearSectionExpanded(currentSection); arr.splice(idx, 1); renderCurrentSection(); markConfigDirty(); toast(t('toastDeletedUnsaved')); } }
 }
 function handleCardSubAction(act, idx, subIdx) {
-    const arr = store[currentSection];
-    const card = arr && arr[idx];
+    handleListSubAction(act, currentSection, idx, subIdx, currentSection);
+}
+
+function prepareListSubContext(sectionKey, cardIdx, returnSection) {
+    if (isLockedKey(sectionKey)) { toast(t('toastEncCantEditLocked')); return false; }
+    const card = store[sectionKey] && store[sectionKey][cardIdx];
+    if (!card || !Array.isArray(card.subCards)) return false;
+    listSubEditContext = { sectionKey, cardIdx, returnSection: returnSection || currentSection };
+    currentSection = sectionKey;
+    editingCardIndex = cardIdx;
+    editingCardDraft = deepClone(card);
+    return true;
+}
+
+function refreshAfterListSubAction() {
+    const ret = listSubEditContext ? listSubEditContext.returnSection : currentSection;
+    currentSection = ret;
+    if (ret === ALL_CARDS_SECTION) renderAllCardsView();
+    else renderCurrentSection();
+}
+
+function syncListSubDraftToStore() {
+    if (!listSubEditContext || !editingCardDraft) return false;
+    const ctx = listSubEditContext;
+    const card = store[ctx.sectionKey] && store[ctx.sectionKey][ctx.cardIdx];
+    if (!card) return false;
+    if (!Array.isArray(editingCardDraft.subCards)) editingCardDraft.subCards = [];
+    card.subCards = deepClone(editingCardDraft.subCards);
+    if (!card.subCards.length) expandedCardKeys.delete(getCardExpandKey(ctx.sectionKey, ctx.cardIdx));
+    return true;
+}
+
+function clearListSubContext() {
+    listSubEditContext = null;
+}
+
+function cancelListSubModal(modalId) {
+    hide(modalId);
+    if (listSubEditContext) {
+        refreshAfterListSubAction();
+        clearListSubContext();
+    }
+}
+
+function flattenSubCardForPush(sub) {
+    sub = sub || {};
+    return {
+        type: 'simple',
+        title: sub.title || sub.content || '',
+        url: sub.url || '',
+        desc: sub.desc || '',
+        icon: sub.icon || '',
+        iconImg: sub.iconImg || '',
+        isLocal: !!sub.isLocal,
+        comment: sub.comment || ''
+    };
+}
+
+function handleListSubAction(act, sectionKey, cardIdx, subIdx, returnSection) {
+    const arr = store[sectionKey];
+    const card = arr && arr[cardIdx];
     if (!card || !Array.isArray(card.subCards)) return;
-    if (act === 'edit-sub') {
-        openSubModal(idx, subIdx);
+    const subs = card.subCards;
+    if (act === 'up-sub' && subIdx > 0) {
+        [subs[subIdx - 1], subs[subIdx]] = [subs[subIdx], subs[subIdx - 1]];
+        markConfigDirty(); refreshAfterListSubAction(); toast(t('toastUpdatedUnsaved'));
+    } else if (act === 'down-sub' && subIdx < subs.length - 1) {
+        [subs[subIdx + 1], subs[subIdx]] = [subs[subIdx], subs[subIdx + 1]];
+        markConfigDirty(); refreshAfterListSubAction(); toast(t('toastUpdatedUnsaved'));
+    } else if (act === 'edit-sub') {
+        if (prepareListSubContext(sectionKey, cardIdx, returnSection)) openSubModal(subIdx);
+    } else if (act === 'move-sub') {
+        if (prepareListSubContext(sectionKey, cardIdx, returnSection)) openMoveSubModal(subIdx);
+    } else if (act === 'promote-sub') {
+        if (prepareListSubContext(sectionKey, cardIdx, returnSection)) openPromoteSubModal(subIdx);
+    } else if (act === 'push-sub') {
+        if (!currentUser.username) return;
+        const meta = (customSectionsMeta || []).find(c => c.key === sectionKey);
+        const fromEnc = !!(meta && meta.encrypted && !meta.locked);
+        const flat = flattenSubCardForPush(subs[subIdx]);
+        if (currentUser.role === 'admin') openPushModal({ prefillCards: [flat], prefillFromEncrypted: fromEnc });
+        else openP2pPushModal({ prefillCards: [flat], prefillFromEncrypted: fromEnc });
     } else if (act === 'del-sub') {
         if (confirm(t('confirmDelCard'))) {
-            card.subCards.splice(subIdx, 1);
-            if (!card.subCards.length) expandedCardKeys.delete(getCardExpandKey(currentSection, idx));
-            renderCurrentSection();
+            subs.splice(subIdx, 1);
+            if (!subs.length) expandedCardKeys.delete(getCardExpandKey(sectionKey, cardIdx));
+            refreshAfterListSubAction();
             markConfigDirty();
             toast(t('toastDeletedUnsaved'));
         }
@@ -4683,8 +4773,13 @@ function confirmPromoteSub() {
     }
 
     hide('promoteSubModal');
-    renderSubCardsList();
-    renderCurrentSection();
+    if (listSubEditContext) {
+        refreshAfterListSubAction();
+        clearListSubContext();
+    } else {
+        renderSubCardsList();
+        renderCurrentSection();
+    }
 
     const tgtSecLabel = (getSections().find(s => s.key === targetSection) || {}).label || targetSection;
     toast(t('toastPromotedOk', { sec: tgtSecLabel }));
@@ -5230,7 +5325,16 @@ function saveSubFromModal() {
 
     if (!editingCardDraft.subCards) editingCardDraft.subCards = [];
     if (editingSubIndex >= 0) editingCardDraft.subCards[editingSubIndex] = obj; else editingCardDraft.subCards.push(obj);
-    hide('subModal'); renderSubCardsList();
+    hide('subModal');
+    if (listSubEditContext) {
+        syncListSubDraftToStore();
+        markConfigDirty();
+        refreshAfterListSubAction();
+        clearListSubContext();
+        toast(t('toastUpdatedUnsaved'));
+    } else {
+        renderSubCardsList();
+    }
 }
 function openMoveSubModal(subIdx) {
     moveFromIndex = subIdx;
@@ -5290,7 +5394,14 @@ function confirmMoveSubCard() {
         const src = store[currentSection][editingCardIndex];
         if (src) { if (!Array.isArray(src.subCards)) src.subCards = []; src.subCards = deepClone(editingCardDraft.subCards); }
     }
-    hide('moveModal'); renderSubCardsList(); renderCurrentSection();
+    hide('moveModal');
+    if (listSubEditContext) {
+        refreshAfterListSubAction();
+        clearListSubContext();
+    } else {
+        renderSubCardsList();
+        renderCurrentSection();
+    }
     const tgtSecLabel = (getSections().find(s => s.key === targetSection) || {}).label || targetSection;
     const tgtCardLabel = tgtCard.title || tgtCard.id || t('noTitle');
     toast(t('toastMovedSubToUnsaved', { sec: tgtSecLabel, card: tgtCardLabel }));
@@ -8648,7 +8759,7 @@ window.addEventListener('DOMContentLoaded', () => {
     ['f_icon_emoji','f_icon_img','f_icon_svg'].forEach(id => $(id).addEventListener('input', () => updateIconPreview('f_icon_emoji','f_icon_img','f_icon_svg','iconPreview')));
 
     $('btnAddSubCard').onclick = () => openSubModal(-1);
-    $('btnSubCancel').onclick = () => hide('subModal');
+    $('btnSubCancel').onclick = () => cancelListSubModal('subModal');
     $('btnSubSave').onclick = saveSubFromModal;
     $('sf_style').onchange = syncSubStyle;
     document.querySelectorAll('#subModal .icon-kind-tabs .k').forEach(ta => {
@@ -8661,12 +8772,12 @@ window.addEventListener('DOMContentLoaded', () => {
     });
     ['sf_icon_emoji','sf_icon_img','sf_icon_svg'].forEach(id => $(id).addEventListener('input', () => updateIconPreview('sf_icon_emoji','sf_icon_img','sf_icon_svg','subIconPreview')));
 
-    $('btnMoveCancel').onclick = () => hide('moveModal');
+    $('btnMoveCancel').onclick = () => cancelListSubModal('moveModal');
     $('btnMoveConfirm').onclick = confirmMoveSubCard;
     $('btnCardMoveCancel').onclick = () => hide('cardMoveModal');
     $('btnCardMoveConfirm').onclick = confirmMoveCard;
 
-    $('btnPromoteCancel').onclick = () => hide('promoteSubModal');
+    $('btnPromoteCancel').onclick = () => cancelListSubModal('promoteSubModal');
     $('btnPromoteConfirm').onclick = confirmPromoteSub;
     $('promote_type').onchange = syncPromoteTypeFields;
 
