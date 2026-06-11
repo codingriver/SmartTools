@@ -1244,6 +1244,14 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
                 <div style="font-size:14px; font-weight:600;" data-i18n="ioHubImportTable">📥 导入表格</div>
                 <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubImportTableDesc">从 CSV / XLSX 文件导入卡片</div>
             </button>
+            <button type="button" class="btn btn-ghost ioHubItem" id="btnIoHubImportBookmarks" style="text-align:left; padding:12px; height:auto; line-height:1.4;">
+                <div style="font-size:14px; font-weight:600;" data-i18n="ioHubImportBookmarks">📥 导入浏览器收藏夹</div>
+                <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubImportBookmarksDesc">导入 Chrome / Edge 导出的书签 HTML</div>
+            </button>
+            <button type="button" class="btn btn-ghost ioHubItem" id="btnIoHubExportBookmarks" style="text-align:left; padding:12px; height:auto; line-height:1.4;">
+                <div style="font-size:14px; font-weight:600;" data-i18n="ioHubExportBookmarks">📤 导出浏览器收藏夹</div>
+                <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubExportBookmarksDesc">导出 Chrome / Edge 可导入的 HTML</div>
+            </button>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" id="btnIoHubClose" data-i18n="btnClose">关闭</button>
@@ -1337,6 +1345,43 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
             <button class="btn btn-ghost" id="btnCsvImportCancel" data-i18n="btnCancel">取消</button>
             <button class="btn btn-primary" id="btnCsvImportPreview" data-i18n="csvImportPreviewBtn">🔍 预览</button>
             <button class="btn btn-success hidden" id="btnCsvImportApply" data-i18n="csvImportApply">✓ 应用到编辑器</button>
+        </div>
+    </div>
+</div>
+
+<!-- 导入浏览器收藏夹（Chrome / Edge HTML） -->
+<div id="bookmarkImportModal" class="modal-mask hidden">
+    <div class="modal-box" style="max-width:640px;">
+        <h2 data-i18n="bookmarkImportTitle">📥 导入浏览器收藏夹</h2>
+        <p class="muted" data-i18n="bookmarkImportDesc">支持 Chrome / Edge 导出的书签 HTML 文件。一级文件夹会作为大类，二级文件夹会作为可展开卡片。</p>
+
+        <div style="margin:12px 0;">
+            <input type="file" id="bookmarkImportFile" accept=".html,.htm,text/html" style="margin-bottom:8px;">
+            <textarea id="bookmarkImportText" style="min-height:120px; font-family: ui-monospace, Consolas, monospace; font-size:12px;" data-i18n-placeholder="bookmarkImportPh" placeholder="也可以粘贴浏览器导出的 bookmarks.html 内容..."></textarea>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px; margin:10px 0;">
+            <label style="font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="radio" name="bookmarkImportMode" value="append" checked>
+                <span data-i18n="bookmarkImportModeAppend">追加导入：所有书签作为新卡片追加（默认）</span>
+            </label>
+            <label style="font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="radio" name="bookmarkImportMode" value="skip-url">
+                <span data-i18n="bookmarkImportModeSkipUrl">按 URL 去重：已存在 URL 的书签跳过</span>
+            </label>
+            <label style="font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="radio" name="bookmarkImportMode" value="update-url">
+                <span data-i18n="bookmarkImportModeUpdateUrl">按 URL 更新：已存在 URL 的卡片更新标题，其余新增</span>
+            </label>
+        </div>
+
+        <div class="move-hint" style="font-size:12px;" data-i18n="bookmarkImportHint">导入只写入编辑器，不会立刻保存。确认无误后请手动点击「💾 保存」。</div>
+        <pre id="bookmarkImportPreview" class="export-pre" style="max-height:260px; display:none;"></pre>
+
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btnBookmarkImportCancel" data-i18n="btnCancel">取消</button>
+            <button class="btn btn-primary" id="btnBookmarkImportPreview" data-i18n="bookmarkImportPreviewBtn">🔍 预览</button>
+            <button class="btn btn-success hidden" id="btnBookmarkImportApply" data-i18n="csvImportApply">✓ 应用到编辑器</button>
         </div>
     </div>
 </div>
@@ -1461,6 +1506,10 @@ const I18N = {
         ioHubExportTableDesc: '导出为 CSV / XLSX,Excel/WPS 可编辑',
         ioHubImportTable: '📥 导入表格',
         ioHubImportTableDesc: '从 CSV / XLSX 文件导入卡片',
+        ioHubImportBookmarks: '📥 导入浏览器收藏夹',
+        ioHubImportBookmarksDesc: '导入 Chrome / Edge 导出的书签 HTML',
+        ioHubExportBookmarks: '📤 导出浏览器收藏夹',
+        ioHubExportBookmarksDesc: '导出 Chrome / Edge 可导入的 HTML',
         csvExportTitle: '📤 导出表格',
         csvExportDesc: '把全部卡片导出为表格文件，可用 Excel / WPS / Numbers 打开编辑，再通过「📥 导入表格」导回。',
         csvExportFormatXlsx: '📊 XLSX（推荐，支持 emoji 与 Excel 直接编辑）',
@@ -1506,6 +1555,22 @@ const I18N = {
         csvImportApplyDone: '已应用到编辑器：新增 {add} / 覆盖 {upd}{newSec}。请记得点「💾 保存」。',
         csvImportApplyNewSec: '，新建 {n} 个大类',
         csvImportParseFail: 'CSV 解析失败：{msg}',
+        bookmarkImportTitle: '📥 导入浏览器收藏夹',
+        bookmarkImportDesc: '支持 Chrome / Edge 导出的书签 HTML 文件。一级文件夹会作为大类，二级文件夹会作为可展开卡片。',
+        bookmarkImportPh: '也可以粘贴浏览器导出的 bookmarks.html 内容...',
+        bookmarkImportModeAppend: '追加导入：所有书签作为新卡片追加（默认）',
+        bookmarkImportModeSkipUrl: '按 URL 去重：已存在 URL 的书签跳过',
+        bookmarkImportModeUpdateUrl: '按 URL 更新：已存在 URL 的卡片更新标题，其余新增',
+        bookmarkImportHint: '导入只写入编辑器，不会立刻保存。确认无误后请手动点击「💾 保存」。',
+        bookmarkImportPreviewBtn: '🔍 预览',
+        bookmarkImportPreviewHeader: '解析结果：共 {sections} 个大类，{bookmarks} 个书签；新增 {add}，更新 {upd}，跳过 {skip}，新建大类 {newSec}',
+        bookmarkImportPreviewSection: '  - {label}: 新增 {add} / 更新 {upd} / 跳过 {skip}{extra}',
+        bookmarkImportPreviewEmpty: '请先选择或粘贴浏览器收藏夹 HTML',
+        bookmarkImportParseFail: '浏览器收藏夹解析失败：{msg}',
+        bookmarkImportApplyDone: '已应用到编辑器：新增 {add} / 更新 {upd} / 跳过 {skip}{newSec}。请记得点「💾 保存」。',
+        bookmarkExportOk: '浏览器收藏夹 HTML 已导出（{n} 个链接）',
+        bookmarkExportEmpty: '没有可导出的浏览器书签链接',
+        bookmarkExportFail: '浏览器收藏夹导出失败：{msg}',
         btnSave: '💾 保存', btnChangePwd: '🔑 密码', btnSwitchMode: '🔀 切换模式', btnLogout: '🚪 退出',
         btnUsers: '👥 用户',
         usersTitle: '👥 用户管理', userNew: '➕ 新建用户', userRefresh: '🔄 刷新',
@@ -2003,6 +2068,10 @@ const I18N = {
         ioHubExportTableDesc: 'Export to CSV / XLSX, editable in Excel/WPS',
         ioHubImportTable: '📥 Import Table',
         ioHubImportTableDesc: 'Import cards from a CSV / XLSX file',
+        ioHubImportBookmarks: '📥 Import Browser Bookmarks',
+        ioHubImportBookmarksDesc: 'Import bookmarks HTML exported by Chrome / Edge',
+        ioHubExportBookmarks: '📤 Export Browser Bookmarks',
+        ioHubExportBookmarksDesc: 'Export HTML importable by Chrome / Edge',
         csvExportTitle: '📤 Export Table',
         csvExportDesc: 'Export all cards as a spreadsheet file. Open in Excel / WPS / Numbers, edit, then re-import via 「📥 Import Table」.',
         csvExportFormatXlsx: '📊 XLSX (recommended; preserves emoji, edits safely in Excel)',
@@ -2048,6 +2117,22 @@ const I18N = {
         csvImportApplyDone: 'Applied to editor: add {add} / update {upd}{newSec}. Remember to click 「💾 Save」.',
         csvImportApplyNewSec: ', created {n} section(s)',
         csvImportParseFail: 'CSV parse failed: {msg}',
+        bookmarkImportTitle: '📥 Import Browser Bookmarks',
+        bookmarkImportDesc: 'Supports bookmarks HTML exported by Chrome / Edge. Top-level folders become sections; second-level folders become expandable cards.',
+        bookmarkImportPh: 'You can also paste bookmarks.html content exported by the browser...',
+        bookmarkImportModeAppend: 'Append: import every bookmark as a new card (default)',
+        bookmarkImportModeSkipUrl: 'Dedupe by URL: skip bookmarks whose URL already exists',
+        bookmarkImportModeUpdateUrl: 'Update by URL: update existing card titles, add the rest',
+        bookmarkImportHint: 'Import only loads to editor; it does not save immediately. After checking, click 「💾 Save」 manually.',
+        bookmarkImportPreviewBtn: '🔍 Preview',
+        bookmarkImportPreviewHeader: 'Parsed: {sections} sections, {bookmarks} bookmarks; add {add}, update {upd}, skip {skip}, new sections {newSec}',
+        bookmarkImportPreviewSection: '  - {label}: add {add} / update {upd} / skip {skip}{extra}',
+        bookmarkImportPreviewEmpty: 'Please choose or paste a browser bookmarks HTML file',
+        bookmarkImportParseFail: 'Browser bookmarks parse failed: {msg}',
+        bookmarkImportApplyDone: 'Applied to editor: add {add} / update {upd} / skip {skip}{newSec}. Remember to click 「💾 Save」.',
+        bookmarkExportOk: 'Browser bookmarks HTML exported ({n} links)',
+        bookmarkExportEmpty: 'No bookmark links to export',
+        bookmarkExportFail: 'Browser bookmarks export failed: {msg}',
         btnSave: '💾 Save', btnChangePwd: '🔑 Password', btnSwitchMode: '🔀 Switch Mode', btnLogout: '🚪 Logout',
         btnUsers: '👥 Users',
         usersTitle: '👥 User Management', userNew: '➕ New User', userRefresh: '🔄 Refresh',
@@ -5719,6 +5804,432 @@ function doCsvImportApply() {
 }
 
 /* ================================================================
+   Browser bookmarks import/export (Chrome / Edge Netscape HTML)
+================================================================ */
+var __bookmarkImportPlan = null;
+
+function openBookmarkImportModal() {
+    $('bookmarkImportFile').value = '';
+    $('bookmarkImportText').value = '';
+    var radios = document.getElementsByName('bookmarkImportMode');
+    for (var i = 0; i < radios.length; i++) radios[i].checked = (radios[i].value === 'append');
+    $('bookmarkImportPreview').style.display = 'none';
+    $('bookmarkImportPreview').textContent = '';
+    hide('btnBookmarkImportApply');
+    __bookmarkImportPlan = null;
+    show('bookmarkImportModal');
+}
+
+function readTextFileAuto(file, callback) {
+    var r = new FileReader();
+    r.onload = function(ev) {
+        var bytes = new Uint8Array(ev.target.result);
+        var text;
+        if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+            text = new TextDecoder('utf-8').decode(bytes);
+        } else {
+            try { text = new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
+            catch (err) {
+                try { text = new TextDecoder('gb18030').decode(bytes); }
+                catch (err2) { text = new TextDecoder('utf-8').decode(bytes); }
+            }
+        }
+        callback(text);
+    };
+    r.readAsArrayBuffer(file);
+}
+
+function handleBookmarkImportFile(e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    readTextFileAuto(f, function(text) { $('bookmarkImportText').value = text; });
+}
+
+function getBookmarkImportMode() {
+    var radios = document.getElementsByName('bookmarkImportMode');
+    for (var i = 0; i < radios.length; i++) if (radios[i].checked) return radios[i].value;
+    return 'append';
+}
+
+function getDirectChildByTag(el, tag) {
+    tag = String(tag || '').toUpperCase();
+    for (var i = 0; i < el.children.length; i++) {
+        if (el.children[i].tagName === tag) return el.children[i];
+    }
+    return null;
+}
+
+function getFolderDl(dt) {
+    var direct = getDirectChildByTag(dt, 'DL');
+    if (direct) return direct;
+    var n = dt.nextElementSibling;
+    if (n && n.tagName === 'DL') return n;
+    return null;
+}
+
+function parseBookmarkDl(dl) {
+    var out = [];
+    var el = dl.firstElementChild;
+    while (el) {
+        if (el.tagName === 'DT') {
+            var h3 = getDirectChildByTag(el, 'H3');
+            var a = getDirectChildByTag(el, 'A');
+            if (h3) {
+                var childDl = getFolderDl(el);
+                out.push({
+                    type: 'folder',
+                    title: (h3.textContent || '').trim() || 'Folder',
+                    children: childDl ? parseBookmarkDl(childDl) : []
+                });
+                if (childDl && childDl.parentElement === dl) el = childDl;
+            } else if (a && a.getAttribute('href')) {
+                var href = (a.getAttribute('href') || '').trim();
+                if (/^(https?:|mailto:|ftp:)/i.test(href)) {
+                    out.push({
+                        type: 'bookmark',
+                        title: (a.textContent || '').trim() || href,
+                        url: href,
+                        addDate: a.getAttribute('add_date') || ''
+                    });
+                }
+            }
+        }
+        el = el.nextElementSibling;
+    }
+    return out;
+}
+
+function parseBrowserBookmarksHtml(html) {
+    var text = String(html || '');
+    if (!/<A\s/i.test(text) && !/<DL/i.test(text)) throw new Error('not a bookmarks html file');
+    var doc = new DOMParser().parseFromString(text, 'text/html');
+    var dl = doc.querySelector('dl');
+    if (!dl) throw new Error('missing <DL> bookmarks tree');
+    var nodes = parseBookmarkDl(dl);
+    var sections = bookmarkNodesToSections(nodes);
+    var total = 0;
+    sections.forEach(function(s) { total += countBookmarkCards(s.cards); });
+    if (!total) throw new Error('no supported bookmark links found');
+    return { sections: sections, totalBookmarks: total };
+}
+
+function countBookmarkCards(cards) {
+    var n = 0;
+    (cards || []).forEach(function(c) {
+        if (getBookmarkUrlFromItem(c)) n++;
+        if (c && Array.isArray(c.subCards)) {
+            c.subCards.forEach(function(sc) { if (getBookmarkUrlFromItem(sc)) n++; });
+        }
+    });
+    return n;
+}
+
+function getBookmarkUrlFromItem(item) {
+    if (!item) return '';
+    if (item.url) return String(item.url);
+    if (item.mailto) return String(item.mailto);
+    if (item.address && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(item.address))) return 'mailto:' + String(item.address);
+    return '';
+}
+
+function flattenFolderBookmarks(nodes, prefix) {
+    var out = [];
+    (nodes || []).forEach(function(n) {
+        if (n.type === 'bookmark') {
+            out.push({
+                title: prefix ? (prefix + ' / ' + n.title) : n.title,
+                content: prefix ? (prefix + ' / ' + n.title) : n.title,
+                url: n.url
+            });
+        } else if (n.type === 'folder') {
+            out = out.concat(flattenFolderBookmarks(n.children || [], prefix ? (prefix + ' / ' + n.title) : n.title));
+        }
+    });
+    return out;
+}
+
+function bookmarkNodesToCards(nodes) {
+    var cards = [];
+    (nodes || []).forEach(function(n) {
+        if (n.type === 'bookmark') {
+            cards.push({ id: generateCardId(), type: 'simple', icon: '🔖', title: n.title, url: n.url });
+        } else if (n.type === 'folder') {
+            var subs = flattenFolderBookmarks(n.children || [], '');
+            if (subs.length) {
+                cards.push({ id: generateCardId(), type: 'expandable', icon: '📁', title: n.title, desc: String(subs.length) + ' bookmarks', subCards: subs });
+            }
+        }
+    });
+    return cards;
+}
+
+function bookmarkNodesToSections(nodes) {
+    var sections = [];
+    var rootBookmarks = [];
+    (nodes || []).forEach(function(n) {
+        if (n.type === 'folder') {
+            var cards = bookmarkNodesToCards(n.children || []);
+            if (countBookmarkCards(cards) > 0) sections.push({ label: n.title, cards: cards });
+        } else if (n.type === 'bookmark') {
+            rootBookmarks.push(n);
+        }
+    });
+    if (rootBookmarks.length) {
+        sections.unshift({ label: 'Imported Bookmarks', cards: bookmarkNodesToCards(rootBookmarks) });
+    }
+    return sections;
+}
+
+function normalizeLabelKey(label) {
+    return String(label || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function makeImportSectionKey(label, used) {
+    var base = String(label || 'bookmarks').toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 36) || 'bookmarks';
+    var key = 'import_' + base;
+    var i = 2;
+    while (used[key]) {
+        key = 'import_' + base + '_' + i;
+        i++;
+    }
+    used[key] = true;
+    return key;
+}
+
+function collectUrlMapFromCards(cards, map, sectionKey) {
+    (cards || []).forEach(function(c, idx) {
+        if (c && c.url) map[String(c.url)] = { card: c, sectionKey: sectionKey, index: idx, subIndex: -1 };
+        if (c && Array.isArray(c.subCards)) {
+            c.subCards.forEach(function(sc, subIdx) {
+                if (sc && sc.url) map[String(sc.url)] = { card: sc, sectionKey: sectionKey, index: idx, subIndex: subIdx };
+            });
+        }
+    });
+}
+
+function buildBookmarkImportPlan(parsed, mode) {
+    var existingSections = getSections();
+    var usedKeys = {};
+    var labelMap = {};
+    existingSections.forEach(function(s) {
+        usedKeys[s.key] = true;
+        labelMap[normalizeLabelKey(s.label)] = s;
+    });
+
+    var urlMap = {};
+    Object.keys(store).forEach(function(key) { collectUrlMapFromCards(store[key] || [], urlMap, key); });
+
+    var plan = { mode: mode || 'append', sections: {}, toCreate: [], add: 0, upd: 0, skip: 0, total: parsed.totalBookmarks || 0 };
+
+    parsed.sections.forEach(function(sec) {
+        var matched = labelMap[normalizeLabelKey(sec.label)];
+        var secKey = matched ? matched.key : makeImportSectionKey(sec.label, usedKeys);
+        if (!matched) plan.toCreate.push({ key: secKey, label: sec.label });
+        if (!plan.sections[secKey]) {
+            plan.sections[secKey] = { label: matched ? matched.label : sec.label, add: 0, upd: 0, skip: 0, ops: [] };
+        }
+        planBookmarkCards(sec.cards || [], secKey, plan.sections[secKey], plan, urlMap);
+    });
+
+    return plan;
+}
+
+function cloneBookmarkCard(card) {
+    var c = deepClone(card);
+    delete c.id;
+    c.id = generateCardId();
+    if (Array.isArray(c.subCards)) {
+        c.subCards = c.subCards.map(function(sc) { return deepClone(sc); });
+    }
+    return c;
+}
+
+function planBookmarkCards(cards, secKey, secPlan, plan, urlMap) {
+    (cards || []).forEach(function(card) {
+        if (card.type === 'expandable' && Array.isArray(card.subCards)) {
+            var next = cloneBookmarkCard(card);
+            next.subCards = [];
+            card.subCards.forEach(function(sc) {
+                var hit = sc.url ? urlMap[String(sc.url)] : null;
+                if (hit && (plan.mode === 'skip-url' || hit.planned)) {
+                    plan.skip++; secPlan.skip++;
+                } else if (hit && plan.mode === 'update-url') {
+                    secPlan.ops.push({ op: 'update', hit: hit, title: sc.title || sc.content || sc.url });
+                    plan.upd++; secPlan.upd++;
+                } else {
+                    next.subCards.push(deepClone(sc));
+                    if (sc.url && plan.mode !== 'append') urlMap[String(sc.url)] = { planned: true };
+                    plan.add++; secPlan.add++;
+                }
+            });
+            if (next.subCards.length) secPlan.ops.push({ op: 'append', card: next });
+        } else {
+            var url = card.url ? String(card.url) : '';
+            var hit = url ? urlMap[url] : null;
+            if (hit && (plan.mode === 'skip-url' || hit.planned)) {
+                plan.skip++; secPlan.skip++;
+            } else if (hit && plan.mode === 'update-url') {
+                secPlan.ops.push({ op: 'update', hit: hit, title: card.title || url });
+                plan.upd++; secPlan.upd++;
+            } else {
+                secPlan.ops.push({ op: 'append', card: cloneBookmarkCard(card) });
+                if (url && plan.mode !== 'append') urlMap[url] = { planned: true };
+                plan.add++; secPlan.add++;
+            }
+        }
+    });
+}
+
+function doBookmarkImportPreview() {
+    var text = $('bookmarkImportText').value;
+    if (!text || !text.trim()) {
+        $('bookmarkImportPreview').style.display = 'block';
+        $('bookmarkImportPreview').textContent = t('bookmarkImportPreviewEmpty');
+        hide('btnBookmarkImportApply');
+        return;
+    }
+    try {
+        var parsed = parseBrowserBookmarksHtml(text);
+        var plan = buildBookmarkImportPlan(parsed, getBookmarkImportMode());
+        var lines = [];
+        lines.push(t('bookmarkImportPreviewHeader', {
+            sections: parsed.sections.length,
+            bookmarks: parsed.totalBookmarks,
+            add: plan.add,
+            upd: plan.upd,
+            skip: plan.skip,
+            newSec: plan.toCreate.length
+        }));
+        Object.keys(plan.sections).forEach(function(key) {
+            var s = plan.sections[key];
+            var extra = plan.toCreate.find(function(x) { return x.key === key; }) ? '  [+新建]' : '';
+            lines.push(t('bookmarkImportPreviewSection', { label: s.label, add: s.add, upd: s.upd, skip: s.skip, extra: extra }));
+        });
+        $('bookmarkImportPreview').style.display = 'block';
+        $('bookmarkImportPreview').textContent = lines.join('\n');
+        __bookmarkImportPlan = plan;
+        if (plan.add || plan.upd) show('btnBookmarkImportApply');
+        else hide('btnBookmarkImportApply');
+    } catch (e) {
+        __bookmarkImportPlan = null;
+        $('bookmarkImportPreview').style.display = 'block';
+        $('bookmarkImportPreview').textContent = t('bookmarkImportParseFail', { msg: e.message || String(e) });
+        hide('btnBookmarkImportApply');
+    }
+}
+
+function applyBookmarkUpdate(hit, title) {
+    if (!hit || !hit.card) return;
+    if (hit.subIndex >= 0) {
+        hit.card.title = title || hit.card.title;
+        hit.card.content = title || hit.card.content || hit.card.title;
+    } else {
+        hit.card.title = title || hit.card.title;
+    }
+}
+
+function doBookmarkImportApply() {
+    var plan = __bookmarkImportPlan;
+    if (!plan) return;
+    plan.toCreate.forEach(function(sec) {
+        if (!customSectionsMeta.find(function(c) { return c.key === sec.key; })) {
+            customSectionsMeta.push({ key: sec.key, label: sec.label, kind: 'card', visible: true, dynamic: false, private: false, encrypted: false, locked: false });
+        }
+        if (!Array.isArray(store[sec.key])) store[sec.key] = [];
+    });
+    Object.keys(plan.sections).forEach(function(secKey) {
+        if (!Array.isArray(store[secKey])) store[secKey] = [];
+        plan.sections[secKey].ops.forEach(function(op) {
+            if (op.op === 'append') store[secKey].push(op.card);
+            else if (op.op === 'update') applyBookmarkUpdate(op.hit, op.title);
+        });
+    });
+    try { renderSectionTabs(); } catch (e) {}
+    try { renderCurrentSection(); } catch (e) {}
+    markConfigDirty();
+    __ioHubReturning = false;
+    hide('bookmarkImportModal');
+    var extra = plan.toCreate.length ? t('csvImportApplyNewSec', { n: plan.toCreate.length }) : '';
+    toast(t('bookmarkImportApplyDone', { add: plan.add, upd: plan.upd, skip: plan.skip, newSec: extra }), 3600);
+    __bookmarkImportPlan = null;
+}
+
+function bookmarkHtmlEscape(s) {
+    return String(s || '').replace(/[&<>"']/g, function(c) {
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);
+    });
+}
+
+function bookmarkAttrEscape(s) {
+    return bookmarkHtmlEscape(s).replace(/`/g, '&#96;');
+}
+
+function pushBookmarkLink(lines, title, url, indent) {
+    if (!url) return 0;
+    lines.push(indent + '<DT><A HREF="' + bookmarkAttrEscape(url) + '">' + bookmarkHtmlEscape(title || url) + '</A>');
+    return 1;
+}
+
+function pushBookmarkFolder(lines, title, childrenFn, indent) {
+    lines.push(indent + '<DT><H3>' + bookmarkHtmlEscape(title || 'Folder') + '</H3>');
+    lines.push(indent + '<DL><p>');
+    var count = childrenFn(indent + '    ');
+    lines.push(indent + '</DL><p>');
+    return count;
+}
+
+function exportCardToBookmarks(lines, card, indent) {
+    if (!card) return 0;
+    if (card.type === 'expandable' && Array.isArray(card.subCards)) {
+        return pushBookmarkFolder(lines, card.title || card.content || 'Folder', function(childIndent) {
+            var n = 0;
+            card.subCards.forEach(function(sc) {
+                var scUrl = getBookmarkUrlFromItem(sc);
+                n += pushBookmarkLink(lines, sc.title || sc.content || scUrl, scUrl, childIndent);
+            });
+            return n;
+        }, indent);
+    }
+    var url = getBookmarkUrlFromItem(card);
+    return pushBookmarkLink(lines, card.title || card.content || card.address || url, url, indent);
+}
+
+function exportBrowserBookmarks() {
+    try {
+        var lines = [
+            '<!DOCTYPE NETSCAPE-Bookmark-file-1>',
+            '<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">',
+            '<TITLE>Bookmarks</TITLE>',
+            '<H1>Bookmarks</H1>',
+            '<DL><p>'
+        ];
+        var total = 0;
+        getSections().forEach(function(sec) {
+            if (sec.locked) return;
+            var cards = Array.isArray(store[sec.key]) ? store[sec.key] : [];
+            var linkCount = countBookmarkCards(cards);
+            if (!linkCount) return;
+            total += pushBookmarkFolder(lines, sec.label || sec.key, function(indent) {
+                var n = 0;
+                cards.forEach(function(card) { n += exportCardToBookmarks(lines, card, indent); });
+                return n;
+            }, '    ');
+        });
+        lines.push('</DL><p>');
+        if (!total) { toast(t('bookmarkExportEmpty')); return; }
+        var blob = new Blob([lines.join('\n')], { type: 'text/html;charset=utf-8' });
+        var stamp = new Date().toISOString().slice(0, 10);
+        triggerDownload(blob, 'smarttools_bookmarks_' + stamp + '.html');
+        toast(t('bookmarkExportOk', { n: total }));
+    } catch (e) {
+        toast(t('bookmarkExportFail', { msg: e.message || String(e) }));
+    }
+}
+
+/* ================================================================
    Password change (local)
 ================================================================ */
 async function savePassword() {
@@ -8012,9 +8523,15 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnIoHubImportJs').onclick    = () => { __ioHubReturning = true; hide('ioHubModal'); openImportModal(); };
     $('btnIoHubExportTable').onclick = () => { __ioHubReturning = true; hide('ioHubModal'); openCsvExportModal(); };
     $('btnIoHubImportTable').onclick = () => { __ioHubReturning = true; hide('ioHubModal'); openCsvImportModal(); };
+    $('btnIoHubImportBookmarks').onclick = () => { __ioHubReturning = true; hide('ioHubModal'); openBookmarkImportModal(); };
+    $('btnIoHubExportBookmarks').onclick = () => { __ioHubReturning = false; hide('ioHubModal'); exportBrowserBookmarks(); };
     $('btnIoCancel').onclick = () => closeChildOrReturnHub('ioModal');
     $('btnIoImportConfirm').onclick = confirmImport;
     $('ioFile').addEventListener('change', handleImportFile);
+    $('btnBookmarkImportCancel').onclick = () => closeChildOrReturnHub('bookmarkImportModal');
+    $('btnBookmarkImportPreview').onclick = doBookmarkImportPreview;
+    $('btnBookmarkImportApply').onclick = doBookmarkImportApply;
+    $('bookmarkImportFile').addEventListener('change', handleBookmarkImportFile);
 
     $('btnAddCard').onclick = () => {
         if (currentSection === ALL_CARDS_SECTION) {
