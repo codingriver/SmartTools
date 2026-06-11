@@ -114,6 +114,25 @@ normalizeData();
 
 
 /* ════════════════════════════════════════════════════════════════════════════════
+ * 【区块 2.5】动态加载网站基础配置（标题/页眉/页脚）
+ * 从 /api/site-config 获取用户自定义设置，若未设置则保持主题默认。
+ * ════════════════════════════════════════════════════════════════════════════════ */
+(function () {
+    fetch('/api/site-config')
+        .then(function (r) { return r.json(); })
+        .then(function (cfg) {
+            if (!cfg.ok) return;
+            if (cfg.title) document.title = cfg.title;
+            var titleEl = document.querySelector('.title');
+            if (cfg.header && titleEl) titleEl.innerHTML = cfg.header;
+            var footerEl = document.querySelector('.footer');
+            if (cfg.footer && footerEl) footerEl.innerHTML = cfg.footer;
+        })
+        .catch(function () {});
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════════════════
  * 【区块 3】全局状态变量
  * ════════════════════════════════════════════════════════════════════════════════ */
 var currentExpanded  = null;

@@ -356,6 +356,7 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
             <button class="btn btn-ghost btn-sm" id="btnReload" data-i18n="btnReload">🔄 重载 data.js</button>
             <button class="btn btn-ghost btn-sm" id="btnHistory" data-i18n="btnHistory">🕐 历史备份</button>
             <button class="btn btn-ghost btn-sm hidden" id="btnDataSource" data-i18n="btnDataSource">📡 数据源</button>
+            <button class="btn btn-ghost btn-sm" id="btnSiteConfig" data-i18n="btnSiteConfig">🏠 基础信息</button>
             <button class="btn btn-ghost btn-sm" id="btnIoHub" data-i18n="btnIoHub">📦 导入/导出</button>
             <button class="btn btn-success btn-sm" id="btnSave" data-i18n="btnSave">💾 保存</button>
             <button class="btn btn-warn btn-sm hidden" id="btnChangePwd" data-i18n="btnChangePwd">🔑 密码</button>
@@ -703,6 +704,30 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
         <div class="move-hint" style="margin-top:14px;" data-i18n="sourceSwitchHint">💡 切换为「静态」后，本配置页保存的数据仍存在 KV 中不会丢失，但首页不再使用。再切回「KV」即可恢复。</div>
         <div class="modal-footer">
             <button class="btn btn-ghost" id="btnSourceClose" data-i18n="sectionsClose">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 基础信息设置 -->
+<div id="siteConfigModal" class="modal-mask hidden">
+    <div class="modal-box" style="max-width:560px;">
+        <h2 data-i18n="siteConfigTitle">🏠 基础信息设置</h2>
+        <p class="muted" data-i18n="siteConfigDesc">设置首页显示的标题、页眉、页脚。留空表示使用主题默认值。修改后<b>刷新首页</b>即可生效。</p>
+        <div class="form-row">
+            <label data-i18n="siteConfigTitleLabel">网页标题</label>
+            <input type="text" id="siteConfigTitleInput" data-i18n-placeholder="siteConfigTitlePh" placeholder="如：⭐️收藏夹🌹">
+        </div>
+        <div class="form-row">
+            <label data-i18n="siteConfigHeaderLabel">自定义页眉</label>
+            <textarea id="siteConfigHeaderInput" rows="3" data-i18n-placeholder="siteConfigHeaderPh" placeholder="留空使用主题默认页眉（支持 HTML）"></textarea>
+        </div>
+        <div class="form-row">
+            <label data-i18n="siteConfigFooterLabel">自定义页脚</label>
+            <textarea id="siteConfigFooterInput" rows="3" data-i18n-placeholder="siteConfigFooterPh" placeholder="留空使用主题默认页脚（支持 HTML）"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btnSiteConfigClose" data-i18n="btnCancel">取消</button>
+            <button class="btn btn-primary" id="btnSiteConfigSave" data-i18n="btnSave">保存</button>
         </div>
     </div>
 </div>
@@ -1387,7 +1412,7 @@ const I18N = {
         topHome: '← 主页', topHomeTitle: '返回主页', topTitle: '⭐️ 收藏夹配置',
         modeBadgeOnline: '☁️ 在线模式', modeBadgeLocal: '💻 本地模式',
         btnConnect: '📂 连接文件夹', btnReload: '🔄 重载 data.js', btnHistory: '🕐 历史备份',
-        btnDataSource: '📡 数据源', btnImport: '📥 导入 JS', btnExport: '👁 预览/导出 JS',
+        btnDataSource: '📡 数据源', btnSiteConfig: '🏠 基础信息', btnImport: '📥 导入 JS', btnExport: '👁 预览/导出 JS',
         btnExportCsv: '📤 导出 CSV',
         btnImportCsv: '📥 导入 CSV',
         btnExportTable: '📤 导出表格',
@@ -1812,6 +1837,16 @@ const I18N = {
         sourceStaticDesc: '使用 GitHub 仓库里的 <code>data.js</code> 文件。需要 <code>git push</code> 才能更新首页。',
         sourceSwitchHint: '💡 切换为「静态」后，本配置页保存的数据仍存在 KV 中不会丢失，但首页不再使用。再切回「KV」即可恢复。',
         sourceCurrent: '当前', dsKv: '☁️ KV', dsStatic: '📄 静态', dsDefault: '（默认）',
+        siteConfigTitle: '🏠 基础信息设置',
+        siteConfigDesc: '设置首页显示的标题、页眉、页脚。留空表示使用主题默认值。修改后<b>刷新首页</b>即可生效。',
+        siteConfigTitleLabel: '网页标题',
+        siteConfigTitlePh: '如：⭐️收藏夹🌹',
+        siteConfigHeaderLabel: '自定义页眉',
+        siteConfigHeaderPh: '留空使用主题默认页眉（支持 HTML）',
+        siteConfigFooterLabel: '自定义页脚',
+        siteConfigFooterPh: '留空使用主题默认页脚（支持 HTML）',
+        toastSiteConfigSaved: '✅ 基础信息已保存',
+        toastSiteConfigFail: '❌ 保存失败',
         ioImportTitle: '📥 导入 data.js', ioExportTitle: '👁 预览生成的 data.js',
         ioImportDesc: '粘贴 data.js 内容或选择文件导入。', ioImportPh: '粘贴 data.js 内容...',
         ioExportDesc: '此为将写入 data.js 的内容预览。', ioPreviewTitle: '👁 预览：{name}',
@@ -3510,6 +3545,33 @@ async function setDataSource_online(source) {
     if (r.status === 401) { toast(t('toastSessExpired')); await logout_online(); return; }
     if (r.ok && r.data && r.data.ok) { toast(t('toastSwitchedTo', { mode: modeLabel })); await loadSourceStatus_online(); updateSourceModalUI(source); }
     else toast((r.data && r.data.error) || t('toastSwitchFail'));
+}
+
+// 基础信息设置
+async function openSiteConfigModal() {
+    const r = await api('/api/site-config', { method: 'GET' });
+    if (r.ok && r.data) {
+        $('siteConfigTitleInput').value = r.data.title || '';
+        $('siteConfigHeaderInput').value = r.data.header || '';
+        $('siteConfigFooterInput').value = r.data.footer || '';
+    } else {
+        $('siteConfigTitleInput').value = '';
+        $('siteConfigHeaderInput').value = '';
+        $('siteConfigFooterInput').value = '';
+    }
+    show('siteConfigModal');
+}
+async function saveSiteConfig() {
+    const title = $('siteConfigTitleInput').value;
+    const header = $('siteConfigHeaderInput').value;
+    const footer = $('siteConfigFooterInput').value;
+    const r = await api('/api/site-config', { method: 'POST', body: JSON.stringify({ title, header, footer }) });
+    if (r.ok && r.data && r.data.ok) {
+        toast(t('toastSiteConfigSaved'));
+        hide('siteConfigModal');
+    } else {
+        toast(t('toastSiteConfigFail'));
+    }
 }
 
 async function openHistoryModal_online() {
@@ -8024,6 +8086,11 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnSourceClose').onclick = () => hide('sourceModal');
     $('srcKvCard').onclick = () => setDataSource_online('kv');
     $('srcStaticCard').onclick = () => setDataSource_online('static');
+
+    // 基础信息设置
+    $('btnSiteConfig').onclick = openSiteConfigModal;
+    $('btnSiteConfigClose').onclick = () => hide('siteConfigModal');
+    $('btnSiteConfigSave').onclick = saveSiteConfig;
 
     // 顶栏按钮已整合到 ioHubModal,这些 id 不存在;保留 onclick 兼容逻辑(用可选链防护)
     $('btnImport') && ($('btnImport').onclick = openImportModal);
