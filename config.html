@@ -4461,39 +4461,32 @@ function confirmPromoteSub() {
 ================================================================ */
 function openSectionsModal() { renderSectionsModalLists(); show('sectionsModal'); }
 function renderSectionsModalLists() {
-    // ★ 内置大类：每行加 显示/隐藏、重命名、恢复默认名 三个按钮
+    // ★ 内置大类：删除后从管理列表中彻底移除；仍存在的项支持显示/隐藏、重命名、恢复默认名、删除
     const blt = $('builtinSectionsList'); blt.innerHTML = '';
     BUILTIN_SECTIONS.forEach(s => {
         const cnt = (store[s.key] || []).length;
         const m = builtinSectionMeta[s.key] || {};
-        const deleted = !!m.deleted;
+        if (m.deleted) return;
         const displayLabel = m.label || t(s.labelKey);
         const visible = m.visible !== false;
         const hasCustomLabel = !!m.label;
         const hiddenBadge = !visible
             ? ` <span class="sec-badge badge-locked">${escapeHtml(t('sectionBadgeHidden'))}</span>` : '';
-        const deletedBadge = deleted
-            ? ` <span class="sec-badge badge-locked">${escapeHtml(t('sectionBadgeDeleted'))}</span>` : '';
         const visBtn = `<button class="btn btn-ghost btn-sm" data-bi-act="vis"
-            ${deleted ? 'disabled' : ''}
             title="${escapeHtml(visible ? t('sectionBuiltinHide') : t('sectionBuiltinShow'))}">${visible ? '👁' : '🚫'}</button>`;
         const editBtn = `<button class="btn btn-primary btn-sm" data-bi-act="edit"
-            ${deleted ? 'disabled' : ''}
             title="${escapeHtml(t('sectionBuiltinEdit'))}">✏️</button>`;
         const resetBtn = hasCustomLabel
             ? `<button class="btn btn-warn btn-sm" data-bi-act="reset"
-                 ${deleted ? 'disabled' : ''}
                  title="${escapeHtml(t('sectionBuiltinResetName'))}">🔄</button>`
             : '';
-        const delRestoreBtn = deleted
-            ? `<button class="btn btn-success btn-sm" data-bi-act="restore" title="${escapeHtml(t('sectionBuiltinRestore'))}">↩</button>`
-            : `<button class="btn btn-danger btn-sm" data-bi-act="del" title="${escapeHtml(t('sectionBuiltinDelete'))}">🗑</button>`;
+        const delBtn = `<button class="btn btn-danger btn-sm" data-bi-act="del" title="${escapeHtml(t('sectionBuiltinDelete'))}">🗑</button>`;
 
         const el = document.createElement('div'); el.className = 'sec-row builtin';
-        el.innerHTML = `<div class="sec-label">${escapeHtml(displayLabel)}${hiddenBadge}${deletedBadge}
+        el.innerHTML = `<div class="sec-label">${escapeHtml(displayLabel)}${hiddenBadge}
             <span class="sec-meta"> · ${escapeHtml(s.key)}${escapeHtml(t('sectionMetaSuffix', { kind: s.kind, cnt }))}</span></div>
             <span class="sec-badge badge-builtin">${escapeHtml(t('sectionBadgeBuiltin'))}</span>
-            <div style="display:flex; gap:4px;">${visBtn}${editBtn}${resetBtn}${delRestoreBtn}</div>`;
+            <div style="display:flex; gap:4px;">${visBtn}${editBtn}${resetBtn}${delBtn}</div>`;
         el.querySelectorAll('button[data-bi-act]').forEach(btn =>
             btn.onclick = () => handleBuiltinSectionAction(btn.dataset.biAct, s.key));
         blt.appendChild(el);
@@ -4543,16 +4536,6 @@ function handleBuiltinSectionAction(act, key) {
         openSectionEditModal({ type: 'builtin', key });
     } else if (act === 'del') {
         deleteBuiltinSection(key);
-    } else if (act === 'restore') {
-        if (!builtinSectionMeta[key]) builtinSectionMeta[key] = {};
-        delete builtinSectionMeta[key].deleted;
-        delete builtinSectionMeta[key].visible;
-        if (!Array.isArray(store[key])) store[key] = [];
-        if (!Object.keys(builtinSectionMeta[key]).length) delete builtinSectionMeta[key];
-        if (!getSections().find(s => s.key === currentSection)) currentSection = key;
-        renderSectionsModalLists(); renderSectionTabs(); renderCurrentSection();
-        markConfigDirty();
-        toast(t('toastUpdatedUnsaved'));
     } else if (act === 'reset') {
         if (builtinSectionMeta[key]) {
             delete builtinSectionMeta[key].label;
