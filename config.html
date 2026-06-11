@@ -317,7 +317,14 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
         transition: box-shadow .15s;
     }
     .tree-card-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); background: #fff; }
-    .tree-card-row.has-subcards { border-left: 3px solid #667eea; }
+    .tree-card-row.has-subcards { border-left: 3px solid #667eea; cursor: pointer; }
+    .card-item.has-subcards { cursor: pointer; }
+    .card-item.has-subcards.is-expanded,
+    .tree-card-row.has-subcards.is-expanded { background: #f8fbff; }
+    .tree-toggle {
+        width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+        background: #eef2ff; color: #3730a3; font-size: 12px; font-weight: 700; margin-right: 6px; flex-shrink: 0;
+    }
     .tree-card-row .tree-indent { display: flex; align-items: center; gap: 0; }
     .tree-card-row .tree-connector {
         color: #c0c0c0; font-size: 14px; margin-right: 6px; user-select: none;
@@ -4188,6 +4195,18 @@ function pretty(val, indent = 0) {
    Tab 渲染
 ================================================================ */
 const ALL_CARDS_SECTION = '__all__';
+const expandedCardKeys = new Set();
+function getCardExpandKey(sectionKey, cardIdx) { return String(sectionKey || '') + '::' + String(cardIdx); }
+function isCardExpanded(sectionKey, cardIdx) { return expandedCardKeys.has(getCardExpandKey(sectionKey, cardIdx)); }
+function toggleCardExpanded(sectionKey, cardIdx) {
+    const key = getCardExpandKey(sectionKey, cardIdx);
+    if (expandedCardKeys.has(key)) expandedCardKeys.delete(key);
+    else expandedCardKeys.add(key);
+}
+function clearSectionExpanded(sectionKey) {
+    const prefix = String(sectionKey || '') + '::';
+    Array.from(expandedCardKeys).forEach(key => { if (key.startsWith(prefix)) expandedCardKeys.delete(key); });
+}
 
 function renderSectionTabs() {
     const wrap = $('sectionTabs'); wrap.innerHTML = '';
@@ -4244,33 +4263,35 @@ function renderAllCardsView() {
         if (!arr.length) return;
         const header = document.createElement('div');
         header.className = 'tree-section-header';
-        const badge = s.builtin ? 'builtin' : 'custom';
-        header.innerHTML = escapeHtml(s.label) + ' <span class="tree-sec-badge ' + badge + '">' + (s.builtin ? '内置' : '自定义') + '</span>';
+        header.innerHTML = escapeHtml(s.label) + ' <span class="tree-sec-badge kind">' + escapeHtml(s.kind || 'card') + '</span>';
         list.appendChild(header);
         const wrap = document.createElement('div');
         wrap.className = 'tree-card-wrap';
 
         arr.forEach((card, cardIdx) => {
             const hasSub = card.subCards && card.subCards.length > 0;
+            const expanded = hasSub && isCardExpanded(s.key, cardIdx);
             const row = document.createElement('div');
-            row.className = 'tree-card-row' + (hasSub ? ' has-subcards' : '');
+            row.className = 'tree-card-row' + (hasSub ? ' has-subcards' : '') + (expanded ? ' is-expanded' : '');
             row.dataset.section = s.key;
             row.dataset.idx = cardIdx;
             const ic = document.createElement('div'); ic.className = 'tree-icon card-icon-preview';
             renderIconTo(ic, card);
             const tb = { simple:'<span class="card-type-badge badge-simple">simple</span>', 'desc-clickable':'<span class="card-type-badge badge-desc">desc-clickable</span>', 'expandable':'<span class="card-type-badge badge-exp">expandable</span>' }[card.type || 'simple'] || '';
+            const toggle = hasSub ? '<span class="tree-toggle">' + (expanded ? '▾' : '▸') + '</span>' : '';
             const subBadge = hasSub ? ' <span class="tree-subcard-badge">📁 ' + card.subCards.length + ' 子卡</span>' : '';
             const titleTxt = card.title || card.content || t('noTitle');
-            row.innerHTML = '<div class="tree-card-info" style="flex:1;min-width:0;"><div class="card-title">' + escapeHtml(titleTxt) + subBadge + '</div><div class="card-meta">' + tb + ' 🔗 ' + escapeHtml(card.url || '') + '</div></div>';
+            row.innerHTML = toggle + '<div class="tree-card-info" style="flex:1;min-width:0;"><div class="card-title">' + escapeHtml(titleTxt) + subBadge + '</div><div class="card-meta">' + tb + ' 🔗 ' + escapeHtml(card.url || '') + '</div></div>';
             row.querySelector('.tree-card-info').prepend(ic);
             const act = document.createElement('div');
             act.className = 'card-actions';
             act.innerHTML = '<button class="btn btn-primary btn-sm" data-act="edit">✏️</button><button class="btn btn-danger btn-sm" data-act="del">🗑</button>';
-            act.querySelectorAll('button').forEach(b => { b.onclick = () => handleAllCardAction(b.dataset.act, s.key, cardIdx); });
+            act.querySelectorAll('button').forEach(b => { b.onclick = (e) => { e.stopPropagation(); handleAllCardAction(b.dataset.act, s.key, cardIdx); }; });
             row.appendChild(act);
+            if (hasSub) row.onclick = () => { toggleCardExpanded(s.key, cardIdx); renderAllCardsView(); };
             wrap.appendChild(row);
 
-            if (hasSub) {
+            if (hasSub && expanded) {
                 const subList = document.createElement('div');
                 subList.className = 'tree-subcards-list';
                 card.subCards.forEach((sub, subIdx) => {
@@ -4306,11 +4327,11 @@ function handleAllCardAction(act, sectionKey, cardIdx, subIdx) {
     if (act === 'edit') {
         openCardModal(cardIdx, sectionKey);
     } else if (act === 'del') {
-        if (confirm(t('confirmDelCard'))) { arr.splice(cardIdx, 1); renderAllCardsView(); markConfigDirty(); toast(t('toastDeletedUnsaved')); }
+        if (confirm(t('confirmDelCard'))) { clearSectionExpanded(sectionKey); arr.splice(cardIdx, 1); renderAllCardsView(); markConfigDirty(); toast(t('toastDeletedUnsaved')); }
     } else if (act === 'edit-sub') {
         openSubModal(cardIdx, subIdx, sectionKey);
     } else if (act === 'del-sub') {
-        if (confirm(t('confirmDelCard'))) { arr[cardIdx].subCards.splice(subIdx, 1); renderAllCardsView(); markConfigDirty(); toast(t('toastDeletedUnsaved')); }
+        if (confirm(t('confirmDelCard'))) { arr[cardIdx].subCards.splice(subIdx, 1); if (!arr[cardIdx].subCards.length) expandedCardKeys.delete(getCardExpandKey(sectionKey, cardIdx)); renderAllCardsView(); markConfigDirty(); toast(t('toastDeletedUnsaved')); }
     }
 }
 
@@ -4350,13 +4371,22 @@ function renderCurrentSection() {
     if (!arr.length) { list.innerHTML = '<div class="empty-hint">' + escapeHtml(t('emptyCards')) + '</div>'; return; }
     const isCardKind = sec.kind === 'card';
     arr.forEach((item, idx) => {
-        const el = document.createElement('div'); el.className = 'card-item';
+        const hasSub = item.subCards && item.subCards.length > 0;
+        const expanded = hasSub && isCardExpanded(sec.key, idx);
+        const el = document.createElement('div'); el.className = 'card-item' + (hasSub ? ' has-subcards' : '') + (expanded ? ' is-expanded' : '');
         el.dataset.idx = idx;
         const drag = document.createElement('div');
         drag.className = 'drag-handle';
         drag.title = t('dragReorderTitle');
         drag.textContent = '☰';
+        drag.onclick = (e) => e.stopPropagation();
         el.appendChild(drag);
+        if (hasSub) {
+            const toggle = document.createElement('div');
+            toggle.className = 'tree-toggle';
+            toggle.textContent = expanded ? '▾' : '▸';
+            el.appendChild(toggle);
+        }
         const ic = document.createElement('div'); ic.className = 'card-icon-preview'; renderIconTo(ic, item); el.appendChild(ic);
         const info = document.createElement('div'); info.className = 'card-info';
         const title = item.title || item.content || t('noTitle');
@@ -4403,16 +4433,42 @@ function renderCurrentSection() {
                        pushBtn +
                        '<button class="btn btn-primary btn-sm" data-act="edit">✏️</button>' +
                        '<button class="btn btn-danger btn-sm" data-act="del">🗑</button>';
-        act.querySelectorAll('button').forEach(b => b.onclick = () => handleCardAction(b.dataset.act, idx));
+        act.querySelectorAll('button').forEach(b => b.onclick = (e) => { e.stopPropagation(); handleCardAction(b.dataset.act, idx); });
         el.appendChild(act); list.appendChild(el);
+        if (hasSub) {
+            el.onclick = () => { toggleCardExpanded(sec.key, idx); renderCurrentSection(); };
+        }
         // §13:列表行内的 📌 删除按钮(在 info 里,不在 act 容器,需单独绑)
         const pushedDel = info.querySelector('.card-pushed-del');
         if (pushedDel) {
             pushedDel.onclick = (e) => { e.stopPropagation(); handlePushedByDelete(idx); };
         }
+        if (hasSub && expanded) {
+            const subList = document.createElement('div');
+            subList.className = 'tree-subcards-list';
+            item.subCards.forEach((sub, subIdx) => {
+                const subRow = document.createElement('div');
+                subRow.className = 'tree-subcard-row';
+                const subIc = document.createElement('div');
+                subIc.className = 'tree-sub-icon card-icon-preview';
+                subIc.style = 'width:32px;height:32px;font-size:16px;';
+                renderIconTo(subIc, sub);
+                const subTitle = sub.title || sub.content || t('noTitle');
+                subRow.innerHTML = '<div class="tree-subcard-info"><div class="tsc-title">' + escapeHtml(subTitle) + '</div><div class="tsc-meta">🔗 ' + escapeHtml(sub.url || '') + '</div></div>';
+                subRow.querySelector('.tree-subcard-info').prepend(subIc);
+                const subAct = document.createElement('div');
+                subAct.className = 'tree-subcard-actions';
+                subAct.innerHTML = '<button class="btn btn-ghost btn-sm" data-act="edit-sub">✏️</button><button class="btn btn-danger btn-sm" data-act="del-sub">🗑</button>';
+                subAct.querySelectorAll('button').forEach(b => { b.onclick = (e) => { e.stopPropagation(); handleCardSubAction(b.dataset.act, idx, subIdx); }; });
+                subRow.appendChild(subAct);
+                subList.appendChild(subRow);
+            });
+            list.appendChild(subList);
+        }
     });
     setupDragReorder(list, '.card-item', (from, to) => {
         if (moveArrayItem(arr, from, to)) {
+            clearSectionExpanded(currentSection);
             renderCurrentSection();
             markConfigDirty();
             toast(t('toastUpdatedUnsaved'));
@@ -4421,8 +4477,8 @@ function renderCurrentSection() {
 }
 function handleCardAction(act, idx) {
     const arr = store[currentSection];
-    if (act === 'up' && idx > 0) { [arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]]; renderCurrentSection(); markConfigDirty(); }
-    else if (act === 'down' && idx < arr.length - 1) { [arr[idx+1],arr[idx]]=[arr[idx],arr[idx+1]]; renderCurrentSection(); markConfigDirty(); }
+    if (act === 'up' && idx > 0) { [arr[idx-1],arr[idx]]=[arr[idx],arr[idx-1]]; clearSectionExpanded(currentSection); renderCurrentSection(); markConfigDirty(); }
+    else if (act === 'down' && idx < arr.length - 1) { [arr[idx+1],arr[idx]]=[arr[idx],arr[idx+1]]; clearSectionExpanded(currentSection); renderCurrentSection(); markConfigDirty(); }
     else if (act === 'edit') openCardModal(idx);
     else if (act === 'move') openMoveCardModal(currentSection, idx);
     else if (act === 'push') {
@@ -4436,7 +4492,23 @@ function handleCardAction(act, idx) {
             openP2pPushModal({ prefillCards: [arr[idx]], prefillFromEncrypted: fromEnc });
         }
     }
-    else if (act === 'del') { if (confirm(t('confirmDelCard'))) { arr.splice(idx, 1); renderCurrentSection(); markConfigDirty(); toast(t('toastDeletedUnsaved')); } }
+    else if (act === 'del') { if (confirm(t('confirmDelCard'))) { clearSectionExpanded(currentSection); arr.splice(idx, 1); renderCurrentSection(); markConfigDirty(); toast(t('toastDeletedUnsaved')); } }
+}
+function handleCardSubAction(act, idx, subIdx) {
+    const arr = store[currentSection];
+    const card = arr && arr[idx];
+    if (!card || !Array.isArray(card.subCards)) return;
+    if (act === 'edit-sub') {
+        openSubModal(idx, subIdx);
+    } else if (act === 'del-sub') {
+        if (confirm(t('confirmDelCard'))) {
+            card.subCards.splice(subIdx, 1);
+            if (!card.subCards.length) expandedCardKeys.delete(getCardExpandKey(currentSection, idx));
+            renderCurrentSection();
+            markConfigDirty();
+            toast(t('toastDeletedUnsaved'));
+        }
+    }
 }
 
 // §13:移除 pushedBy/pushedAt 标注(2026-05-23)— 仅本地 store 清字段,等用户点 💾 保存才写回
