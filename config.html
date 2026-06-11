@@ -1617,6 +1617,8 @@ const I18N = {
         bookmarkExportOk: '浏览器收藏夹 HTML 已导出（{n} 个链接）',
         bookmarkExportEmpty: '没有可导出的浏览器书签链接',
         bookmarkExportFail: '浏览器收藏夹导出失败：{msg}',
+        openTabsImportDone: '已导入 {n} 个打开的标签页到「{section}」。请记得点「💾 保存」。',
+        openTabsImportEmpty: '没有可导入的标签页',
         fullBackupImportTitle: '📦 导入完整备份 JSON',
         fullBackupImportDesc: '完整备份会恢复收藏原始字段、分类配置和基础信息。导入只写入编辑器，收藏数据确认无误后请手动点击「💾 保存」。',
         fullBackupImportWarn: '⚠️ 导入会替换当前编辑器中的全部收藏数据；建议先导出一份完整备份。',
@@ -2198,6 +2200,8 @@ const I18N = {
         bookmarkExportOk: 'Browser bookmarks HTML exported ({n} links)',
         bookmarkExportEmpty: 'No bookmark links to export',
         bookmarkExportFail: 'Browser bookmarks export failed: {msg}',
+        openTabsImportDone: 'Imported {n} open tab(s) into "{section}". Remember to click 「💾 Save」.',
+        openTabsImportEmpty: 'No importable open tabs',
         fullBackupImportTitle: '📦 Import Full JSON Backup',
         fullBackupImportDesc: 'A full backup restores raw card fields, section config, and site config. Import only loads to editor; after checking, click 「💾 Save」 manually.',
         fullBackupImportWarn: '⚠️ Import replaces all bookmark data currently loaded in the editor. Export a full backup first if needed.',
@@ -6652,6 +6656,78 @@ function doBookmarkImportApply() {
     __bookmarkImportPlan = null;
 }
 
+/* ================================================================
+   Open tabs import from browser extension
+   普通网页不能读取浏览器标签页；扩展读取 tabs 后通过 postMessage 注入到本页。
+================================================================ */
+function isImportableTabUrl(url) {
+    return /^(https?:|mailto:|ftp:)/i.test(String(url || '').trim());
+}
+
+function pickOpenTabsImportTargetSection() {
+    var sec = getSections().find(function(s) { return s.key === currentSection; });
+    if (sec && sec.kind === 'card' && !sec.locked && currentSection !== ALL_CARDS_SECTION) return sec.key;
+    var first = getSections().find(function(s) { return s.kind === 'card' && !s.locked; });
+    if (first) return first.key;
+    ensureUnclassifiedSection();
+    return UNCLASSIFIED_KEY;
+}
+
+function tabToCard(tab) {
+    var url = String((tab && tab.url) || '').trim();
+    var title = String((tab && tab.title) || url).trim() || url;
+    var card = {
+        id: generateCardId(),
+        type: 'simple',
+        icon: '🌐',
+        title: title,
+        url: url,
+        openTabMeta: {
+            source: 'browser-open-tabs',
+            importedAt: new Date().toISOString()
+        }
+    };
+    if (tab && tab.favIconUrl) {
+        card.iconImg = String(tab.favIconUrl);
+        delete card.icon;
+    }
+    ['windowId', 'index', 'active', 'pinned', 'groupId', 'audible', 'muted'].forEach(function(k) {
+        if (tab && tab[k] !== undefined) card.openTabMeta[k] = tab[k];
+    });
+    return card;
+}
+
+function importOpenTabsFromExtension(payload) {
+    var tabs = payload && Array.isArray(payload.tabs) ? payload.tabs : [];
+    var cards = tabs
+        .filter(function(tab) { return tab && isImportableTabUrl(tab.url); })
+        .map(tabToCard);
+    if (!cards.length) {
+        toast(t('openTabsImportEmpty') || '没有可导入的标签页');
+        return;
+    }
+    var targetKey = pickOpenTabsImportTargetSection();
+    if (!Array.isArray(store[targetKey])) store[targetKey] = [];
+    var existing = store[targetKey];
+    cards.forEach(function(card) {
+        card.id = generateUniqueCardId(existing);
+        existing.push(card);
+    });
+    currentSection = targetKey;
+    renderSectionTabs();
+    renderCurrentSection();
+    markConfigDirty();
+    var sec = getSections().find(function(s) { return s.key === targetKey; });
+    var label = (sec && sec.label) || targetKey;
+    toast(t('openTabsImportDone', { n: cards.length, section: label }), 3600);
+}
+
+function handleOpenTabsExtensionMessage(event) {
+    var data = event && event.data;
+    if (!data || data.source !== 'smarttools-open-tabs-extension') return;
+    importOpenTabsFromExtension(data);
+}
+
 function bookmarkHtmlEscape(s) {
     return String(s || '').replace(/[&<>"']/g, function(c) {
         return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);
@@ -8838,6 +8914,7 @@ async function runMigrateReal() {
    Events
 ================================================================ */
 window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('message', handleOpenTabsExtensionMessage);
     applyI18n();
     boot();
 
