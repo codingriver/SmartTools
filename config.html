@@ -98,13 +98,10 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 .mode-card.is-current { border-color: #4caf50; background: #f1f8e9; }
 .source-badge-current { font-size: 11px; padding: 2px 8px; background: #4caf50; color: #fff; border-radius: 10px; margin-left: 6px; }
 .sec-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #e5e5e5; border-radius: 6px; margin-bottom: 6px; background: #fafafa; flex-wrap: wrap; }
-.sec-row.builtin { opacity: .8; background: #f0f4ff; border-color: #c5d2ee; }
-.sec-row.custom { background: #fff8e1; border-color: #ffd591; }
+.sec-row.custom { background: #fafafa; border-color: #e5e5e5; }
 .sec-row .sec-label { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; word-break: break-all; }
 .sec-row .sec-meta { font-size: 11px; color: #888; }
 .sec-row .sec-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
-.sec-row .badge-builtin { background: #e3f2fd; color: #1976d2; }
-.sec-row .badge-custom { background: #ffe0b2; color: #e65100; }
 .sec-row .badge-dynamic { background: #f3e5f5; color: #7b1fa2; margin-left: 4px; }
 .sec-row .badge-private { background: #e8f5e9; color: #166534; margin-left: 4px; }
 .sec-row .badge-encrypted { background: #f3e5f5; color: #6a1b9a; margin-left: 4px; }
@@ -302,6 +299,42 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     .md-tb-btn { padding: 3px 5px; min-width: 24px; height: 24px; }
     .pending-banner { padding: 10px 12px; font-size: 12px; }
     .pending-banner .pb-save-btn { width: 100%; margin-top: 4px; }
+
+    /* ★ All Cards tree view (全部卡片树形视图) */
+    .section-tab.is-all { background: #e8f0fe; color: #1a73e8; border: 1px solid #aecbf7; }
+    .section-tab.is-all.active { background: #1a73e8; color: #fff; border-color: transparent; }
+    .tree-section-header {
+        padding: 10px 14px; background: #f0f4ff; border-radius: 8px; margin: 16px 0 8px;
+        font-weight: 700; font-size: 14px; color: #333; display: flex; align-items: center; gap: 8px;
+        border: 1px solid #d0d9f0;
+    }
+    .tree-section-header .tree-sec-badge { font-size: 11px; padding: 1px 7px; border-radius: 8px; font-weight: 600; }
+    .tree-section-header .tree-sec-badge.kind { background: #eef2ff; color: #3730a3; }
+    .tree-card-wrap { margin-left: 8px; }
+    .tree-card-row {
+        display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 16px;
+        background: #fafafa; border: 1px solid #e8e8e8; border-radius: 8px; margin-bottom: 5px;
+        transition: box-shadow .15s;
+    }
+    .tree-card-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); background: #fff; }
+    .tree-card-row.has-subcards { border-left: 3px solid #667eea; }
+    .tree-card-row .tree-indent { display: flex; align-items: center; gap: 0; }
+    .tree-card-row .tree-connector {
+        color: #c0c0c0; font-size: 14px; margin-right: 6px; user-select: none;
+    }
+    .tree-card-row .tree-icon { flex-shrink: 0; }
+    .tree-subcards-list { margin: 4px 0 8px 24px; border-left: 2px solid #e0e3f0; padding-left: 12px; }
+    .tree-subcard-row {
+        display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 12px;
+        background: #fcfcfc; border: 1px dashed #d8d8d8; border-radius: 6px; margin-bottom: 4px;
+    }
+    .tree-subcard-row:hover { background: #f5f7ff; border-color: #b0bcf0; }
+    .tree-subcard-row .tree-sub-icon { flex-shrink: 0; font-size: 18px; }
+    .tree-subcard-info { flex: 1; min-width: 0; }
+    .tree-subcard-info .tsc-title { font-weight: 600; font-size: 13px; }
+    .tree-subcard-info .tsc-meta { font-size: 11px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tree-subcard-actions { display: flex; gap: 3px; flex-shrink: 0; }
+    .tree-subcard-actions .btn { padding: 3px 6px; font-size: 11px; }
 }
 </style>
 </head>
@@ -590,13 +623,11 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 <div id="sectionsModal" class="modal-mask hidden">
     <div class="modal-box" style="max-width:720px;">
         <h2 data-i18n="sectionsTitle">🗂 大类管理</h2>
-        <p class="muted" data-i18n-html="sectionsDesc">内置大类，无法删除或排序；自定义大类可自由增删改排序。</p>
-        <h3 style="margin-top:14px;" data-i18n="sectionsBuiltinH">🔒 内置大类</h3>
-        <div id="builtinSectionsList"></div>
-        <h3 style="margin-top:18px;"><span data-i18n="sectionsCustomH">⚙️ 自定义大类</span> <span style="font-size:12px; font-weight:400; color:#888;" data-i18n="sectionsCustomHint">（显示在「视频聚合」之后、「邮箱」之前）</span></h3>
-        <div id="customSectionsList"></div>
+        <p class="muted" data-i18n-html="sectionsDesc">所有大类统一管理。部分系统大类因兼容旧数据结构，不支持排序或私密开关。</p>
+        <h3 style="margin-top:14px;" data-i18n="sectionsAllH">📚 全部大类</h3>
+        <div id="sectionsList"></div>
         <button class="btn btn-primary btn-sm" id="btnAddCustomSection" style="margin-top:8px;" data-i18n="sectionsAddBtn">➕ 新增大类</button>
-        <div class="move-hint" style="margin-top:14px;" data-i18n="sectionsDeleteHint">💡 删除自定义大类时，其下所有卡片会自动移动到「📦 未分类」中（不会丢失）。「📦 未分类」也是自定义大类，可以再次删除（确认后将彻底删除其中卡片）。</div>
+        <div class="move-hint" style="margin-top:14px;" data-i18n="sectionsDeleteHint">💡 删除大类时，其下所有卡片会自动移动到「📦 未分类」中（不会丢失）。再次删除「📦 未分类」会彻底删除其中卡片。</div>
         <div class="modal-footer">
             <button class="btn btn-ghost" id="btnSectionsClose" data-i18n="sectionsClose">关闭</button>
         </div>
@@ -617,7 +648,7 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
         <div class="form-row">
             <label>短锚点 / anchor（用于 URL hash，可空）</label>
             <input type="text" id="se_anchor" placeholder="如：video / ai（留空则用默认 key）" maxlength="32" autocomplete="off">
-            <p class="muted" style="font-size:11px; margin-top:6px; line-height:1.5;">仅允许字母、数字、下划线、连字符。设置后可用 <code>#你的anchor</code> 直接跳转到该分类。留空使用默认（内置项的 key 或自定义项的内部 key）。</p>
+            <p class="muted" style="font-size:11px; margin-top:6px; line-height:1.5;">仅允许字母、数字、下划线、连字符。设置后可用 <code>#你的anchor</code> 直接跳转到该分类。留空使用该大类的 key。</p>
             <div class="section-direct-link-row" id="sectionDirectLinkRow">
                 <input type="text" id="se_direct_link" readonly>
                 <button type="button" class="btn btn-ghost btn-sm" id="btnSectionLinkCopy" data-i18n="btnSlugCopy">📋 复制</button>
@@ -1292,7 +1323,7 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 
         <div style="margin:10px 0; display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="csvImportCreateMissing" style="width:16px; height:16px;">
-            <label for="csvImportCreateMissing" data-i18n="csvImportCreateMissing" style="font-size:13px; cursor:pointer;">允许创建 CSV 中出现的未知 customSection（内置分类总是已存在）</label>
+            <label for="csvImportCreateMissing" data-i18n="csvImportCreateMissing" style="font-size:13px; cursor:pointer;">允许创建 CSV 中出现的未知大类</label>
         </div>
 
         <pre id="csvImportPreview" class="export-pre" style="max-height:260px; display:none;"></pre>
@@ -1463,18 +1494,17 @@ const I18N = {
         csvImportPh: '或粘贴 CSV 内容（XLSX 必须用文件选择上传）...',
         csvImportModeAppend: '追加：所有行视为新卡片，自动生成 id，附加到分类末尾',
         csvImportModeOverwrite: '覆盖：按 card_id 匹配替换；找不到的新增；CSV 中没有的卡片保留',
-        csvImportCreateMissing: '允许创建 CSV 中出现的未知 customSection（内置分类总是已存在）',
+        csvImportCreateMissing: '允许创建 CSV 中出现的未知大类',
         csvImportPreviewBtn: '🔍 预览',
         csvImportApply: '✓ 应用到编辑器',
         csvImportPreviewEmpty: '请先选择文件或粘贴 CSV 内容',
         csvImportPreviewHeader: '解析结果：共 {rows} 行，errors: {errs}，warnings: {warns}',
         csvImportPreviewSection: '  - {label} ({key}): 新增 {add} / 覆盖 {upd}{extra}',
         csvImportPreviewLockedSection: '  ❌ {label} ({key}): 加密大类未解锁，跳过 {n} 行',
-        csvImportPreviewUnknownSection: '  ❌ {key}: section 不存在（请勾选"允许创建未知 customSection"或先到管理中创建）',
-        csvImportPreviewBuiltinUnknown: '  ❌ {key}: section 不在 6 个内置 key 中且无 customSection，无法创建',
+        csvImportPreviewUnknownSection: '  ❌ {key}: 大类不存在（请勾选"允许创建未知大类"或先到管理中创建）',
         csvImportPreviewFixHint: '⚠️ 存在错误，请先修正 CSV 或勾选选项后再次预览',
         csvImportApplyDone: '已应用到编辑器：新增 {add} / 覆盖 {upd}{newSec}。请记得点「💾 保存」。',
-        csvImportApplyNewSec: '，新建 {n} 个 customSection',
+        csvImportApplyNewSec: '，新建 {n} 个大类',
         csvImportParseFail: 'CSV 解析失败：{msg}',
         btnSave: '💾 保存', btnChangePwd: '🔑 密码', btnSwitchMode: '🔀 切换模式', btnLogout: '🚪 退出',
         btnUsers: '👥 用户',
@@ -1550,7 +1580,7 @@ const I18N = {
         inboxAcceptEncHint: '需先在主页面解锁目标加密大类。若下拉为空,请先回到收藏夹页解锁。',
         inboxAcceptEncNone: '没有已解锁的加密大类',
         inboxAcceptEncNoneAtAll: '当前没有加密大类',
-        inboxAcceptEncCreateHint: '需先到顶栏 <b>🗂 大类管理</b> 中新建一个"🔐 加密存储"的自定义大类(使用当前登录密码加密)。建好后回主页解锁,再来这里接受。',
+        inboxAcceptEncCreateHint: '需先到顶栏 <b>🗂 大类管理</b> 中新建一个私密大类。私密大类仅登录后可见，数据仍以明文保存。',
         inboxAcceptEncLockedSep: '以下未解锁,请先回主页解锁',
         inboxAcceptEncLockedTip: '未解锁',
         inboxAcceptEncNoTarget: '请选择一个已解锁的加密大类',
@@ -1737,9 +1767,8 @@ const I18N = {
         secUsb: '☁️ 在线U盘', secTeaching: '📚 授课资料', secOnlineAI: '🖥️ 网络资源',
         secVideo: '🎬 视频聚合', secEmail: '📨 联系方式', secContact: '📨 其他联系方式',
         secUnclassified: '📦 未分类', secManageTab: '🗂 大类管理',
-        secCustomTag: '自定义', secCustomTitle: '自定义大类',
+        secCustomTag: '大类', secCustomTitle: '大类',
         btnAddCard: '➕ 新增卡片', titleItems: '（共 {n} 项）',
-        customBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffe0b2; color:#e65100; border-radius:10px; vertical-align:middle;">自定义</span>',
         privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 私密</span>',
         encBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#f3e5f5; color:#6a1b9a; border-radius:10px; vertical-align:middle;">🔐 加密</span>',
         lockedBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffebee; color:#c62828; border-radius:10px; vertical-align:middle;">🔒 已锁定</span>',
@@ -1779,32 +1808,28 @@ const I18N = {
         promoteHint: '💡 字段已从子卡片预填，你可以修改样式、ID、标题等。升级后子卡片会从原母卡片移除。',
         promoteConfirm: '确认升级',
         toastPromotedOk: '已升级为独立卡片并移到「{sec}」（未保存）',
-        customSuffix: '  [自定义]',
+        customSuffix: '',
         sectionsTitle: '🗂 大类管理',
-        sectionsDesc: '内置大类来自 <code>indexN.html</code>，无法修改、删除或排序；自定义大类可自由增删改排序。',
-        sectionsBuiltinH: '🔒 内置大类', sectionsCustomH: '⚙️ 自定义大类',
-        sectionsCustomHint: '（显示在「视频聚合」之后、「邮箱」之前）',
+        sectionsDesc: '所有大类统一管理，可排序、显示/隐藏、改名、删除。旧数据字段仅用于兼容读取，不再区分大类类型。',
+        sectionsAllH: '📚 全部大类',
         sectionsAddBtn: '➕ 新增大类',
-        sectionsDeleteHint: '💡 删除自定义大类时，其下所有卡片会自动移动到「📦 未分类」中（不会丢失）。「📦 未分类」也是自定义大类，可以再次删除（确认后将彻底删除其中卡片）。',
-        sectionsClose: '关闭', sectionsNoCustom: '暂无自定义大类。点击下方「➕ 新增大类」创建。',
+        sectionsDeleteHint: '💡 删除大类时，其下所有卡片会自动移动到「📦 未分类」中（不会丢失）。再次删除「📦 未分类」会彻底删除其中卡片。',
+        sectionsClose: '关闭', sectionsNoCustom: '暂无大类。点击下方「➕ 新增大类」创建。',
         sectionDirectLinkNewKey: '保存后自动生成key',
         toastSectionLinkCopied: '大类直达链接已复制',
         toastSectionLinkUnavailable: '请先保存新大类后再复制直达链接',
         dragReorderTitle: '拖动调整顺序',
-        /* ★ 内置大类管理 */
-        sectionEditBuiltinTitle: '✏️ 编辑内置大类',
-        sectionBuiltinHide: '隐藏（首页不显示此大类）',
-        sectionBuiltinShow: '取消隐藏（首页显示此大类）',
-        sectionBuiltinEdit: '重命名',
-        sectionBuiltinResetName: '恢复默认名（跟随中英文切换）',
-        sectionBuiltinDelete: '删除此大类（已有卡片会转移到未分类）',
-        sectionBuiltinRestore: '恢复此内置大类',
+        /* ★ 大类管理 */
+        sectionHide: '隐藏（首页不显示此大类）',
+        sectionShow: '取消隐藏（首页显示此大类）',
+        sectionEdit: '重命名',
+        sectionDelete: '删除此大类（已有卡片会转移到未分类）',
         sectionBadgeHidden: '🚫 已隐藏',
         sectionBadgeDeleted: '🗑 已删除',
-        sectionBadgeBuiltin: '🔒 内置', sectionBadgeCustom: '⚙️ 自定义',
         sectionBadgeDynamic: '展开/折叠', sectionBadgeEncrypted: '🔐 加密', sectionBadgePrivate: '🔒 私密',
         sectionBadgeLocked: '🔒 已锁定',
         sectionMetaSuffix: ' · {kind} · {cnt} 项',
+        sectionMetaUnified: '{key} · {kind} · {cnt} 项',
         sectionMetaCustom: '{key} · {cnt} 项',
         sectionMetaCustomUnc: '{key} · {cnt} 项 · 系统在删除大类时自动写入',
         sectionEditNewTitle: '➕ 新增大类', sectionEditEditTitle: '✏️ 编辑大类',
@@ -2011,18 +2036,17 @@ const I18N = {
         csvImportPh: 'Or paste CSV content (XLSX must be uploaded via file picker)...',
         csvImportModeAppend: 'Append: treat every row as new card, auto-generate id, append to end of its section',
         csvImportModeOverwrite: 'Overwrite: match by card_id and replace; unmatched rows are added; cards not in CSV are kept',
-        csvImportCreateMissing: 'Allow creating unknown customSection that appears in CSV (built-in sections always exist)',
+        csvImportCreateMissing: 'Allow creating unknown sections found in CSV',
         csvImportPreviewBtn: '🔍 Preview',
         csvImportApply: '✓ Apply to editor',
         csvImportPreviewEmpty: 'Please pick a file or paste CSV content first',
         csvImportPreviewHeader: 'Parsed: {rows} rows, errors: {errs}, warnings: {warns}',
         csvImportPreviewSection: '  - {label} ({key}): add {add} / update {upd}{extra}',
         csvImportPreviewLockedSection: '  ❌ {label} ({key}): encrypted section is locked; skipping {n} rows',
-        csvImportPreviewUnknownSection: '  ❌ {key}: section does not exist (tick "Allow creating unknown customSection" or create it in Manage first)',
-        csvImportPreviewBuiltinUnknown: '  ❌ {key}: not one of the 6 built-in keys and no customSection by this key; cannot create',
+        csvImportPreviewUnknownSection: '  ❌ {key}: section does not exist (tick "Allow creating unknown sections" or create it in Manage first)',
         csvImportPreviewFixHint: '⚠️ Errors exist. Please fix the CSV or tick the option, then preview again.',
         csvImportApplyDone: 'Applied to editor: add {add} / update {upd}{newSec}. Remember to click 「💾 Save」.',
-        csvImportApplyNewSec: ', created {n} customSection(s)',
+        csvImportApplyNewSec: ', created {n} section(s)',
         csvImportParseFail: 'CSV parse failed: {msg}',
         btnSave: '💾 Save', btnChangePwd: '🔑 Password', btnSwitchMode: '🔀 Switch Mode', btnLogout: '🚪 Logout',
         btnUsers: '👥 Users',
@@ -2098,7 +2122,7 @@ const I18N = {
         inboxAcceptEncHint: 'You must first unlock the target encrypted section on the main page.',
         inboxAcceptEncNone: 'No unlocked encrypted sections',
         inboxAcceptEncNoneAtAll: 'No encrypted sections exist',
-        inboxAcceptEncCreateHint: 'Please first go to <b>🗂 Sections</b> in the top bar and create a custom section with "🔐 Encrypted storage" (encrypted with your current login password). Then unlock it on the main page and come back here.',
+        inboxAcceptEncCreateHint: 'Please first go to <b>🗂 Sections</b> in the top bar and create a private section. Private sections are visible after login only, but data is stored as plaintext.',
         inboxAcceptEncLockedSep: 'Below are locked, please unlock on the main page first',
         inboxAcceptEncLockedTip: 'locked',
         inboxAcceptEncNoTarget: 'Please select an unlocked encrypted section',
@@ -2285,9 +2309,8 @@ const I18N = {
         secUsb: '☁️ Cloud Drive', secTeaching: '📚 Teaching', secOnlineAI: '🖥️ Web Resources',
         secVideo: '🎬 Videos', secEmail: '📨 Contacts', secContact: '📨 Contact Cards',
         secUnclassified: '📦 Unclassified', secManageTab: '🗂 Sections',
-        secCustomTag: 'Custom', secCustomTitle: 'Custom section',
+        secCustomTag: 'Section', secCustomTitle: 'Section',
         btnAddCard: '➕ Add Card', titleItems: ' ({n} items)',
-        customBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffe0b2; color:#e65100; border-radius:10px; vertical-align:middle;">Custom</span>',
         privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 Private</span>',
         encBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#f3e5f5; color:#6a1b9a; border-radius:10px; vertical-align:middle;">🔐 Encrypted</span>',
         lockedBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffebee; color:#c62828; border-radius:10px; vertical-align:middle;">🔒 Locked</span>',
@@ -2327,32 +2350,28 @@ const I18N = {
         promoteHint: '💡 Fields prefilled from the sub-card; you can edit the style, ID, title, etc. The sub-card will be removed from its parent.',
         promoteConfirm: 'Promote',
         toastPromotedOk: 'Promoted and moved to "{sec}" (unsaved)',
-        customSuffix: '  [Custom]',
+        customSuffix: '',
         sectionsTitle: '🗂 Manage Sections',
-        sectionsDesc: 'Built-in sections come from <code>indexN.html</code> and cannot be modified. Custom sections are fully manageable.',
-        sectionsBuiltinH: '🔒 Built-in Sections', sectionsCustomH: '⚙️ Custom Sections',
-        sectionsCustomHint: '(shown after "Videos", before "Emails")',
+        sectionsDesc: 'All sections are managed in one list. You can reorder, show/hide, rename, and delete them. Legacy fields are only read for compatibility.',
+        sectionsAllH: '📚 All Sections',
         sectionsAddBtn: '➕ Add Section',
-        sectionsDeleteHint: '💡 Deleting a custom section moves its cards to "📦 Unclassified" (not lost). "Unclassified" can also be deleted (permanent).',
-        sectionsClose: 'Close', sectionsNoCustom: 'No custom sections. Click "➕ Add Section" below.',
+        sectionsDeleteHint: '💡 Deleting a section moves its cards to "📦 Unclassified" (not lost). Deleting "Unclassified" permanently removes its cards.',
+        sectionsClose: 'Close', sectionsNoCustom: 'No sections. Click "➕ Add Section" below.',
         sectionDirectLinkNewKey: 'key-generated-after-save',
         toastSectionLinkCopied: 'Section direct link copied',
         toastSectionLinkUnavailable: 'Save this new section before copying its direct link',
         dragReorderTitle: 'Drag to reorder',
-        /* ★ Built-in section management */
-        sectionEditBuiltinTitle: '✏️ Edit Built-in Section',
-        sectionBuiltinHide: 'Hide (do not show on home pages)',
-        sectionBuiltinShow: 'Show on home pages',
-        sectionBuiltinEdit: 'Rename',
-        sectionBuiltinResetName: 'Restore default name (follows language)',
-        sectionBuiltinDelete: 'Delete this section (cards will move to Unclassified)',
-        sectionBuiltinRestore: 'Restore this built-in section',
+        /* ★ Section management */
+        sectionHide: 'Hide (do not show on home pages)',
+        sectionShow: 'Show on home pages',
+        sectionEdit: 'Rename',
+        sectionDelete: 'Delete this section (cards will move to Unclassified)',
         sectionBadgeHidden: '🚫 Hidden',
         sectionBadgeDeleted: '🗑 Deleted',
-        sectionBadgeBuiltin: '🔒 Built-in', sectionBadgeCustom: '⚙️ Custom',
         sectionBadgeDynamic: 'Expand/Collapse', sectionBadgeEncrypted: '🔐 Encrypted', sectionBadgePrivate: '🔒 Private',
         sectionBadgeLocked: '🔒 Locked',
         sectionMetaSuffix: ' · {kind} · {cnt} items',
+        sectionMetaUnified: '{key} · {kind} · {cnt} items',
         sectionMetaCustom: '{key} · {cnt} items',
         sectionMetaCustomUnc: '{key} · {cnt} items · auto-filled when a section is deleted',
         sectionEditNewTitle: '➕ New Section', sectionEditEditTitle: '✏️ Edit Section',
@@ -2536,7 +2555,7 @@ let currentUser = { username: null, uid: null, role: null, publicSlug: null, pub
 let currentMigrationNeeded = false;
 const LS_MODE = 'bm_cfg_mode';
 
-const BUILTIN_SECTIONS = [
+const DEFAULT_SECTIONS = [
     { key: 'usbDriveData',  labelKey: 'secUsb',      kind: 'card' },
     { key: 'teachingData',  labelKey: 'secTeaching', kind: 'card' },
     { key: 'onlineAIData',  labelKey: 'secOnlineAI', kind: 'card' },
@@ -2546,53 +2565,25 @@ const BUILTIN_SECTIONS = [
 ];
 const UNCLASSIFIED_KEY = 'custom_unclassified';
 let customSectionsMeta = [];
-// ★ 内置大类元数据覆盖：{ [key]: { label?: string, visible?: boolean, deleted?: boolean } }
-//   label 缺省 → 使用 i18n 默认（跟随中英文切换）；visible 缺省 → true；deleted=true → 不输出到 data.js
-let builtinSectionMeta = {};
-let editingBuiltinKey = null; // ★ 当前正在编辑的内置大类 key（null 表示在编辑自定义大类）
 
 function getSections() {
-    // ★ 内置大类：合并 builtinSectionMeta 中的 label / visible 覆盖
-    const cardB = BUILTIN_SECTIONS.filter(s => s.kind === 'card' && !(builtinSectionMeta[s.key] || {}).deleted).map(s => {
-        const m = builtinSectionMeta[s.key] || {};
-        return {
-            key: s.key,
-            label: m.label || t(s.labelKey),
-            kind: s.kind, builtin: true,
-            visible: m.visible !== false,
-            customLabel: !!m.label,
-            anchor: m.anchor || ''
-        };
-    });
-    const otherB = BUILTIN_SECTIONS.filter(s => s.kind !== 'card' && !(builtinSectionMeta[s.key] || {}).deleted).map(s => {
-        const m = builtinSectionMeta[s.key] || {};
-        return {
-            key: s.key,
-            label: m.label || t(s.labelKey),
-            kind: s.kind, builtin: true,
-            visible: m.visible !== false,
-            customLabel: !!m.label,
-            anchor: m.anchor || ''
-        };
-    });
-    const customs = customSectionsMeta.map(c => ({
+    return customSectionsMeta.map(c => ({
         key: c.key,
         label: (c.key === UNCLASSIFIED_KEY) ? t('secUnclassified') : c.label,
-        kind: 'card', builtin: false,
+        kind: c.kind || 'card',
         visible: c.visible !== false,
         dynamic: !!c.dynamic, private: !!c.private, encrypted: !!c.encrypted, locked: !!c.locked,
         anchor: c.anchor || ''   // ★ P3-5：透传 anchor 给 generateDataJs / renderSectionTabs 使用
     }));
-    return [...cardB, ...customs, ...otherB];
 }
-function isBuiltinKey(key) { return BUILTIN_SECTIONS.some(s => s.key === key); }
+function getDefaultSectionDef(key) { return DEFAULT_SECTIONS.find(s => s.key === key); }
 function getFirstAvailableSectionKey() {
     const sec = getSections()[0];
     return sec ? sec.key : UNCLASSIFIED_KEY;
 }
 function ensureUnclassifiedSection() {
     if (!customSectionsMeta.find(c => c.key === UNCLASSIFIED_KEY)) {
-        customSectionsMeta.push({ key: UNCLASSIFIED_KEY, label: t('secUnclassified'), visible: true, dynamic: false, private: false, encrypted: false, locked: false });
+        customSectionsMeta.push({ key: UNCLASSIFIED_KEY, label: t('secUnclassified'), kind: 'card', visible: true, dynamic: false, private: false, encrypted: false, locked: false });
     }
     if (!Array.isArray(store[UNCLASSIFIED_KEY])) store[UNCLASSIFIED_KEY] = [];
 }
@@ -2644,7 +2635,7 @@ function moveArrayItem(arr, from, to) {
 }
 
 const store = { usbDriveData: [], teachingData: [], onlineAIData: [], videoData: [], emailData: [], contactData: [] };
-let currentSection = BUILTIN_SECTIONS[0].key;
+let currentSection = DEFAULT_SECTIONS[0].key;
 let editingCardIndex = -1, editingSubIndex = -1, editingCardDraft = null;
 let folderHandle = null, dataJsHandle = null;
 let moveFromIndex = -1;
@@ -3898,19 +3889,19 @@ async function parseAndLoad(text) {
             );
             const r = wrapper();
             const s = [
-                { builtin:true, key:'usbDriveData',  kind:'card',    defaultLabel:'☁️ 在线U盘',    label:'☁️ 在线U盘',    visible:true, dynamic:false, cards: r.usbDriveData||[] },
-                { builtin:true, key:'teachingData',  kind:'card',    defaultLabel:'📚 授课资料',    label:'📚 授课资料',    visible:true, dynamic:false, cards: r.teachingData||[] },
-                { builtin:true, key:'onlineAIData',  kind:'card',    defaultLabel:'🖥️ 网络资源',    label:'🖥️ 网络资源',    visible:true, dynamic:true,  cards: r.onlineAIData||[] },
-                { builtin:true, key:'videoData',     kind:'card',    defaultLabel:'🎬 视频聚合',    label:'🎬 视频聚合',    visible:true, dynamic:true,  cards: r.videoData||[] },
-                { builtin:true, key:'emailData',     kind:'email',   defaultLabel:'📧 邮箱',       label:'📧 邮箱',       visible:true, dynamic:false, cards: r.emailData||[] },
-                { builtin:true, key:'contactData',   kind:'contact', defaultLabel:'📨 其他联系方式', label:'📨 其他联系方式', visible:true, dynamic:false, cards: r.contactData||[] }
+                { key:'usbDriveData',  kind:'card',    defaultLabel:'☁️ 在线U盘',    label:'☁️ 在线U盘',    visible:true, dynamic:false, cards: r.usbDriveData||[] },
+                { key:'teachingData',  kind:'card',    defaultLabel:'📚 授课资料',    label:'📚 授课资料',    visible:true, dynamic:false, cards: r.teachingData||[] },
+                { key:'onlineAIData',  kind:'card',    defaultLabel:'🖥️ 网络资源',    label:'🖥️ 网络资源',    visible:true, dynamic:true,  cards: r.onlineAIData||[] },
+                { key:'videoData',     kind:'card',    defaultLabel:'🎬 视频聚合',    label:'🎬 视频聚合',    visible:true, dynamic:true,  cards: r.videoData||[] },
+                { key:'emailData',     kind:'email',   defaultLabel:'📧 邮箱',       label:'📧 邮箱',       visible:true, dynamic:false, cards: r.emailData||[] },
+                { key:'contactData',   kind:'contact', defaultLabel:'📨 其他联系方式', label:'📨 其他联系方式', visible:true, dynamic:false, cards: r.contactData||[] }
             ];
             if (Array.isArray(r.customSections)) {
                 r.customSections.forEach(function(c) {
                     if (!c || !c.key) return;
                     // ★ P3-5: 老格式 customSections 也兼容 anchor
                     var oa = (typeof c.anchor === 'string' && /^[a-zA-Z0-9_-]+$/.test(c.anchor)) ? c.anchor : '';
-                    s.push({ builtin:false, key:c.key, kind:'card', defaultLabel:c.label||c.key, label:c.label||c.key, visible:true, dynamic:!!c.dynamic, private:!!(c.private || c.encrypted), encrypted:!!c.encrypted, enc:c.enc||null, cards:c.cards||[], anchor: oa });
+                    s.push({ key:c.key, kind:c.kind || 'card', defaultLabel:c.label||c.key, label:c.label||c.key, visible:true, dynamic:!!c.dynamic, private:!!(c.private || c.encrypted), encrypted:!!c.encrypted, enc:c.enc||null, cards:c.cards||[], anchor: oa });
                 });
             }
             await parseSectionsArray(s, false);
@@ -3929,54 +3920,24 @@ async function parseAndLoad(text) {
     }
 }
 
-// ★ 解析 sections 数组 → store + customSectionsMeta（异步：需解密加密分类）
-async function parseSectionsArray(rawSections, preserveMissingBuiltins) {
-    BUILTIN_SECTIONS.forEach(s => { store[s.key] = []; });
-    Object.keys(store).forEach(k => { if (!isBuiltinKey(k)) delete store[k]; });
+// ★ 解析 sections 数组 → 统一 section 列表（兼容旧字段，但不再区分大类类型）
+async function parseSectionsArray(rawSections, preserveLegacySections) {
+    Object.keys(store).forEach(k => { delete store[k]; });
     customSectionsMeta = [];
-    builtinSectionMeta = {}; // ★ 重置内置大类覆盖
 
-    const seenBuiltinKeys = new Set();
     for (const sec of rawSections) {
         if (!sec || !sec.key) continue;
-        if (sec.builtin) {
-            seenBuiltinKeys.add(sec.key);
-            store[sec.key] = Array.isArray(sec.cards) ? sec.cards : [];
+        if (customSectionsMeta.find(x => x.key === sec.key)) continue;
+        const def = getDefaultSectionDef(sec.key);
+        var label = (sec.key === UNCLASSIFIED_KEY) ? t('secUnclassified') : (sec.label || (def ? t(def.labelKey) : sec.key));
+        // ★ P3-5: 读取 anchor 字段；非法或缺失 → 空字符串（视为未设置）
+        var rawAnchor = (typeof sec.anchor === 'string' && /^[a-zA-Z0-9_-]+$/.test(sec.anchor)) ? sec.anchor : '';
+        var kind = sec.kind || (def && def.kind) || 'card';
+        var meta = { key: sec.key, label: label, kind: kind, anchor: rawAnchor, visible: sec.visible !== false, dynamic: !!sec.dynamic, private: !!(sec.private || sec.encrypted), encrypted: false, locked: false, _enc: null };
 
-            // ★ 解析内置大类的 visible / 自定义 label / anchor（P3-5）
-            //   只有当 label 不等于 zh/en 默认值时，才视为用户自定义
-            const def = BUILTIN_SECTIONS.find(b => b.key === sec.key);
-            const meta = {};
-            if (def && typeof sec.label === 'string' && sec.label) {
-                const defZh = (I18N.zh && I18N.zh[def.labelKey]) || '';
-                const defEn = (I18N.en && I18N.en[def.labelKey]) || '';
-                if (sec.label !== defZh && sec.label !== defEn) meta.label = sec.label;
-            }
-            if (sec.visible === false) meta.visible = false;
-            if (typeof sec.anchor === 'string' && /^[a-zA-Z0-9_-]+$/.test(sec.anchor)) {
-                meta.anchor = sec.anchor;
-            }
-            if (Object.keys(meta).length) builtinSectionMeta[sec.key] = meta;
-        } else {
-            if (isBuiltinKey(sec.key)) continue;
-            if (customSectionsMeta.find(x => x.key === sec.key)) continue;
-            var label = (sec.key === UNCLASSIFIED_KEY) ? t('secUnclassified') : (sec.label || sec.key);
-            // ★ P3-5: 读取 anchor 字段；非法或缺失 → 空字符串（视为未设置）
-            var rawAnchor = (typeof sec.anchor === 'string' && /^[a-zA-Z0-9_-]+$/.test(sec.anchor)) ? sec.anchor : '';
-            var meta = { key: sec.key, label: label, anchor: rawAnchor, visible: sec.visible !== false, dynamic: !!sec.dynamic, private: !!(sec.private || sec.encrypted), encrypted: false, locked: false, _enc: null };
-
-            // 旧 encrypted 数据自动迁移为 private 明文分类。若旧密文无法解开，内容无法恢复，只保留分类壳。
-            store[sec.key] = Array.isArray(sec.cards) ? sec.cards : [];
-            customSectionsMeta.push(meta);
-        }
-    }
-    if (preserveMissingBuiltins) {
-        BUILTIN_SECTIONS.forEach(function(def) {
-            if (!seenBuiltinKeys.has(def.key)) {
-                builtinSectionMeta[def.key] = Object.assign({}, builtinSectionMeta[def.key] || {}, { deleted: true });
-                store[def.key] = [];
-            }
-        });
+        // 旧 encrypted 数据自动迁移为 private 明文分类。若旧密文无法解开，内容无法恢复，只保留分类壳。
+        store[sec.key] = Array.isArray(sec.cards) ? sec.cards : [];
+        customSectionsMeta.push(meta);
     }
 }
 
@@ -4033,8 +3994,7 @@ async function generateDataJs() {
         '     - 建议 viewBox 统一用 "0 0 128 128"，保持图标风格一致',
         '',
         '   Section 字段：',
-        '     builtin: true=内置不可删 / false=自定义可删',
-        '     key:     唯一标识（内置项锁死，对应旧变量名）',
+        '     key:     唯一标识',
         "     kind:    'card' | 'email' | 'contact'",
         '     dynamic: 是否启用卡片展开/折叠',
         '     visible: 用户可关闭显示',
@@ -4095,66 +4055,31 @@ async function generateDataJs() {
     // ★ 收集所有 section 对象（顺序与 getSections() 一致）
     const outSections = [];
     for (const s of getSections()) {
-        const secObj = { builtin: !!s.builtin, key: s.key, kind: s.kind };
-        if (s.builtin) {
-            var BUILTIN_DYNAMIC = { onlineAIData: true, videoData: true };
-            secObj.kind = (BUILTIN_SECTIONS.find(bs => bs.key === s.key) || {}).kind || 'card';
-            secObj.dynamic = !!BUILTIN_DYNAMIC[s.key];
-        } else {
-            secObj.dynamic = !!s.dynamic;
-        }
+        const secObj = { key: s.key, kind: s.kind || 'card' };
+        secObj.dynamic = !!s.dynamic;
         secObj.label = s.label;
         secObj.visible = s.visible !== false;
         // ★ P3-5: 输出 anchor 字段（仅在用户显式设置过时,空字符串/未设不输出）
-        if (s.builtin) {
-            const bm = builtinSectionMeta[s.key];
-            if (bm && bm.anchor) secObj.anchor = bm.anchor;
+        if (s.anchor) secObj.anchor = s.anchor;
+        const c = customSectionsMeta.find(x => x.key === s.key);
+        if (c) {
+            secObj.visible = c.visible !== false;
+            if (c.private) secObj.private = true;
         } else {
-            if (s.anchor) secObj.anchor = s.anchor;
+            secObj.visible = s.visible !== false;
         }
-
-        if (!s.builtin) {
-            const c = customSectionsMeta.find(x => x.key === s.key);
-            if (c) {
-                secObj.visible = c.visible !== false;
-                if (c.private) secObj.private = true;
-                secObj.cards = store[s.key] || [];
-            }
-        } else {
-            secObj.cards = store[s.key] || [];
-        }
+        secObj.cards = store[s.key] || [];
         outSections.push(secObj);
     }
 
-    // ★ 手动逐项渲染 sections 数组：
-    //   - 内置大类放前面，每个元素前插入 // ===== 大类名 ===== 分节注释
-    //   - 自定义大类统一挪到最后（与前端显示顺序解耦），并加一行总注释
-    const builtinSecs = outSections.filter(s => s.builtin);
-    const customSecs  = outSections.filter(s => !s.builtin);
-
+    // ★ 手动逐项渲染 sections 数组：所有大类统一输出，不再区分大类类型。
     const sectionLines = ['', 'var sections = ['];
-
-    // 内置大类
-    builtinSecs.forEach((sec, i) => {
+    outSections.forEach((sec, i) => {
         const labelText = sec.label || sec.key;
         sectionLines.push('    // ==================== ' + labelText + ' ====================');
         const body = pretty(sec, 1);
-        const isLast = (i === builtinSecs.length - 1) && customSecs.length === 0;
-        sectionLines.push('    ' + body + (isLast ? '' : ','));
+        sectionLines.push('    ' + body + (i === outSections.length - 1 ? '' : ','));
     });
-
-    // 自定义大类（统一放末尾）
-    if (customSecs.length > 0) {
-        sectionLines.push('');
-        sectionLines.push('    // ==================== 自定义大类（可在配置后台增删改） ====================');
-        customSecs.forEach((sec, i) => {
-            const labelText = sec.label || sec.key;
-            sectionLines.push('    // ----- ' + labelText + ' -----');
-            const body = pretty(sec, 1);
-            const isLast = i === customSecs.length - 1;
-            sectionLines.push('    ' + body + (isLast ? '' : ','));
-        });
-    }
 
     sectionLines.push('];');
     sectionLines.push('');
@@ -4177,41 +4102,144 @@ function pretty(val, indent = 0) {
 /* ================================================================
    Tab 渲染
 ================================================================ */
+const ALL_CARDS_SECTION = '__all__';
+
 function renderSectionTabs() {
     const wrap = $('sectionTabs'); wrap.innerHTML = '';
+
+    // ★ 全部卡片 tab
+    const allEl = document.createElement('div');
+    allEl.className = 'section-tab is-all' + (currentSection === ALL_CARDS_SECTION ? ' active' : '');
+    allEl.textContent = t('allCardsTab');
+    allEl.onclick = () => { currentSection = ALL_CARDS_SECTION; renderSectionTabs(); renderCurrentSection(); };
+    wrap.appendChild(allEl);
+
     getSections().forEach(s => {
         const el = document.createElement('div');
         let cls = 'section-tab';
         if (s.key === currentSection) cls += ' active';
-        if (!s.builtin) {
-            if (s.locked) cls += ' is-locked';
-            else if (s.private) cls += ' is-private';
-            else if (s.encrypted) cls += ' is-encrypted';
-            else cls += ' is-custom';
-        }
+        if (s.locked) cls += ' is-locked';
+        else if (s.private) cls += ' is-private';
+        else if (s.encrypted) cls += ' is-encrypted';
+        else cls += ' is-custom';
         el.className = cls;
         let label = s.label;
         if (s.locked) label = '🔒 ' + label;
         else if (s.private) label = '🔒 ' + label;
         else if (s.encrypted) label = '🔐 ' + label;
         el.textContent = label;
-        if (!s.builtin) el.title = t('secCustomTitle');
+        el.title = t('secCustomTitle');
         el.onclick = () => { currentSection = s.key; renderSectionTabs(); renderCurrentSection(); };
         wrap.appendChild(el);
     });
     const manage = document.createElement('div'); manage.className = 'section-tab is-manage'; manage.textContent = t('secManageTab'); manage.onclick = openSectionsModal;
     wrap.appendChild(manage);
 }
+
+/* ================================================================
+   ★ 全部卡片树形视图
+================================================================ */
+function renderAllCardsView() {
+    const sections = getSections();
+    let totalCards = 0, totalSubCards = 0;
+    sections.forEach(s => {
+        const arr = store[s.key] || [];
+        arr.forEach(card => {
+            totalCards++;
+            if (card.subCards && card.subCards.length) totalSubCards += card.subCards.length;
+        });
+    });
+
+    $('currentSectionTitle').innerHTML = escapeHtml(t('allCardsTitle', { n: totalCards, sub: totalSubCards }));
+    $('btnAddCard').classList.remove('hidden');
+    const list = $('cardList'); list.innerHTML = '';
+
+    sections.forEach(s => {
+        const arr = store[s.key] || [];
+        if (!arr.length) return;
+        const header = document.createElement('div');
+        header.className = 'tree-section-header';
+        header.innerHTML = escapeHtml(s.label) + ' <span class="tree-sec-badge kind">' + escapeHtml(s.kind || 'card') + '</span>';
+        list.appendChild(header);
+        const wrap = document.createElement('div');
+        wrap.className = 'tree-card-wrap';
+
+        arr.forEach((card, cardIdx) => {
+            const hasSub = card.subCards && card.subCards.length > 0;
+            const row = document.createElement('div');
+            row.className = 'tree-card-row' + (hasSub ? ' has-subcards' : '');
+            row.dataset.section = s.key;
+            row.dataset.idx = cardIdx;
+            const ic = document.createElement('div'); ic.className = 'tree-icon card-icon-preview';
+            renderIconTo(ic, card);
+            const tb = { simple:'<span class="card-type-badge badge-simple">simple</span>', 'desc-clickable':'<span class="card-type-badge badge-desc">desc-clickable</span>', 'expandable':'<span class="card-type-badge badge-exp">expandable</span>' }[card.type || 'simple'] || '';
+            const subBadge = hasSub ? ' <span class="tree-subcard-badge">📁 ' + card.subCards.length + ' 子卡</span>' : '';
+            const titleTxt = card.title || card.content || t('noTitle');
+            row.innerHTML = '<div class="tree-card-info" style="flex:1;min-width:0;"><div class="card-title">' + escapeHtml(titleTxt) + subBadge + '</div><div class="card-meta">' + tb + ' 🔗 ' + escapeHtml(card.url || '') + '</div></div>';
+            row.querySelector('.tree-card-info').prepend(ic);
+            const act = document.createElement('div');
+            act.className = 'card-actions';
+            act.innerHTML = '<button class="btn btn-primary btn-sm" data-act="edit">✏️</button><button class="btn btn-danger btn-sm" data-act="del">🗑</button>';
+            act.querySelectorAll('button').forEach(b => { b.onclick = () => handleAllCardAction(b.dataset.act, s.key, cardIdx); });
+            row.appendChild(act);
+            wrap.appendChild(row);
+
+            if (hasSub) {
+                const subList = document.createElement('div');
+                subList.className = 'tree-subcards-list';
+                card.subCards.forEach((sub, subIdx) => {
+                    const subRow = document.createElement('div');
+                    subRow.className = 'tree-subcard-row';
+                    subRow.dataset.section = s.key;
+                    subRow.dataset.idx = cardIdx;
+                    subRow.dataset.subidx = subIdx;
+                    const subIc = document.createElement('div'); subIc.className = 'tree-sub-icon card-icon-preview'; subIc.style = 'width:32px;height:32px;font-size:16px;';
+                    renderIconTo(subIc, sub);
+                    const subTitle = sub.title || sub.content || t('noTitle');
+                    subRow.innerHTML = '<div class="tree-subcard-info"><div class="tsc-title">' + escapeHtml(subTitle) + '</div><div class="tsc-meta">🔗 ' + escapeHtml(sub.url || '') + '</div></div>';
+                    subRow.querySelector('.tree-subcard-info').prepend(subIc);
+                    const subAct = document.createElement('div');
+                    subAct.className = 'tree-subcard-actions';
+                    subAct.innerHTML = '<button class="btn btn-ghost btn-sm" data-act="edit-sub">✏️</button><button class="btn btn-danger btn-sm" data-act="del-sub">🗑</button>';
+                    subAct.querySelectorAll('button').forEach(b => { b.onclick = () => handleAllCardAction(b.dataset.act, s.key, cardIdx, subIdx); });
+                    subRow.appendChild(subAct);
+                    subList.appendChild(subRow);
+                });
+                wrap.appendChild(subList);
+            }
+        });
+        list.appendChild(wrap);
+    });
+
+    if (list.children.length === 0) list.innerHTML = '<div class="empty-hint">' + escapeHtml(t('emptyCards')) + '</div>';
+}
+
+function handleAllCardAction(act, sectionKey, cardIdx, subIdx) {
+    const arr = store[sectionKey];
+    if (!arr) return;
+    if (act === 'edit') {
+        openCardModal(cardIdx, sectionKey);
+    } else if (act === 'del') {
+        if (confirm(t('confirmDelCard'))) { arr.splice(cardIdx, 1); renderAllCardsView(); markConfigDirty(); toast(t('toastDeletedUnsaved')); }
+    } else if (act === 'edit-sub') {
+        openSubModal(cardIdx, subIdx, sectionKey);
+    } else if (act === 'del-sub') {
+        if (confirm(t('confirmDelCard'))) { arr[cardIdx].subCards.splice(subIdx, 1); renderAllCardsView(); markConfigDirty(); toast(t('toastDeletedUnsaved')); }
+    }
+}
+
 function renderCurrentSection() {
+    // ★ 全部卡片视图
+    if (currentSection === ALL_CARDS_SECTION) {
+        renderAllCardsView();
+        return;
+    }
     const sec = getSections().find(x => x.key === currentSection); if (!sec) return;
     const arr = store[sec.key] || [];
     let badges = '';
-    if (!sec.builtin) {
-        badges += t('customBadgeHtml');
-        if (sec.private) badges += t('privateBadgeHtml');
-        if (sec.encrypted) badges += t('encBadgeHtml');
-        if (sec.locked) badges += t('lockedBadgeHtml');
-    }
+    if (sec.private) badges += t('privateBadgeHtml');
+    if (sec.encrypted) badges += t('encBadgeHtml');
+    if (sec.locked) badges += t('lockedBadgeHtml');
     const title = sec.locked
         ? escapeHtml(sec.label) + badges
         : escapeHtml(sec.label) + badges + ' <span style="font-size:14px;color:#888;font-weight:400;">' + escapeHtml(t('titleItems', { n: arr.length })) + '</span>';
@@ -4354,7 +4382,7 @@ function openMoveCardModal(sectionKey, cardIdx) {
     getSections().filter(s => s.kind === 'card' && s.key !== sectionKey && !s.locked).forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.key;
-        let lbl = s.label + (s.builtin ? '' : t('customSuffix'));
+        let lbl = s.label;
         if (s.encrypted) lbl = '🔐 ' + lbl;
         opt.textContent = lbl;
         sel.appendChild(opt);
@@ -4397,7 +4425,7 @@ function openPromoteSubModal(subIdx) {
     getSections().filter(s => s.kind === 'card' && !s.locked).forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.key;
-        let lbl = s.label + (s.builtin ? '' : t('customSuffix'));
+        let lbl = s.label;
         if (s.encrypted) lbl = '🔐 ' + lbl;
         opt.textContent = lbl;
         selSec.appendChild(opt);
@@ -4503,114 +4531,56 @@ function confirmPromoteSub() {
 ================================================================ */
 function openSectionsModal() { renderSectionsModalLists(); show('sectionsModal'); }
 function renderSectionsModalLists() {
-    // ★ 内置大类：删除后从管理列表中彻底移除；仍存在的项支持显示/隐藏、重命名、恢复默认名、删除
-    const blt = $('builtinSectionsList'); blt.innerHTML = '';
-    BUILTIN_SECTIONS.forEach(s => {
-        const cnt = (store[s.key] || []).length;
-        const m = builtinSectionMeta[s.key] || {};
-        if (m.deleted) return;
-        const displayLabel = m.label || t(s.labelKey);
-        const visible = m.visible !== false;
-        const hasCustomLabel = !!m.label;
-        const hiddenBadge = !visible
-            ? ` <span class="sec-badge badge-locked">${escapeHtml(t('sectionBadgeHidden'))}</span>` : '';
-        const visBtn = `<button class="btn btn-ghost btn-sm" data-bi-act="vis"
-            title="${escapeHtml(visible ? t('sectionBuiltinHide') : t('sectionBuiltinShow'))}">${visible ? '👁' : '🚫'}</button>`;
-        const editBtn = `<button class="btn btn-primary btn-sm" data-bi-act="edit"
-            title="${escapeHtml(t('sectionBuiltinEdit'))}">✏️</button>`;
-        const resetBtn = hasCustomLabel
-            ? `<button class="btn btn-warn btn-sm" data-bi-act="reset"
-                 title="${escapeHtml(t('sectionBuiltinResetName'))}">🔄</button>`
-            : '';
-        const delBtn = `<button class="btn btn-danger btn-sm" data-bi-act="del" title="${escapeHtml(t('sectionBuiltinDelete'))}">🗑</button>`;
+    const list = $('sectionsList');
+    list.innerHTML = '';
+    const rows = customSectionsMeta.map((c, idx) => ({
+            idx,
+            key: c.key,
+            label: c.key === UNCLASSIFIED_KEY ? t('secUnclassified') : c.label,
+            kind: c.kind || 'card',
+            cnt: (store[c.key] || []).length,
+            visible: c.visible !== false,
+            dynamic: !!c.dynamic,
+            private: !!c.private,
+            encrypted: !!c.encrypted,
+            locked: !!c.locked,
+            isUnclassified: c.key === UNCLASSIFIED_KEY
+        }));
 
-        const el = document.createElement('div'); el.className = 'sec-row builtin';
-        el.innerHTML = `<div class="sec-label">${escapeHtml(displayLabel)}${hiddenBadge}
-            <span class="sec-meta"> · ${escapeHtml(s.key)}${escapeHtml(t('sectionMetaSuffix', { kind: s.kind, cnt }))}</span></div>
-            <span class="sec-badge badge-builtin">${escapeHtml(t('sectionBadgeBuiltin'))}</span>
-            <div style="display:flex; gap:4px;">${visBtn}${editBtn}${resetBtn}${delBtn}</div>`;
-        el.querySelectorAll('button[data-bi-act]').forEach(btn =>
-            btn.onclick = () => handleBuiltinSectionAction(btn.dataset.biAct, s.key));
-        blt.appendChild(el);
-    });
+    if (!rows.length) {
+        list.innerHTML = '<div class="empty-hint" style="padding:14px;">' + escapeHtml(t('sectionsNoCustom')) + '</div>';
+        return;
+    }
 
-    // ===== 自定义大类（保持原逻辑） =====
-    const cst = $('customSectionsList'); cst.innerHTML = '';
-    if (!customSectionsMeta.length) { cst.innerHTML = '<div class="empty-hint" style="padding:14px;">' + escapeHtml(t('sectionsNoCustom')) + '</div>'; return; }
-    customSectionsMeta.forEach((c, idx) => {
-        const cnt = (store[c.key] || []).length;
-        const el = document.createElement('div'); el.className = 'sec-row custom';
+    rows.forEach(row => {
+        const el = document.createElement('div');
+        el.className = 'sec-row custom';
         let badges = '';
-        if (c.dynamic)   badges += '<span class="sec-badge badge-dynamic">'   + escapeHtml(t('sectionBadgeDynamic'))   + '</span>';
-        if (c.private)   badges += '<span class="sec-badge badge-private">'   + escapeHtml(t('sectionBadgePrivate'))   + '</span>';
-        if (c.encrypted) badges += '<span class="sec-badge badge-encrypted">' + escapeHtml(t('sectionBadgeEncrypted')) + '</span>';
-        if (c.locked)    badges += '<span class="sec-badge badge-locked">'    + escapeHtml(t('sectionBadgeLocked'))    + '</span>';
-        if (c.visible === false) badges += '<span class="sec-badge badge-locked">' + escapeHtml(t('sectionBadgeHidden')) + '</span>';
-        const isUnc = c.key === UNCLASSIFIED_KEY;
-        const displayLabel = isUnc ? t('secUnclassified') : c.label;
-        const metaText = isUnc ? t('sectionMetaCustomUnc', { key: c.key, cnt }) : t('sectionMetaCustom', { key: c.key, cnt });
-        el.innerHTML = `<div class="sec-label">${escapeHtml(displayLabel)} ${badges}
+        if (row.dynamic)   badges += '<span class="sec-badge badge-dynamic">'   + escapeHtml(t('sectionBadgeDynamic'))   + '</span>';
+        if (row.private)   badges += '<span class="sec-badge badge-private">'   + escapeHtml(t('sectionBadgePrivate'))   + '</span>';
+        if (row.encrypted) badges += '<span class="sec-badge badge-encrypted">' + escapeHtml(t('sectionBadgeEncrypted')) + '</span>';
+        if (row.locked)    badges += '<span class="sec-badge badge-locked">'    + escapeHtml(t('sectionBadgeLocked'))    + '</span>';
+        if (!row.visible)  badges += '<span class="sec-badge badge-locked">'    + escapeHtml(t('sectionBadgeHidden'))    + '</span>';
+
+        const metaText = row.isUnclassified
+            ? t('sectionMetaCustomUnc', { key: row.key, cnt: row.cnt })
+            : t('sectionMetaUnified', { key: row.key, kind: row.kind, cnt: row.cnt });
+        const orderBtns = `<button class="btn btn-ghost btn-sm" data-sec-act="up" ${row.idx === 0 ? 'disabled' : ''}>⬆</button>
+               <button class="btn btn-ghost btn-sm" data-sec-act="down" ${row.idx === customSectionsMeta.length - 1 ? 'disabled' : ''}>⬇</button>`;
+
+        el.innerHTML = `<div class="sec-label">${escapeHtml(row.label)} ${badges}
             <div class="sec-meta">${escapeHtml(metaText)}</div></div>
-            <span class="sec-badge badge-custom">${escapeHtml(t('sectionBadgeCustom'))}</span>
             <div style="display:flex; gap:4px;">
-                <button class="btn btn-ghost btn-sm" data-cs-act="vis" title="${escapeHtml(c.visible === false ? t('sectionBuiltinShow') : t('sectionBuiltinHide'))}">${c.visible === false ? '🚫' : '👁'}</button>
-                <button class="btn btn-ghost btn-sm" data-cs-act="up"   ${idx === 0 ? 'disabled' : ''}>⬆</button>
-                <button class="btn btn-ghost btn-sm" data-cs-act="down" ${idx === customSectionsMeta.length - 1 ? 'disabled' : ''}>⬇</button>
-                <button class="btn btn-primary btn-sm" data-cs-act="edit">✏️</button>
-                <button class="btn btn-danger btn-sm" data-cs-act="del">🗑</button>
+                <button class="btn btn-ghost btn-sm" data-sec-act="vis" title="${escapeHtml(row.visible ? t('sectionHide') : t('sectionShow'))}">${row.visible ? '👁' : '🚫'}</button>
+                ${orderBtns}
+                <button class="btn btn-primary btn-sm" data-sec-act="edit" title="${escapeHtml(t('sectionEdit'))}">✏️</button>
+                <button class="btn btn-danger btn-sm" data-sec-act="del" title="${escapeHtml(t('sectionDelete'))}">🗑</button>
             </div>`;
-        el.querySelectorAll('button[data-cs-act]').forEach(btn => btn.onclick = () => handleCustomSectionAction(btn.dataset.csAct, idx));
-        cst.appendChild(el);
+        el.querySelectorAll('button[data-sec-act]').forEach(btn => {
+            btn.onclick = () => handleCustomSectionAction(btn.dataset.secAct, row.idx);
+        });
+        list.appendChild(el);
     });
-}
-
-/* ★ 新增：内置大类按钮点击处理（显示/隐藏、编辑、恢复默认名） */
-function handleBuiltinSectionAction(act, key) {
-    if (act === 'vis') {
-        if (!builtinSectionMeta[key]) builtinSectionMeta[key] = {};
-        const cur = builtinSectionMeta[key].visible !== false;
-        if (cur) builtinSectionMeta[key].visible = false;
-        else delete builtinSectionMeta[key].visible;
-        if (!Object.keys(builtinSectionMeta[key]).length) delete builtinSectionMeta[key];
-        renderSectionsModalLists(); renderSectionTabs();
-        markConfigDirty();
-        toast(t('toastUpdatedUnsaved'));
-    } else if (act === 'edit') {
-        openSectionEditModal({ type: 'builtin', key });
-    } else if (act === 'del') {
-        deleteBuiltinSection(key);
-    } else if (act === 'reset') {
-        if (builtinSectionMeta[key]) {
-            delete builtinSectionMeta[key].label;
-            if (!Object.keys(builtinSectionMeta[key]).length) delete builtinSectionMeta[key];
-        }
-        renderSectionsModalLists(); renderSectionTabs(); renderCurrentSection();
-        markConfigDirty();
-        toast(t('toastUpdatedUnsaved'));
-    }
-}
-
-function deleteBuiltinSection(key) {
-    const def = BUILTIN_SECTIONS.find(s => s.key === key);
-    if (!def) return;
-    const m = builtinSectionMeta[key] || {};
-    const label = m.label || t(def.labelKey);
-    const cards = store[key] || [];
-    if (cards.length === 0) {
-        if (!confirm(t('confirmDelSection', { label }))) return;
-    } else {
-        if (!confirm(t('confirmDelSectionCards', { label, n: cards.length, unc: t('secUnclassified') }))) return;
-        ensureUnclassifiedSection();
-        store[UNCLASSIFIED_KEY] = (store[UNCLASSIFIED_KEY] || []).concat(cards);
-    }
-    if (!builtinSectionMeta[key]) builtinSectionMeta[key] = {};
-    builtinSectionMeta[key].deleted = true;
-    delete builtinSectionMeta[key].visible;
-    store[key] = [];
-    if (currentSection === key) currentSection = customSectionsMeta.find(x => x.key === UNCLASSIFIED_KEY) ? UNCLASSIFIED_KEY : getFirstAvailableSectionKey();
-    renderSectionsModalLists(); renderSectionTabs(); renderCurrentSection();
-    markConfigDirty();
-    toast(t('toastDeletedSectionUnsaved'));
 }
 
 function handleCustomSectionAction(act, idx) {
@@ -4717,9 +4687,7 @@ function updateSectionDirectLinkPreview() {
     const input = $('se_direct_link');
     if (!input) return;
     let sectionKey = '';
-    if (editingBuiltinKey) {
-        sectionKey = editingBuiltinKey;
-    } else if (editingCustomSectionIdx >= 0 && customSectionsMeta[editingCustomSectionIdx]) {
+    if (editingCustomSectionIdx >= 0 && customSectionsMeta[editingCustomSectionIdx]) {
         sectionKey = customSectionsMeta[editingCustomSectionIdx].key;
     }
     input.value = sectionKey
@@ -4737,48 +4705,35 @@ function copySectionDirectLink() {
 }
 
 function openSectionEditModal(target) {
-    // ★ target 兼容三种入参：
-    //   number              → 编辑指定 idx 的自定义大类
-    //   null / undefined    → 新增自定义大类
-    //   { type:'builtin', key } → 编辑内置大类（仅可改 label）
-    if (target && typeof target === 'object' && target.type === 'builtin') {
-        editingCustomSectionIdx = -2;
-        editingBuiltinKey = target.key;
-    } else {
-        editingCustomSectionIdx = (target === undefined || target === null) ? -1 : target;
-        editingBuiltinKey = null;
-    }
+    // ★ target 兼容两种入参：
+    //   number              → 编辑指定 idx 的大类
+    //   null / undefined    → 新增大类
+    editingCustomSectionIdx = (target === undefined || target === null) ? -1 : target;
 
-    const isBuiltin = !!editingBuiltinKey;
-    const isNew = !isBuiltin && editingCustomSectionIdx < 0;
+    const isNew = editingCustomSectionIdx < 0;
 
-    $('sectionEditTitle').textContent = isBuiltin
-        ? t('sectionEditBuiltinTitle')
-        : (isNew ? t('sectionEditNewTitle') : t('sectionEditEditTitle'));
+    $('sectionEditTitle').textContent = isNew ? t('sectionEditNewTitle') : t('sectionEditEditTitle');
 
-    // 内置大类不显示 dynamic / encrypted 行
+    // 仅 card 类型支持展开/私密开关；email/contact 类型固定公开显示。
     const dynRow = $('se_dynamic').closest('.form-row');
     const encRow = $('se_encrypted').closest('.form-row');
-    if (isBuiltin) { hide(dynRow); hide(encRow); }
-    else { show(dynRow); show(encRow); }
+    let currentKind = 'card';
 
-    if (isBuiltin) {
-        const m = builtinSectionMeta[editingBuiltinKey] || {};
-        const def = BUILTIN_SECTIONS.find(b => b.key === editingBuiltinKey);
-        $('se_label').value = m.label || (def ? t(def.labelKey) : '');
-        $('se_anchor').value = m.anchor || '';
-    } else if (isNew) {
+    if (isNew) {
         $('se_label').value = '';
         $('se_anchor').value = '';
         $('se_dynamic').checked = false;
         $('se_encrypted').checked = false;
     } else {
         const c = customSectionsMeta[editingCustomSectionIdx];
+        currentKind = c.kind || 'card';
         $('se_label').value = c.label;
         $('se_anchor').value = c.anchor || '';
         $('se_dynamic').checked = !!c.dynamic;
         $('se_encrypted').checked = !!c.private;
     }
+    if (currentKind === 'card') { show(dynRow); show(encRow); }
+    else { hide(dynRow); hide(encRow); }
     updateSectionDirectLinkPreview();
     show('sectionEditModal');
 }
@@ -4796,42 +4751,24 @@ function saveSectionEdit() {
     }
     const anchor = rawAnchor;  // '' 表示清除
 
-    // ★ 内置大类：只更新 label / anchor（label 与 i18n 默认值相等时视为清除自定义）
-    if (editingBuiltinKey) {
-        const def = BUILTIN_SECTIONS.find(b => b.key === editingBuiltinKey);
-        const defZh = (def && I18N.zh && I18N.zh[def.labelKey]) || '';
-        const defEn = (def && I18N.en && I18N.en[def.labelKey]) || '';
-        if (!builtinSectionMeta[editingBuiltinKey]) builtinSectionMeta[editingBuiltinKey] = {};
-        if (label === defZh || label === defEn) {
-            delete builtinSectionMeta[editingBuiltinKey].label;
-        } else {
-            builtinSectionMeta[editingBuiltinKey].label = label;
-        }
-        if (anchor) builtinSectionMeta[editingBuiltinKey].anchor = anchor;
-        else delete builtinSectionMeta[editingBuiltinKey].anchor;
-        if (!Object.keys(builtinSectionMeta[editingBuiltinKey]).length) delete builtinSectionMeta[editingBuiltinKey];
-        hide('sectionEditModal');
-        renderSectionsModalLists(); renderSectionTabs(); renderCurrentSection();
-        markConfigDirty();
-        toast(t('toastUpdatedUnsaved'));
-        editingBuiltinKey = null;
-        return;
-    }
-
     const dynamic = $('se_dynamic').checked;
     const privateSection = $('se_encrypted').checked;
 
     if (editingCustomSectionIdx === -1) {
         const key = genCustomKey();
-        customSectionsMeta.push({ key, label, anchor, visible: true, dynamic, private: privateSection, encrypted: false, locked: false, _enc: null });
+        customSectionsMeta.push({ key, label, kind: 'card', anchor, visible: true, dynamic, private: privateSection, encrypted: false, locked: false, _enc: null });
         store[key] = [];
         toast(t('toastAddedSectionUnsaved'));
     } else {
         const c = customSectionsMeta[editingCustomSectionIdx];
-        c.label = label; c.dynamic = dynamic; c.anchor = anchor;
-        if (privateSection && !c.private) {
+        const isCardKind = (c.kind || 'card') === 'card';
+        c.label = label;
+        c.anchor = anchor;
+        if (isCardKind) c.dynamic = dynamic;
+        else c.dynamic = false;
+        if (isCardKind && privateSection && !c.private) {
             c.private = true; c.encrypted = false; c.locked = false; c._enc = null; toast(t('toastEncEnabled'));
-        } else if (!privateSection && c.private) {
+        } else if ((!isCardKind || !privateSection) && c.private) {
             c.private = false; c.encrypted = false; c.locked = false; c._enc = null; toast(t('toastEncDisabled'));
         } else {
             toast(t('toastUpdatedUnsaved'));
@@ -5139,7 +5076,7 @@ function openMoveSubModal(subIdx) {
     getSections().filter(s => s.kind === 'card' && !s.locked).forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.key;
-        let lbl = s.label + (s.builtin ? '' : t('customSuffix'));
+        let lbl = s.label;
         if (s.encrypted) lbl = '🔐 ' + lbl;
         opt.textContent = lbl;
         selSec.appendChild(opt);
@@ -5237,7 +5174,6 @@ function buildSectionsForCsv() {
             key:       meta.key,
             kind:      meta.kind,
             label:     meta.label,
-            builtin:   !!meta.builtin,
             encrypted: !!meta.encrypted,
             locked:    !!meta.locked,
             visible:   meta.visible !== false,
@@ -5435,7 +5371,7 @@ function downloadTemplateInFormat(fmt) {
    - 仅写入编辑器（store + customSectionsMeta），不直接保存
    - 模式：append(默认) / overwrite
    - 加密 section locked → 报 error，相关行被丢弃
-   - 未知 section_key：默认报 error，勾选"允许创建"才创建空 customSection
+   - 未知 section_key：默认报 error，勾选"允许创建"才创建空大类
    ================================================================ */
 var __csvImportParsed = null;   // 缓存上次预览的结果
 var __csvImportPlan   = null;   // 缓存上次的应用计划
@@ -5617,7 +5553,6 @@ function finalizePreview(parsed) {
         toCreate: [],
         lockedSkipped: [],
         unknownSections: [],
-        builtinUnknown: [],
         errors: parsed.errors.slice(),
         warnings: parsed.warnings.slice()
     };
@@ -5632,10 +5567,6 @@ function finalizePreview(parsed) {
         }
 
         if (!meta) {
-            if (!/^custom_/.test(secKey)) {
-                plan.builtinUnknown.push({ key: secKey });
-                return;
-            }
             if (!allowCreate) {
                 plan.unknownSections.push({ key: secKey });
                 return;
@@ -5680,7 +5611,7 @@ function finalizePreview(parsed) {
     var lines = [];
     lines.push(t('csvImportPreviewHeader', {
         rows: parsed.rows.length,
-        errs: parsed.errors.length + plan.lockedSkipped.length + plan.unknownSections.length + plan.builtinUnknown.length,
+        errs: parsed.errors.length + plan.lockedSkipped.length + plan.unknownSections.length,
         warns: parsed.warnings.length
     }));
     Object.keys(plan.sections).forEach(function(key) {
@@ -5696,9 +5627,6 @@ function finalizePreview(parsed) {
     });
     plan.unknownSections.forEach(function(s) {
         lines.push(t('csvImportPreviewUnknownSection', { key: s.key }));
-    });
-    plan.builtinUnknown.forEach(function(s) {
-        lines.push(t('csvImportPreviewBuiltinUnknown', { key: s.key }));
     });
     if (parsed.errors.length) {
         lines.push('');
@@ -5719,8 +5647,7 @@ function finalizePreview(parsed) {
 
     var hasBlockingError = parsed.errors.length > 0
         || plan.lockedSkipped.length > 0
-        || plan.unknownSections.length > 0
-        || plan.builtinUnknown.length > 0;
+        || plan.unknownSections.length > 0;
     if (hasBlockingError) lines.push('\n' + t('csvImportPreviewFixHint'));
 
     $('csvImportPreview').style.display = 'block';
@@ -5744,14 +5671,16 @@ function doCsvImportApply() {
     var totalAdd = 0, totalUpd = 0;
     var newSecCount = 0;
 
-    // 先创建缺失的 customSection
+    // 先创建缺失的大类
     plan.toCreate.forEach(function(secKey) {
         if (!customSectionsMeta.find(function(c) { return c.key === secKey; })) {
             customSectionsMeta.push({
                 key: secKey,
                 label: secKey,        // 名字用 key 暂代；用户可以到"管理"里改
+                kind: 'card',
                 visible: true,
                 dynamic: false,
+                private: false,
                 encrypted: false,
                 locked: false
             });
@@ -6310,29 +6239,15 @@ async function openPickCardFromMineModal(mode) {
     $('pickCardSearch').value = '';
     $('pickCardList').innerHTML = `<div class="muted" style="padding:12px;text-align:center;">${escapeHtml(t('pickCardLoading'))}</div>`;
 
-    // §16-B(2026-05-24):改用当前 store(明文) + customSectionsMeta,这样已解锁的加密大类也能选
-    //   优势:不依赖网络;加密大类的明文不出 admin 浏览器;能给加密卡片标 __fromEncrypted 透传
-    //   边界:未解锁的加密大类自动被 store[key]=[] 排除(parseSectionsArray 里如此)
+    // 使用统一 section 列表；私密分类在已登录后台中就是明文可选。
     __pickedCards = [];
-    // 内置 sections(BUILTIN_SECTIONS 在文件顶部定义)
-    BUILTIN_SECTIONS.forEach(b => {
-        const cards = Array.isArray(store[b.key]) ? store[b.key] : [];
-        cards.forEach((card, idx) => {
-            __pickedCards.push({
-                sectionKey: b.key,
-                sectionLabel: t(b.labelKey) || b.key,
-                idx, card, fromEncrypted: false
-            });
-        });
-    });
-    // 自定义 sections — 已解锁的加密大类标 fromEncrypted=true
-    (customSectionsMeta || []).forEach(c => {
-        if (c.locked) return;  // 未解锁的加密大类没有明文,跳过
+    getSections().forEach(c => {
+        if (c.locked) return;
         const cards = Array.isArray(store[c.key]) ? store[c.key] : [];
         cards.forEach((card, idx) => {
             __pickedCards.push({
                 sectionKey: c.key,
-                sectionLabel: (c.encrypted ? '🔒 ' : '') + (c.label || c.key),
+                sectionLabel: (c.private ? '🔒 ' : '') + (c.label || c.key),
                 idx, card,
                 fromEncrypted: !!c.encrypted
             });
@@ -6417,12 +6332,12 @@ function applyPickedCards() {
     // 自动切目标分类(按第一张)
     const firstSecKey = items[0].sectionKey || '';
     const sel = $(sectionSelId);
-    const builtinKeys = Array.from(sel.options).map(o => o.value);
+    const sectionKeys = Array.from(sel.options).map(o => o.value);
     let targetVal;
-    if (builtinKeys.includes(firstSecKey)) {
+    if (sectionKeys.includes(firstSecKey)) {
         targetVal = firstSecKey;
     } else {
-        targetVal = '';   // custom_* 或未识别 → "未分类"
+        targetVal = '';   // 未识别 → "未分类"
     }
     const beforeVal = sel.value;
     sel.value = targetVal;
@@ -6934,7 +6849,7 @@ function renderInboxItem(msg) {
         const encTag = msg.acceptKind === 'encrypted'
             ? ` <span style="font-size:10px;padding:1px 6px;background:#dbeafe;color:#1e40af;border-radius:8px;margin-left:4px;">🔒 ${escapeHtml(t('inboxAcceptedEncBadge'))}</span>`
             : '';
-        // §16-A.5(2026-05-24):落地分类显示与"推荐到"行统一,优先内置 label;custom_* 显示原 key
+        // §16-A.5(2026-05-24):落地分类显示与"推荐到"行统一,优先显示大类 label,找不到则显示原 key
         // §16-A.6(2026-05-24):删除记录按钮缩小并 inline 放在本行末端(不再单独占一行)
         // §14 P2P(2026-05-29):isSent 模式下隐藏删除按钮(发件方不能动接收方 inbox 记录)
         const acceptedLabel = sectionLabelMap[msg.acceptedSection] || msg.acceptedSection;
@@ -7086,7 +7001,7 @@ function openInboxEditAcceptModal(msg) {
     // 1. 渲染目标大类下拉
     const sel = $('inboxEditAcceptSection');
     sel.innerHTML = '';
-    // 6 个内置 + 未分类(与后端 ALLOWED_PUBLIC_KEYS 一致)
+    // 旧版固定公开大类 + 未分类(与后端 ALLOWED_PUBLIC_KEYS 一致)
     const opts = [
         ['usbDriveData', '☁️ 在线U盘'],
         ['teachingData', '📚 授课资料'],
@@ -7380,14 +7295,14 @@ function __parseDataJsForCsv(dataText) {
         );
         var r = wrapper2();
         return [
-            { builtin:true, key:'usbDriveData',  kind:'card',    label:'☁️ 在线U盘',    visible:true, cards: r.usbDriveData||[] },
-            { builtin:true, key:'teachingData',  kind:'card',    label:'📚 授课资料',    visible:true, cards: r.teachingData||[] },
-            { builtin:true, key:'onlineAIData',  kind:'card',    label:'🖥️ 网络资源',    visible:true, cards: r.onlineAIData||[] },
-            { builtin:true, key:'videoData',     kind:'card',    label:'🎬 视频聚合',    visible:true, cards: r.videoData||[] },
-            { builtin:true, key:'emailData',     kind:'email',   label:'📧 邮箱',       visible:true, cards: r.emailData||[] },
-            { builtin:true, key:'contactData',   kind:'contact', label:'📨 其他联系方式', visible:true, cards: r.contactData||[] }
+            { key:'usbDriveData',  kind:'card',    label:'☁️ 在线U盘',    visible:true, cards: r.usbDriveData||[] },
+            { key:'teachingData',  kind:'card',    label:'📚 授课资料',    visible:true, cards: r.teachingData||[] },
+            { key:'onlineAIData',  kind:'card',    label:'🖥️ 网络资源',    visible:true, cards: r.onlineAIData||[] },
+            { key:'videoData',     kind:'card',    label:'🎬 视频聚合',    visible:true, cards: r.videoData||[] },
+            { key:'emailData',     kind:'email',   label:'📧 邮箱',       visible:true, cards: r.emailData||[] },
+            { key:'contactData',   kind:'contact', label:'📨 其他联系方式', visible:true, cards: r.contactData||[] }
         ].concat((r.customSections||[]).map(function(s){
-            return Object.assign({ builtin:false, kind:'card', visible:true }, s);
+            return Object.assign({ kind:'card', visible:true }, s);
         }));
     } catch (e) {
         return [];
@@ -8101,7 +8016,15 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnIoImportConfirm').onclick = confirmImport;
     $('ioFile').addEventListener('change', handleImportFile);
 
-    $('btnAddCard').onclick = () => openCardModal(-1);
+    $('btnAddCard').onclick = () => {
+        if (currentSection === ALL_CARDS_SECTION) {
+            // 全部卡片视图下，切换到第一个有数据的分类再新增
+            const first = getSections().find(s => s.kind === 'card');
+            if (first) { currentSection = first.key; renderSectionTabs(); renderCurrentSection(); openCardModal(-1); }
+        } else {
+            openCardModal(-1);
+        }
+    };
     $('btnCardCancel').onclick = () => hide('cardModal');
     $('btnCardSave').onclick = saveCardFromModal;
     $('f_type').onchange = syncTypeFields;
