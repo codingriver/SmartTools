@@ -15,8 +15,22 @@
     </label>
     <p class="hint">先在浏览器中打开并登录 SmartTools 后台，再点击导入。</p>
     <button id="saveUrl" type="button">保存地址</button>
-    <button id="importCurrent" type="button">导入当前窗口标签</button>
-    <button id="importAll" type="button">导入所有窗口标签</button>
+    <div class="actions two">
+      <button id="loadCurrent" type="button">读取当前窗口</button>
+      <button id="loadAll" type="button">读取所有窗口</button>
+    </div>
+    <label>
+      父卡片名称
+      <input id="parentTitle" type="text" placeholder="如：临时标签合集">
+    </label>
+    <div class="actions two light">
+      <button id="selectAll" type="button">全选</button>
+      <button id="selectNone" type="button">全不选</button>
+    </div>
+    <div id="tabsList" class="tabs-list">
+      <p class="empty">请先读取标签列表</p>
+    </div>
+    <button id="importSelected" type="button">导入勾选标签为子卡片</button>
     <p id="status" class="status"></p>
   </main>
   <script src="popup.js"></script>

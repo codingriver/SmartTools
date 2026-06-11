@@ -1617,7 +1617,7 @@ const I18N = {
         bookmarkExportOk: '浏览器收藏夹 HTML 已导出（{n} 个链接）',
         bookmarkExportEmpty: '没有可导出的浏览器书签链接',
         bookmarkExportFail: '浏览器收藏夹导出失败：{msg}',
-        openTabsImportDone: '已导入 {n} 个打开的标签页到「{section}」。请记得点「💾 保存」。',
+        openTabsImportDone: '已导入父卡片「{title}」及 {n} 个子标签到「{section}」。请记得点「💾 保存」。',
         openTabsImportEmpty: '没有可导入的标签页',
         fullBackupImportTitle: '📦 导入完整备份 JSON',
         fullBackupImportDesc: '完整备份会恢复收藏原始字段、分类配置和基础信息。导入只写入编辑器，收藏数据确认无误后请手动点击「💾 保存」。',
@@ -2200,7 +2200,7 @@ const I18N = {
         bookmarkExportOk: 'Browser bookmarks HTML exported ({n} links)',
         bookmarkExportEmpty: 'No bookmark links to export',
         bookmarkExportFail: 'Browser bookmarks export failed: {msg}',
-        openTabsImportDone: 'Imported {n} open tab(s) into "{section}". Remember to click 「💾 Save」.',
+        openTabsImportDone: 'Imported parent card "{title}" with {n} tab sub-card(s) into "{section}". Remember to click 「💾 Save」.',
         openTabsImportEmpty: 'No importable open tabs',
         fullBackupImportTitle: '📦 Import Full JSON Backup',
         fullBackupImportDesc: 'A full backup restores raw card fields, section config, and site config. Import only loads to editor; after checking, click 「💾 Save」 manually.',
@@ -6673,12 +6673,10 @@ function pickOpenTabsImportTargetSection() {
     return UNCLASSIFIED_KEY;
 }
 
-function tabToCard(tab) {
+function tabToSubCard(tab) {
     var url = String((tab && tab.url) || '').trim();
     var title = String((tab && tab.title) || url).trim() || url;
-    var card = {
-        id: generateCardId(),
-        type: 'simple',
+    var subCard = {
         icon: '🌐',
         title: title,
         url: url,
@@ -6688,38 +6686,56 @@ function tabToCard(tab) {
         }
     };
     if (tab && tab.favIconUrl) {
-        card.iconImg = String(tab.favIconUrl);
-        delete card.icon;
+        subCard.iconImg = String(tab.favIconUrl);
+        delete subCard.icon;
     }
     ['windowId', 'index', 'active', 'pinned', 'groupId', 'audible', 'muted'].forEach(function(k) {
-        if (tab && tab[k] !== undefined) card.openTabMeta[k] = tab[k];
+        if (tab && tab[k] !== undefined) subCard.openTabMeta[k] = tab[k];
     });
-    return card;
+    return subCard;
+}
+
+function buildOpenTabsParentCard(payload, subCards) {
+    var rawTitle = payload && payload.parentTitle ? String(payload.parentTitle).trim() : '';
+    var title = rawTitle || ('打开的标签页 ' + new Date().toLocaleString());
+    return {
+        id: generateCardId(),
+        type: 'expandable',
+        icon: '🗂️',
+        title: title,
+        desc: String(subCards.length) + ' tabs',
+        subCards: subCards,
+        openTabsMeta: {
+            source: 'browser-open-tabs',
+            importedAt: new Date().toISOString(),
+            scope: payload && payload.scope || '',
+            sentAt: payload && payload.sentAt || ''
+        }
+    };
 }
 
 function importOpenTabsFromExtension(payload) {
     var tabs = payload && Array.isArray(payload.tabs) ? payload.tabs : [];
-    var cards = tabs
+    var subCards = tabs
         .filter(function(tab) { return tab && isImportableTabUrl(tab.url); })
-        .map(tabToCard);
-    if (!cards.length) {
+        .map(tabToSubCard);
+    if (!subCards.length) {
         toast(t('openTabsImportEmpty') || '没有可导入的标签页');
         return;
     }
     var targetKey = pickOpenTabsImportTargetSection();
     if (!Array.isArray(store[targetKey])) store[targetKey] = [];
     var existing = store[targetKey];
-    cards.forEach(function(card) {
-        card.id = generateUniqueCardId(existing);
-        existing.push(card);
-    });
+    var parentCard = buildOpenTabsParentCard(payload, subCards);
+    parentCard.id = generateUniqueCardId(existing);
+    existing.push(parentCard);
     currentSection = targetKey;
     renderSectionTabs();
     renderCurrentSection();
     markConfigDirty();
     var sec = getSections().find(function(s) { return s.key === targetKey; });
     var label = (sec && sec.label) || targetKey;
-    toast(t('openTabsImportDone', { n: cards.length, section: label }), 3600);
+    toast(t('openTabsImportDone', { title: parentCard.title, n: subCards.length, section: label }), 3600);
 }
 
 function handleOpenTabsExtensionMessage(event) {
