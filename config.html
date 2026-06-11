@@ -299,57 +299,57 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     .md-tb-btn { padding: 3px 5px; min-width: 24px; height: 24px; }
     .pending-banner { padding: 10px 12px; font-size: 12px; }
     .pending-banner .pb-save-btn { width: 100%; margin-top: 4px; }
+}
 
-    /* ★ All Cards tree view (全部卡片树形视图) */
-    .section-tab.is-all { background: #e8f0fe; color: #1a73e8; border: 1px solid #aecbf7; }
-    .section-tab.is-all.active { background: #1a73e8; color: #fff; border-color: transparent; }
-    .tree-section-header {
-        padding: 10px 14px; background: #f0f4ff; border-radius: 8px; margin: 16px 0 8px;
-        font-weight: 700; font-size: 14px; color: #333; display: flex; align-items: center; gap: 8px;
-        border: 1px solid #d0d9f0;
-    }
-    .tree-section-header .tree-sec-badge { font-size: 11px; padding: 1px 7px; border-radius: 8px; font-weight: 600; }
-    .tree-section-header .tree-sec-badge.kind { background: #eef2ff; color: #3730a3; }
-    .tree-card-wrap { margin-left: 8px; }
-    .tree-card-row {
-        display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 16px;
-        background: #fafafa; border: 1px solid #e8e8e8; border-radius: 8px; margin-bottom: 5px;
-        transition: box-shadow .15s;
-    }
-    .tree-card-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); background: #fff; }
-    .tree-card-row.has-subcards { border-left: 3px solid #667eea; cursor: pointer; }
-    .card-item.has-subcards { cursor: pointer; }
-    .card-item.has-subcards.is-expanded,
-    .tree-card-row.has-subcards.is-expanded { background: #f8fbff; }
-    .tree-toggle {
-        width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-        background: #eef2ff; color: #3730a3; font-size: 12px; font-weight: 700; margin-right: 6px; flex-shrink: 0;
-    }
-    .tree-card-row .tree-indent { display: flex; align-items: center; gap: 0; }
-    .tree-card-row .tree-connector {
-        color: #c0c0c0; font-size: 14px; margin-right: 6px; user-select: none;
-    }
-    .tree-card-row .tree-icon { flex-shrink: 0; }
-    .tree-subcards-list { margin: 4px 0 8px 24px; border-left: 2px solid #e0e3f0; padding-left: 12px; }
-    .card-item + .tree-subcards-list { margin-left: 64px; margin-right: 8px; }
-    .tree-card-row + .tree-subcards-list { margin-left: 52px; margin-right: 8px; }
-    .tree-subcard-row {
-        display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 12px;
-        background: #fcfcfc; border: 1px dashed #d8d8d8; border-radius: 6px; margin-bottom: 4px;
-    }
-    .tree-subcard-row:hover { background: #f5f7ff; border-color: #b0bcf0; }
-    .tree-subcard-row .tree-sub-icon { flex: 0 0 32px; font-size: 18px; }
-    .tree-subcard-info { flex: 1; min-width: 0; }
-    .tree-subcard-info .tsc-title { font-weight: 600; font-size: 13px; }
-    .tree-subcard-info .tsc-meta { font-size: 11px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tree-subcard-actions { display: flex; gap: 3px; flex-shrink: 0; }
-    .tree-subcard-actions .btn { padding: 3px 6px; font-size: 11px; }
-    @media (max-width: 640px) {
-        .card-item + .tree-subcards-list,
-        .tree-card-row + .tree-subcards-list { margin-left: 28px; }
-        .tree-subcard-row { align-items: flex-start; }
-        .tree-subcard-actions { flex-direction: column; }
-    }
+/* ★ All Cards tree view (全部卡片树形视图) */
+.section-tab.is-all { background: #e8f0fe; color: #1a73e8; border: 1px solid #aecbf7; }
+.section-tab.is-all.active { background: #1a73e8; color: #fff; border-color: transparent; }
+.tree-section-header {
+    padding: 10px 14px; background: #f0f4ff; border-radius: 8px; margin: 16px 0 8px;
+    font-weight: 700; font-size: 14px; color: #333; display: flex; align-items: center; gap: 8px;
+    border: 1px solid #d0d9f0;
+}
+.tree-section-header .tree-sec-badge { font-size: 11px; padding: 1px 7px; border-radius: 8px; font-weight: 600; }
+.tree-section-header .tree-sec-badge.kind { background: #eef2ff; color: #3730a3; }
+.tree-card-wrap { margin-left: 8px; }
+.tree-card-row {
+    display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 16px;
+    background: #fafafa; border: 1px solid #e8e8e8; border-radius: 8px; margin-bottom: 5px;
+    transition: box-shadow .15s;
+}
+.tree-card-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); background: #fff; }
+.tree-card-row.has-subcards { border-left: 3px solid #667eea; cursor: pointer; }
+.card-item.has-subcards { cursor: pointer; }
+.card-item.has-subcards.is-expanded,
+.tree-card-row.has-subcards.is-expanded { background: #f8fbff; }
+.tree-toggle {
+    width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    background: #eef2ff; color: #3730a3; font-size: 12px; font-weight: 700; margin-right: 6px; flex-shrink: 0;
+}
+.tree-card-row .tree-indent { display: flex; align-items: center; gap: 0; }
+.tree-card-row .tree-connector {
+    color: #c0c0c0; font-size: 14px; margin-right: 6px; user-select: none;
+}
+.tree-card-row .tree-icon { flex-shrink: 0; }
+.tree-subcards-list { margin: 4px 0 8px 24px; border-left: 2px solid #e0e3f0; padding-left: 12px; }
+.card-item + .tree-subcards-list { margin-left: 64px; margin-right: 8px; }
+.tree-card-row + .tree-subcards-list { margin-left: 52px; margin-right: 8px; }
+.tree-subcard-row {
+    display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 12px;
+    background: #fcfcfc; border: 1px dashed #d8d8d8; border-radius: 6px; margin-bottom: 4px;
+}
+.tree-subcard-row:hover { background: #f5f7ff; border-color: #b0bcf0; }
+.tree-subcard-row .tree-sub-icon { flex: 0 0 32px; font-size: 18px; }
+.tree-subcard-info { flex: 1; min-width: 0; }
+.tree-subcard-info .tsc-title { font-weight: 600; font-size: 13px; }
+.tree-subcard-info .tsc-meta { font-size: 11px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tree-subcard-actions { display: flex; gap: 3px; flex-shrink: 0; }
+.tree-subcard-actions .btn { padding: 3px 6px; font-size: 11px; }
+@media (max-width: 640px) {
+    .card-item + .tree-subcards-list,
+    .tree-card-row + .tree-subcards-list { margin-left: 28px; }
+    .tree-subcard-row { align-items: flex-start; }
+    .tree-subcard-actions { flex-direction: column; }
 }
 </style>
 </head>
