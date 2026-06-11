@@ -1242,6 +1242,54 @@
             }
         }
 
+        /* 统一普通书签卡片尺寸，避免短内容/少卡片区块显得更小 */
+        .links-grid:not(.contact-row),
+        .hidden-cards.expanded {
+            align-items: stretch;
+            grid-auto-rows: 1fr;
+        }
+
+        .links-grid:not(.contact-row) > .link-card,
+        .links-grid:not(.contact-row) > .card-container,
+        .hidden-cards.expanded > .link-card,
+        .hidden-cards.expanded > .card-container {
+            min-width: 0;
+            height: 100%;
+        }
+
+        .links-grid:not(.contact-row) > .card-container > .link-card,
+        .hidden-cards.expanded > .card-container > .link-card {
+            display: block;
+            height: 100%;
+        }
+
+        @media (min-width: 800px) {
+            .links-grid:not(.contact-row) > .link-card,
+            .links-grid:not(.contact-row) > .card-container > .link-card,
+            .hidden-cards.expanded > .link-card,
+            .hidden-cards.expanded > .card-container > .link-card {
+                min-height: 104px;
+            }
+        }
+
+        @media (min-width: 481px) and (max-width: 799px) {
+            .links-grid:not(.contact-row) > .link-card,
+            .links-grid:not(.contact-row) > .card-container > .link-card,
+            .hidden-cards.expanded > .link-card,
+            .hidden-cards.expanded > .card-container > .link-card {
+                min-height: 100px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .links-grid:not(.contact-row) > .link-card,
+            .links-grid:not(.contact-row) > .card-container > .link-card,
+            .hidden-cards.expanded > .link-card,
+            .hidden-cards.expanded > .card-container > .link-card {
+                min-height: 78px;
+            }
+        }
+
         #backHomeBtn {
             position: fixed;
             bottom: 33px; left: 10px;
