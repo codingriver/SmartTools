@@ -1241,8 +1241,16 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 <div id="ioHubModal" class="modal-mask hidden">
     <div class="modal-box" style="max-width:560px;">
         <h2 data-i18n="ioHubTitle">📦 数据导入 / 导出</h2>
-        <p class="muted" style="font-size:13px; margin-bottom:12px;" data-i18n="ioHubDesc">选择下面一种方式:JS 文本是完整原始格式,适合备份;表格(CSV/XLSX)适合在 Excel/WPS 中批量编辑</p>
+        <p class="muted" style="font-size:13px; margin-bottom:12px;" data-i18n="ioHubDesc">完整保真备份请使用 JSON；JS 只包含收藏数据；表格和浏览器书签适合迁移/编辑，不保证保留全部 SmartTools 字段。</p>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <button type="button" class="btn btn-ghost ioHubItem" id="btnIoHubExportFull" style="text-align:left; padding:12px; height:auto; line-height:1.4;">
+                <div style="font-size:14px; font-weight:600;" data-i18n="ioHubExportFull">🧳 导出完整备份 JSON</div>
+                <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubExportFullDesc">保留收藏原始字段、分类配置、基础信息</div>
+            </button>
+            <button type="button" class="btn btn-ghost ioHubItem" id="btnIoHubImportFull" style="text-align:left; padding:12px; height:auto; line-height:1.4;">
+                <div style="font-size:14px; font-weight:600;" data-i18n="ioHubImportFull">📦 导入完整备份 JSON</div>
+                <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubImportFullDesc">恢复完整备份；导入后仍需点击保存</div>
+            </button>
             <button type="button" class="btn btn-ghost ioHubItem" id="btnIoHubExportJs" style="text-align:left; padding:12px; height:auto; line-height:1.4;">
                 <div style="font-size:14px; font-weight:600;" data-i18n="ioHubExportJs">👁 预览 / 导出 JS</div>
                 <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubExportJsDesc">查看当前 data.js 完整文本,可复制保存</div>
@@ -1270,6 +1278,25 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" id="btnIoHubClose" data-i18n="btnClose">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 完整备份 JSON 导入 -->
+<div id="fullBackupImportModal" class="modal-mask hidden">
+    <div class="modal-box" style="max-width:640px;">
+        <h2 data-i18n="fullBackupImportTitle">📦 导入完整备份 JSON</h2>
+        <p class="muted" data-i18n="fullBackupImportDesc">完整备份会恢复收藏原始字段、分类配置和基础信息。导入只写入编辑器，收藏数据确认无误后请手动点击「💾 保存」。</p>
+        <div class="enc-hint" style="font-size:12px;" data-i18n="fullBackupImportWarn">⚠️ 导入会替换当前编辑器中的全部收藏数据；建议先导出一份完整备份。</div>
+        <div style="margin:12px 0;">
+            <input type="file" id="fullBackupImportFile" accept=".json,application/json" style="margin-bottom:8px;">
+            <textarea id="fullBackupImportText" style="min-height:180px; font-family: ui-monospace, Consolas, monospace; font-size:12px;" data-i18n-placeholder="fullBackupImportPh" placeholder="也可以粘贴完整备份 JSON 内容..."></textarea>
+        </div>
+        <pre id="fullBackupImportPreview" class="export-pre" style="max-height:220px; display:none;"></pre>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btnFullBackupImportCancel" data-i18n="btnCancel">取消</button>
+            <button class="btn btn-primary" id="btnFullBackupImportPreview" data-i18n="fullBackupImportPreviewBtn">🔍 预览</button>
+            <button class="btn btn-success hidden" id="btnFullBackupImportApply" data-i18n="fullBackupImportApply">✓ 应用完整备份</button>
         </div>
     </div>
 </div>
@@ -1512,9 +1539,13 @@ const I18N = {
         btnImportTable: '📥 导入表格',
         btnIoHub: '📦 导入/导出',
         ioHubTitle: '📦 数据导入 / 导出',
-        ioHubDesc: '选择下面一种方式:JS 文本是完整原始格式,适合备份;表格(CSV/XLSX)适合在 Excel/WPS 中批量编辑',
+        ioHubDesc: '完整保真备份请使用 JSON；JS 只包含收藏数据；表格和浏览器书签适合迁移/编辑，不保证保留全部 SmartTools 字段。',
+        ioHubExportFull: '🧳 导出完整备份 JSON',
+        ioHubExportFullDesc: '保留收藏原始字段、分类配置、基础信息',
+        ioHubImportFull: '📦 导入完整备份 JSON',
+        ioHubImportFullDesc: '恢复完整备份；导入后仍需点击保存',
         ioHubExportJs: '👁 预览 / 导出 JS',
-        ioHubExportJsDesc: '查看当前 data.js 完整文本,可复制保存',
+        ioHubExportJsDesc: '仅收藏数据，不包含基础信息配置',
         ioHubImportJs: '📥 导入 JS',
         ioHubImportJsDesc: '粘贴 data.js 完整文本导入',
         ioHubExportTable: '📤 导出表格',
@@ -1586,6 +1617,21 @@ const I18N = {
         bookmarkExportOk: '浏览器收藏夹 HTML 已导出（{n} 个链接）',
         bookmarkExportEmpty: '没有可导出的浏览器书签链接',
         bookmarkExportFail: '浏览器收藏夹导出失败：{msg}',
+        fullBackupImportTitle: '📦 导入完整备份 JSON',
+        fullBackupImportDesc: '完整备份会恢复收藏原始字段、分类配置和基础信息。导入只写入编辑器，收藏数据确认无误后请手动点击「💾 保存」。',
+        fullBackupImportWarn: '⚠️ 导入会替换当前编辑器中的全部收藏数据；建议先导出一份完整备份。',
+        fullBackupImportPh: '也可以粘贴完整备份 JSON 内容...',
+        fullBackupImportPreviewBtn: '🔍 预览',
+        fullBackupImportApply: '✓ 应用完整备份',
+        fullBackupExportOk: '完整备份 JSON 已导出',
+        fullBackupExportFail: '完整备份导出失败：{msg}',
+        fullBackupImportEmpty: '请先选择或粘贴完整备份 JSON',
+        fullBackupImportBad: '完整备份解析失败：{msg}',
+        fullBackupImportPreview: '完整备份：{sections} 个大类，{cards} 张主卡，{subs} 张子卡；基础信息：{site}',
+        fullBackupImportDone: '完整备份已应用到编辑器。请点击「💾 保存」写入收藏数据。',
+        fullBackupSiteApplied: '基础信息已同步',
+        fullBackupSiteSkipped: '基础信息未同步：当前不是在线模式',
+        fullBackupSiteFail: '基础信息同步失败：{msg}',
         btnSave: '💾 保存', btnChangePwd: '🔑 密码', btnSwitchMode: '🔀 切换模式', btnLogout: '🚪 退出',
         btnUsers: '👥 用户',
         usersTitle: '👥 用户管理', userNew: '➕ 新建用户', userRefresh: '🔄 刷新',
@@ -2074,9 +2120,13 @@ const I18N = {
         btnImportTable: '📥 Import Table',
         btnIoHub: '📦 Import/Export',
         ioHubTitle: '📦 Data Import / Export',
-        ioHubDesc: 'Pick one option below. JS is the raw, complete format (good for backup). CSV/XLSX is good for bulk edits in Excel/WPS.',
+        ioHubDesc: 'Use JSON for full-fidelity backup. JS contains bookmark data only. Table and browser bookmark formats are for migration/editing and do not preserve every SmartTools field.',
+        ioHubExportFull: '🧳 Export Full JSON Backup',
+        ioHubExportFullDesc: 'Preserve raw card fields, sections, and site config',
+        ioHubImportFull: '📦 Import Full JSON Backup',
+        ioHubImportFullDesc: 'Restore a full backup; save after importing',
         ioHubExportJs: '👁 Preview / Export JS',
-        ioHubExportJsDesc: 'View the current full data.js text; copy to save',
+        ioHubExportJsDesc: 'Bookmark data only; site config is not included',
         ioHubImportJs: '📥 Import JS',
         ioHubImportJsDesc: 'Paste a full data.js text to import',
         ioHubExportTable: '📤 Export Table',
@@ -2148,6 +2198,21 @@ const I18N = {
         bookmarkExportOk: 'Browser bookmarks HTML exported ({n} links)',
         bookmarkExportEmpty: 'No bookmark links to export',
         bookmarkExportFail: 'Browser bookmarks export failed: {msg}',
+        fullBackupImportTitle: '📦 Import Full JSON Backup',
+        fullBackupImportDesc: 'A full backup restores raw card fields, section config, and site config. Import only loads to editor; after checking, click 「💾 Save」 manually.',
+        fullBackupImportWarn: '⚠️ Import replaces all bookmark data currently loaded in the editor. Export a full backup first if needed.',
+        fullBackupImportPh: 'You can also paste a full backup JSON here...',
+        fullBackupImportPreviewBtn: '🔍 Preview',
+        fullBackupImportApply: '✓ Apply Full Backup',
+        fullBackupExportOk: 'Full JSON backup exported',
+        fullBackupExportFail: 'Full backup export failed: {msg}',
+        fullBackupImportEmpty: 'Please choose or paste a full backup JSON first',
+        fullBackupImportBad: 'Full backup parse failed: {msg}',
+        fullBackupImportPreview: 'Full backup: {sections} sections, {cards} main cards, {subs} sub-cards; site config: {site}',
+        fullBackupImportDone: 'Full backup applied to editor. Click 「💾 Save」 to persist bookmark data.',
+        fullBackupSiteApplied: 'Site config synced',
+        fullBackupSiteSkipped: 'Site config not synced: not in online mode',
+        fullBackupSiteFail: 'Site config sync failed: {msg}',
         btnSave: '💾 Save', btnChangePwd: '🔑 Password', btnSwitchMode: '🔀 Switch Mode', btnLogout: '🚪 Logout',
         btnUsers: '👥 Users',
         usersTitle: '👥 User Management', userNew: '➕ New User', userRefresh: '🔄 Refresh',
@@ -5485,6 +5550,174 @@ async function confirmImport() {
 }
 
 /* ================================================================
+   Full-fidelity JSON backup
+   - JSON 是唯一面向完整恢复的格式：包含 data.js + siteConfig + sections 快照。
+   - CSV/XLSX/浏览器书签 HTML 仍作为编辑或迁移格式，不承诺保留全部字段。
+================================================================ */
+var __fullBackupImportParsed = null;
+
+async function getSiteConfigSnapshot() {
+    if (currentMode !== MODE_ONLINE) return { title: '', header: '', footer: '' };
+    try {
+        var r = await api('/api/site-config', { method: 'GET' });
+        if (r.ok && r.data) {
+            return {
+                title: r.data.title || '',
+                header: r.data.header || '',
+                footer: r.data.footer || ''
+            };
+        }
+    } catch (e) {}
+    return { title: '', header: '', footer: '' };
+}
+
+function buildSectionsSnapshot() {
+    return getSections().map(function(meta) {
+        var sec = deepClone(meta);
+        sec.cards = deepClone(store[meta.key] || []);
+        return sec;
+    });
+}
+
+async function exportFullBackupJson() {
+    try {
+        var dataJs = await generateDataJs();
+        var backup = {
+            format: 'smarttools-full-backup',
+            formatVersion: 1,
+            exportedAt: new Date().toISOString(),
+            app: 'SmartTools',
+            siteConfig: await getSiteConfigSnapshot(),
+            dataJs: dataJs,
+            sectionsSnapshot: buildSectionsSnapshot()
+        };
+        var blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json;charset=utf-8' });
+        var stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        triggerDownload(blob, 'smarttools_full_backup_' + stamp + '.json');
+        toast(t('fullBackupExportOk'));
+    } catch (e) {
+        toast(t('fullBackupExportFail', { msg: e.message || String(e) }));
+    }
+}
+
+function openFullBackupImportModal() {
+    $('fullBackupImportFile').value = '';
+    $('fullBackupImportText').value = '';
+    $('fullBackupImportPreview').style.display = 'none';
+    $('fullBackupImportPreview').textContent = '';
+    hide('btnFullBackupImportApply');
+    __fullBackupImportParsed = null;
+    show('fullBackupImportModal');
+}
+
+function handleFullBackupImportFile(e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    readTextFileAuto(f, function(text) { $('fullBackupImportText').value = text; });
+}
+
+function parseSectionsFromDataJsText(text) {
+    var wrapper = new Function('var window = {}; var sections;' + String(text || '') + '; return sections || [];');
+    var sections = wrapper();
+    if (!Array.isArray(sections)) throw new Error('dataJs missing sections array');
+    return sections;
+}
+
+function dataJsFromSectionsSnapshot(sections) {
+    return 'var sections = ' + pretty(sections || [], 0) + ';\n';
+}
+
+function parseFullBackupJson(text) {
+    var obj = JSON.parse(String(text || ''));
+    if (!obj || typeof obj !== 'object') throw new Error('invalid JSON object');
+    if (obj.format !== 'smarttools-full-backup') throw new Error('not a SmartTools full backup');
+    if (obj.formatVersion !== 1) throw new Error('unsupported backup version: ' + obj.formatVersion);
+    if (!obj.dataJs && !Array.isArray(obj.sectionsSnapshot)) throw new Error('missing dataJs / sectionsSnapshot');
+    var dataJs = obj.dataJs || dataJsFromSectionsSnapshot(obj.sectionsSnapshot);
+    var sections = Array.isArray(obj.sectionsSnapshot) ? obj.sectionsSnapshot : parseSectionsFromDataJsText(dataJs);
+    return {
+        raw: obj,
+        dataJs: dataJs,
+        siteConfig: obj.siteConfig || null,
+        sections: sections
+    };
+}
+
+function countBackupSections(sections) {
+    var main = 0, subs = 0;
+    (sections || []).forEach(function(sec) {
+        (sec.cards || []).forEach(function(card) {
+            main++;
+            if (card && Array.isArray(card.subCards)) subs += card.subCards.length;
+        });
+    });
+    return { sections: (sections || []).length, main: main, subs: subs };
+}
+
+function doFullBackupImportPreview() {
+    var text = $('fullBackupImportText').value;
+    if (!text || !text.trim()) {
+        $('fullBackupImportPreview').style.display = 'block';
+        $('fullBackupImportPreview').textContent = t('fullBackupImportEmpty');
+        hide('btnFullBackupImportApply');
+        return;
+    }
+    try {
+        var parsed = parseFullBackupJson(text);
+        var cnt = countBackupSections(parsed.sections);
+        var hasSite = parsed.siteConfig && (
+            parsed.siteConfig.title || parsed.siteConfig.header || parsed.siteConfig.footer
+        );
+        $('fullBackupImportPreview').style.display = 'block';
+        $('fullBackupImportPreview').textContent = t('fullBackupImportPreview', {
+            sections: cnt.sections,
+            cards: cnt.main,
+            subs: cnt.subs,
+            site: hasSite ? 'yes' : 'no'
+        });
+        __fullBackupImportParsed = parsed;
+        show('btnFullBackupImportApply');
+    } catch (e) {
+        __fullBackupImportParsed = null;
+        $('fullBackupImportPreview').style.display = 'block';
+        $('fullBackupImportPreview').textContent = t('fullBackupImportBad', { msg: e.message || String(e) });
+        hide('btnFullBackupImportApply');
+    }
+}
+
+async function applyFullBackupSiteConfig(siteConfig) {
+    if (!siteConfig) return '';
+    if (currentMode !== MODE_ONLINE) return t('fullBackupSiteSkipped');
+    var r = await api('/api/site-config', {
+        method: 'POST',
+        body: JSON.stringify({
+            title: siteConfig.title || '',
+            header: siteConfig.header || '',
+            footer: siteConfig.footer || ''
+        })
+    });
+    if (r.ok && r.data && r.data.ok) return t('fullBackupSiteApplied');
+    return t('fullBackupSiteFail', { msg: (r.data && r.data.error) || ('HTTP ' + r.status) });
+}
+
+async function doFullBackupImportApply() {
+    var parsed = __fullBackupImportParsed;
+    if (!parsed) return;
+    var siteMsg = '';
+    try {
+        siteMsg = await applyFullBackupSiteConfig(parsed.siteConfig);
+        if (!(await parseAndLoad(parsed.dataJs))) return;
+        markConfigDirty();
+        __ioHubReturning = false;
+        hide('fullBackupImportModal');
+        toast(t('fullBackupImportDone') + (siteMsg ? ' ' + siteMsg : ''), 4200);
+        __fullBackupImportParsed = null;
+    } catch (e) {
+        toast(t('fullBackupImportBad', { msg: e.message || String(e) }));
+    }
+}
+
+/* ================================================================
    CSV 导出（B1）
    - 复用 getSections() + store[key] 重建 sections 数组
    - 调用 window.CsvSchema.sectionsToCSV
@@ -6106,6 +6339,19 @@ function getFolderDl(dt) {
     return null;
 }
 
+function collectBookmarkElementMeta(el, kind) {
+    var meta = { source: 'browser-bookmarks-html', kind: kind };
+    if (!el || !el.getAttribute) return meta;
+    [
+        'href', 'add_date', 'last_modified', 'personal_toolbar_folder',
+        'icon', 'icon_uri', 'shortcuturl', 'post_data', 'tags'
+    ].forEach(function(name) {
+        var v = el.getAttribute(name);
+        if (v != null && String(v) !== '') meta[name] = String(v);
+    });
+    return meta;
+}
+
 function parseBookmarkDl(dl) {
     var out = [];
     var el = dl.firstElementChild;
@@ -6118,6 +6364,7 @@ function parseBookmarkDl(dl) {
                 out.push({
                     type: 'folder',
                     title: (h3.textContent || '').trim() || 'Folder',
+                    bookmarkMeta: collectBookmarkElementMeta(h3, 'folder'),
                     children: childDl ? parseBookmarkDl(childDl) : []
                 });
                 if (childDl && childDl.parentElement === dl) el = childDl;
@@ -6128,7 +6375,8 @@ function parseBookmarkDl(dl) {
                         type: 'bookmark',
                         title: (a.textContent || '').trim() || href,
                         url: href,
-                        addDate: a.getAttribute('add_date') || ''
+                        addDate: a.getAttribute('add_date') || '',
+                        bookmarkMeta: collectBookmarkElementMeta(a, 'bookmark')
                     });
                 }
             }
@@ -6171,17 +6419,25 @@ function getBookmarkUrlFromItem(item) {
     return '';
 }
 
-function flattenFolderBookmarks(nodes, prefix) {
+function flattenFolderBookmarks(nodes, prefix, folderPath, folderMetaPath) {
     var out = [];
+    folderPath = folderPath || [];
+    folderMetaPath = folderMetaPath || [];
     (nodes || []).forEach(function(n) {
         if (n.type === 'bookmark') {
+            var meta = deepClone(n.bookmarkMeta || {});
+            if (folderPath.length) meta.folderPath = folderPath.slice();
+            if (folderMetaPath.length) meta.folderMetaPath = deepClone(folderMetaPath);
             out.push({
                 title: prefix ? (prefix + ' / ' + n.title) : n.title,
                 content: prefix ? (prefix + ' / ' + n.title) : n.title,
-                url: n.url
+                url: n.url,
+                bookmarkMeta: meta
             });
         } else if (n.type === 'folder') {
-            out = out.concat(flattenFolderBookmarks(n.children || [], prefix ? (prefix + ' / ' + n.title) : n.title));
+            var nextPath = folderPath.concat([n.title]);
+            var nextMetaPath = folderMetaPath.concat([n.bookmarkMeta || null]);
+            out = out.concat(flattenFolderBookmarks(n.children || [], prefix ? (prefix + ' / ' + n.title) : n.title, nextPath, nextMetaPath));
         }
     });
     return out;
@@ -6191,11 +6447,11 @@ function bookmarkNodesToCards(nodes) {
     var cards = [];
     (nodes || []).forEach(function(n) {
         if (n.type === 'bookmark') {
-            cards.push({ id: generateCardId(), type: 'simple', icon: '🔖', title: n.title, url: n.url });
+            cards.push({ id: generateCardId(), type: 'simple', icon: '🔖', title: n.title, url: n.url, bookmarkMeta: n.bookmarkMeta || null });
         } else if (n.type === 'folder') {
             var subs = flattenFolderBookmarks(n.children || [], '');
             if (subs.length) {
-                cards.push({ id: generateCardId(), type: 'expandable', icon: '📁', title: n.title, desc: String(subs.length) + ' bookmarks', subCards: subs });
+                cards.push({ id: generateCardId(), type: 'expandable', icon: '📁', title: n.title, desc: String(subs.length) + ' bookmarks', bookmarkMeta: n.bookmarkMeta || null, subCards: subs });
             }
         }
     });
@@ -6406,34 +6662,75 @@ function bookmarkAttrEscape(s) {
     return bookmarkHtmlEscape(s).replace(/`/g, '&#96;');
 }
 
-function pushBookmarkLink(lines, title, url, indent) {
+function bookmarkMetaAttrs(meta, allowed) {
+    if (!meta || typeof meta !== 'object') return '';
+    var out = '';
+    allowed.forEach(function(name) {
+        var v = meta[name];
+        if (v != null && String(v) !== '') out += ' ' + name.toUpperCase() + '="' + bookmarkAttrEscape(v) + '"';
+    });
+    return out;
+}
+
+function pushBookmarkLink(lines, title, url, indent, meta) {
     if (!url) return 0;
-    lines.push(indent + '<DT><A HREF="' + bookmarkAttrEscape(url) + '">' + bookmarkHtmlEscape(title || url) + '</A>');
+    var attrs = bookmarkMetaAttrs(meta, ['add_date', 'last_modified', 'icon', 'icon_uri', 'shortcuturl', 'post_data', 'tags']);
+    lines.push(indent + '<DT><A HREF="' + bookmarkAttrEscape(url) + '"' + attrs + '>' + bookmarkHtmlEscape(title || url) + '</A>');
     return 1;
 }
 
-function pushBookmarkFolder(lines, title, childrenFn, indent) {
-    lines.push(indent + '<DT><H3>' + bookmarkHtmlEscape(title || 'Folder') + '</H3>');
+function pushBookmarkFolder(lines, title, childrenFn, indent, meta) {
+    var attrs = bookmarkMetaAttrs(meta, ['add_date', 'last_modified', 'personal_toolbar_folder']);
+    lines.push(indent + '<DT><H3' + attrs + '>' + bookmarkHtmlEscape(title || 'Folder') + '</H3>');
     lines.push(indent + '<DL><p>');
     var count = childrenFn(indent + '    ');
     lines.push(indent + '</DL><p>');
     return count;
 }
 
+function addSubCardToBookmarkTree(root, sc) {
+    var meta = (sc && sc.bookmarkMeta) || {};
+    var path = Array.isArray(meta.folderPath) ? meta.folderPath : [];
+    var metaPath = Array.isArray(meta.folderMetaPath) ? meta.folderMetaPath : [];
+    var node = root;
+    path.forEach(function(name, i) {
+        var key = String(name || 'Folder');
+        if (!node.folders[key]) node.folders[key] = { title: key, meta: metaPath[i] || null, links: [], folders: {} };
+        node = node.folders[key];
+    });
+    node.links.push(sc);
+}
+
+function renderBookmarkTreeNode(lines, node, indent) {
+    var n = 0;
+    (node.links || []).forEach(function(sc) {
+        var scUrl = getBookmarkUrlFromItem(sc);
+        n += pushBookmarkLink(lines, sc.title || sc.content || scUrl, scUrl, indent, sc.bookmarkMeta);
+    });
+    Object.keys(node.folders || {}).forEach(function(key) {
+        var folder = node.folders[key];
+        n += pushBookmarkFolder(lines, folder.title, function(childIndent) {
+            return renderBookmarkTreeNode(lines, folder, childIndent);
+        }, indent, folder.meta);
+    });
+    return n;
+}
+
+function exportSubCardsToBookmarks(lines, subCards, indent) {
+    var root = { links: [], folders: {} };
+    (subCards || []).forEach(function(sc) { addSubCardToBookmarkTree(root, sc); });
+    return renderBookmarkTreeNode(lines, root, indent);
+}
+
 function exportCardToBookmarks(lines, card, indent) {
     if (!card) return 0;
     if (card.type === 'expandable' && Array.isArray(card.subCards)) {
         return pushBookmarkFolder(lines, card.title || card.content || 'Folder', function(childIndent) {
-            var n = 0;
-            card.subCards.forEach(function(sc) {
-                var scUrl = getBookmarkUrlFromItem(sc);
-                n += pushBookmarkLink(lines, sc.title || sc.content || scUrl, scUrl, childIndent);
-            });
-            return n;
-        }, indent);
+            return exportSubCardsToBookmarks(lines, card.subCards, childIndent);
+        }, indent, card.bookmarkMeta);
     }
     var url = getBookmarkUrlFromItem(card);
-    return pushBookmarkLink(lines, card.title || card.content || card.address || url, url, indent);
+    return pushBookmarkLink(lines, card.title || card.content || card.address || url, url, indent, card.bookmarkMeta);
 }
 
 function exportBrowserBookmarks() {
@@ -8758,6 +9055,8 @@ window.addEventListener('DOMContentLoaded', () => {
     //                  子 modal 完成时 hide + 清 flag(已完成,不回 hub,退到 mainPage 看结果)
     $('btnIoHub').onclick = () => show('ioHubModal');
     $('btnIoHubClose').onclick = () => { __ioHubReturning = false; hide('ioHubModal'); };
+    $('btnIoHubExportFull').onclick  = () => { __ioHubReturning = false; hide('ioHubModal'); exportFullBackupJson(); };
+    $('btnIoHubImportFull').onclick  = () => { __ioHubReturning = true; hide('ioHubModal'); openFullBackupImportModal(); };
     $('btnIoHubExportJs').onclick    = () => { __ioHubReturning = true; hide('ioHubModal'); openExportModal(); };
     $('btnIoHubImportJs').onclick    = () => { __ioHubReturning = true; hide('ioHubModal'); openImportModal(); };
     $('btnIoHubExportTable').onclick = () => { __ioHubReturning = true; hide('ioHubModal'); openCsvExportModal(); };
@@ -8767,6 +9066,10 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnIoCancel').onclick = () => closeChildOrReturnHub('ioModal');
     $('btnIoImportConfirm').onclick = confirmImport;
     $('ioFile').addEventListener('change', handleImportFile);
+    $('btnFullBackupImportCancel').onclick = () => closeChildOrReturnHub('fullBackupImportModal');
+    $('btnFullBackupImportPreview').onclick = doFullBackupImportPreview;
+    $('btnFullBackupImportApply').onclick = doFullBackupImportApply;
+    $('fullBackupImportFile').addEventListener('change', handleFullBackupImportFile);
     $('btnBookmarkImportCancel').onclick = () => closeChildOrReturnHub('bookmarkImportModal');
     $('btnBookmarkImportPreview').onclick = doBookmarkImportPreview;
     $('btnBookmarkImportApply').onclick = doBookmarkImportApply;
