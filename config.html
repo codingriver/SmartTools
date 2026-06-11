@@ -655,6 +655,28 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     </div>
 </div>
 
+<!-- 删除锁定加密大类 -->
+<div id="forceDeleteEncModal" class="modal-mask hidden">
+    <div class="modal-box" style="max-width:500px;">
+        <h2 data-i18n="forceDelEncTitle">🗑 删除加密大类</h2>
+        <p class="muted" id="forceDelEncDesc"></p>
+        <div class="form-row">
+            <label data-i18n="forceDelEncPwdLabel">解锁密码（可选）</label>
+            <input type="password" id="forceDelEncPwd" autocomplete="current-password">
+        </div>
+        <div class="enc-hint" data-i18n="forceDelEncHint">推荐先输入密码解锁后删除；如果忘记密码，可强制删除密文。强制删除不会恢复其中内容。</div>
+        <label style="display:flex; gap:8px; align-items:flex-start; font-size:13px; margin-top:12px; cursor:pointer;">
+            <input type="checkbox" id="forceDelEncConfirm" style="margin-top:3px;">
+            <span data-i18n="forceDelEncConfirmText">我确认不再需要此加密大类中的内容，允许直接丢弃密文。</span>
+        </label>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btnForceDelEncCancel" data-i18n="btnCancel">取消</button>
+            <button class="btn btn-primary" id="btnForceDelEncUnlockDelete" data-i18n="forceDelEncUnlockDelete">解锁并删除</button>
+            <button class="btn btn-danger" id="btnForceDelEncForce" data-i18n="forceDelEncForce">强制删除密文</button>
+        </div>
+    </div>
+</div>
+
 <!-- 历史备份 -->
 <div id="historyModal" class="modal-mask hidden">
     <div class="modal-box">
@@ -1767,6 +1789,16 @@ const I18N = {
         unlockDescOne: '大类「{label}」已加密，请输入登录密码解锁。',
         unlockDescAll: '当前有 <b>{n}</b> 个加密大类处于锁定状态。输入登录密码即可全部解锁。',
         unlockHint: '🔑 请输入你的登录密码（用于派生解密密钥）。密码只在此 Tab 会话中暂存，不会写入 localStorage。',
+        forceDelEncTitle: '🗑 删除加密大类',
+        forceDelEncDesc: '大类「{label}」当前已加密且未解锁。你可以输入密码解锁后删除；如果密码已遗忘，也可以强制删除密文。',
+        forceDelEncPwdLabel: '解锁密码（可选）',
+        forceDelEncHint: '推荐先输入密码解锁后删除；如果忘记密码，可强制删除密文。强制删除不会恢复其中内容。',
+        forceDelEncConfirmText: '我确认不再需要此加密大类中的内容，允许直接丢弃密文。',
+        forceDelEncUnlockDelete: '解锁并删除',
+        forceDelEncForce: '强制删除密文',
+        toastForceDelEncNeedConfirm: '请先勾选确认，强制删除会永久丢弃密文内容',
+        toastForceDelEncNeedPwd: '请输入解锁密码，或勾选确认后使用强制删除',
+        toastForceDelEncWrongPwd: '密码错误，无法解锁删除',
         historyTitle: '🕐 历史备份版本',
         historyHintOnline: '存于 Cloudflare KV',
         historyHintLocal: '位于当前文件夹的 <code>databak/</code> 子目录',
@@ -2294,6 +2326,16 @@ const I18N = {
         unlockDescOne: 'Section "{label}" is encrypted. Enter login password to unlock.',
         unlockDescAll: 'There are <b>{n}</b> locked encrypted section(s). Enter login password to unlock all.',
         unlockHint: '🔑 Enter your login password (used to derive the decryption key). The password is kept in this tab session only, never written to localStorage.',
+        forceDelEncTitle: '🗑 Delete Encrypted Section',
+        forceDelEncDesc: 'Section "{label}" is encrypted and locked. Enter the password to unlock and delete it, or force-delete the ciphertext if the password is lost.',
+        forceDelEncPwdLabel: 'Unlock password (optional)',
+        forceDelEncHint: 'Unlocking first is recommended. If the password is lost, force delete will discard the ciphertext permanently.',
+        forceDelEncConfirmText: 'I confirm the encrypted contents are no longer needed and may be discarded.',
+        forceDelEncUnlockDelete: 'Unlock and Delete',
+        forceDelEncForce: 'Force Delete Ciphertext',
+        toastForceDelEncNeedConfirm: 'Check the confirmation first. Force delete permanently discards encrypted contents.',
+        toastForceDelEncNeedPwd: 'Enter the unlock password, or check confirmation and force delete.',
+        toastForceDelEncWrongPwd: 'Wrong password, cannot unlock and delete',
         historyTitle: '🕐 Backup History',
         historyHintOnline: 'Stored in Cloudflare KV',
         historyHintLocal: 'In <code>databak/</code> of current folder',
@@ -4559,9 +4601,11 @@ function toggleCustomSectionVisible(idx) {
     markConfigDirty();
     toast(t('toastUpdatedUnsaved'));
 }
+let pendingForceDeleteEncIdx = -1;
+
 function deleteCustomSection(idx) {
     const c = customSectionsMeta[idx]; if (!c) return;
-    if (c.locked) { toast(t('toastEncLocked')); return; }
+    if (c.locked) { openForceDeleteEncryptedModal(idx); return; }
     const cards = store[c.key] || [];
     const isUnc = c.key === UNCLASSIFIED_KEY;
     const label = isUnc ? t('secUnclassified') : c.label;
@@ -4574,6 +4618,58 @@ function deleteCustomSection(idx) {
     }
     customSectionsMeta.splice(idx, 1); delete store[c.key];
     if (currentSection === c.key) currentSection = customSectionsMeta.find(x => x.key === UNCLASSIFIED_KEY) ? UNCLASSIFIED_KEY : getFirstAvailableSectionKey();
+    renderSectionsModalLists(); renderSectionTabs(); renderCurrentSection();
+    markConfigDirty();
+    toast(t('toastDeletedSectionUnsaved'));
+}
+
+function openForceDeleteEncryptedModal(idx) {
+    const c = customSectionsMeta[idx]; if (!c) return;
+    pendingForceDeleteEncIdx = idx;
+    const label = (c.key === UNCLASSIFIED_KEY) ? t('secUnclassified') : c.label;
+    $('forceDelEncDesc').innerHTML = t('forceDelEncDesc', { label: escapeHtml(label) });
+    $('forceDelEncPwd').value = '';
+    $('forceDelEncConfirm').checked = false;
+    show('forceDeleteEncModal');
+    setTimeout(() => $('forceDelEncPwd').focus(), 50);
+}
+
+function closeForceDeleteEncryptedModal() {
+    pendingForceDeleteEncIdx = -1;
+    hide('forceDeleteEncModal');
+}
+
+async function unlockAndDeleteEncryptedSection() {
+    const idx = pendingForceDeleteEncIdx;
+    const c = customSectionsMeta[idx];
+    if (!c || !c.locked || !c._enc) { closeForceDeleteEncryptedModal(); return; }
+    const pwd = $('forceDelEncPwd').value;
+    if (!pwd) { toast(t('toastForceDelEncNeedPwd')); return; }
+    try {
+        const arr = await decryptJSON(pwd, c._enc);
+        setEncPassword(pwd);
+        c.locked = false;
+        c._enc = null;
+        store[c.key] = Array.isArray(arr) ? arr : [];
+        closeForceDeleteEncryptedModal();
+        deleteCustomSection(idx);
+    } catch (e) {
+        toast(t('toastForceDelEncWrongPwd'));
+    }
+}
+
+function forceDeleteEncryptedSection() {
+    const idx = pendingForceDeleteEncIdx;
+    const c = customSectionsMeta[idx];
+    if (!c) { closeForceDeleteEncryptedModal(); return; }
+    if (!$('forceDelEncConfirm').checked) {
+        toast(t('toastForceDelEncNeedConfirm'));
+        return;
+    }
+    customSectionsMeta.splice(idx, 1);
+    delete store[c.key];
+    if (currentSection === c.key) currentSection = customSectionsMeta.find(x => x.key === UNCLASSIFIED_KEY) ? UNCLASSIFIED_KEY : getFirstAvailableSectionKey();
+    closeForceDeleteEncryptedModal();
     renderSectionsModalLists(); renderSectionTabs(); renderCurrentSection();
     markConfigDirty();
     toast(t('toastDeletedSectionUnsaved'));
@@ -8035,6 +8131,10 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnUnlockCancel').onclick = () => hide('unlockModal');
     $('btnUnlockConfirm').onclick = confirmUnlock;
     $('unlockPwd').addEventListener('keydown', e => { if (e.key === 'Enter') confirmUnlock(); });
+    $('btnForceDelEncCancel').onclick = closeForceDeleteEncryptedModal;
+    $('btnForceDelEncUnlockDelete').onclick = unlockAndDeleteEncryptedSection;
+    $('btnForceDelEncForce').onclick = forceDeleteEncryptedSection;
+    $('forceDelEncPwd').addEventListener('keydown', e => { if (e.key === 'Enter') unlockAndDeleteEncryptedSection(); });
 
     // ★ 跨标签页同步：其它 tab 修改 bm_comment_overrides 时同步刷新 banner
     window.addEventListener('storage', e => {
