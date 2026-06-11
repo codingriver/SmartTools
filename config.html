@@ -1747,7 +1747,10 @@ const I18N = {
         sectionBuiltinShow: '取消隐藏（首页显示此大类）',
         sectionBuiltinEdit: '重命名',
         sectionBuiltinResetName: '恢复默认名（跟随中英文切换）',
+        sectionBuiltinDelete: '删除此大类（已有卡片会转移到未分类）',
+        sectionBuiltinRestore: '恢复此内置大类',
         sectionBadgeHidden: '🚫 已隐藏',
+        sectionBadgeDeleted: '🗑 已删除',
         sectionBadgeBuiltin: '🔒 内置', sectionBadgeCustom: '⚙️ 自定义',
         sectionBadgeDynamic: '展开/折叠', sectionBadgeEncrypted: '🔐 加密',
         sectionBadgeLocked: '🔒 已锁定',
@@ -2271,7 +2274,10 @@ const I18N = {
         sectionBuiltinShow: 'Show on home pages',
         sectionBuiltinEdit: 'Rename',
         sectionBuiltinResetName: 'Restore default name (follows language)',
+        sectionBuiltinDelete: 'Delete this section (cards will move to Unclassified)',
+        sectionBuiltinRestore: 'Restore this built-in section',
         sectionBadgeHidden: '🚫 Hidden',
+        sectionBadgeDeleted: '🗑 Deleted',
         sectionBadgeBuiltin: '🔒 Built-in', sectionBadgeCustom: '⚙️ Custom',
         sectionBadgeDynamic: 'Expand/Collapse', sectionBadgeEncrypted: '🔐 Encrypted',
         sectionBadgeLocked: '🔒 Locked',
@@ -2459,14 +2465,14 @@ const BUILTIN_SECTIONS = [
 ];
 const UNCLASSIFIED_KEY = 'custom_unclassified';
 let customSectionsMeta = [];
-// ★ 内置大类元数据覆盖：{ [key]: { label?: string, visible?: boolean } }
-//   label 缺省 → 使用 i18n 默认（跟随中英文切换）；visible 缺省 → true
+// ★ 内置大类元数据覆盖：{ [key]: { label?: string, visible?: boolean, deleted?: boolean } }
+//   label 缺省 → 使用 i18n 默认（跟随中英文切换）；visible 缺省 → true；deleted=true → 不输出到 data.js
 let builtinSectionMeta = {};
 let editingBuiltinKey = null; // ★ 当前正在编辑的内置大类 key（null 表示在编辑自定义大类）
 
 function getSections() {
     // ★ 内置大类：合并 builtinSectionMeta 中的 label / visible 覆盖
-    const cardB = BUILTIN_SECTIONS.filter(s => s.kind === 'card').map(s => {
+    const cardB = BUILTIN_SECTIONS.filter(s => s.kind === 'card' && !(builtinSectionMeta[s.key] || {}).deleted).map(s => {
         const m = builtinSectionMeta[s.key] || {};
         return {
             key: s.key,
@@ -2477,7 +2483,7 @@ function getSections() {
             anchor: m.anchor || ''
         };
     });
-    const otherB = BUILTIN_SECTIONS.filter(s => s.kind !== 'card').map(s => {
+    const otherB = BUILTIN_SECTIONS.filter(s => s.kind !== 'card' && !(builtinSectionMeta[s.key] || {}).deleted).map(s => {
         const m = builtinSectionMeta[s.key] || {};
         return {
             key: s.key,
@@ -2492,16 +2498,20 @@ function getSections() {
         key: c.key,
         label: (c.key === UNCLASSIFIED_KEY) ? t('secUnclassified') : c.label,
         kind: 'card', builtin: false,
-        visible: true,
+        visible: c.visible !== false,
         dynamic: !!c.dynamic, encrypted: !!c.encrypted, locked: !!c.locked,
         anchor: c.anchor || ''   // ★ P3-5：透传 anchor 给 generateDataJs / renderSectionTabs 使用
     }));
     return [...cardB, ...customs, ...otherB];
 }
 function isBuiltinKey(key) { return BUILTIN_SECTIONS.some(s => s.key === key); }
+function getFirstAvailableSectionKey() {
+    const sec = getSections()[0];
+    return sec ? sec.key : UNCLASSIFIED_KEY;
+}
 function ensureUnclassifiedSection() {
     if (!customSectionsMeta.find(c => c.key === UNCLASSIFIED_KEY)) {
-        customSectionsMeta.push({ key: UNCLASSIFIED_KEY, label: t('secUnclassified'), dynamic: false, encrypted: false, locked: false });
+        customSectionsMeta.push({ key: UNCLASSIFIED_KEY, label: t('secUnclassified'), visible: true, dynamic: false, encrypted: false, locked: false });
     }
     if (!Array.isArray(store[UNCLASSIFIED_KEY])) store[UNCLASSIFIED_KEY] = [];
 }
@@ -3770,7 +3780,7 @@ async function parseAndLoad(text) {
             // 新格式：var sections = [...]
             const wrapper = new Function('var sections;' + text + '; return sections;');
             const rawSections = wrapper() || [];
-            await parseSectionsArray(rawSections);
+            await parseSectionsArray(rawSections, true);
         } else {
             // 老格式：var usbDriveData / teachingData / ... → 迁移为 sections 数组
             const wrapper = new Function(
@@ -3795,10 +3805,10 @@ async function parseAndLoad(text) {
                     s.push({ builtin:false, key:c.key, kind:'card', defaultLabel:c.label||c.key, label:c.label||c.key, visible:true, dynamic:!!c.dynamic, encrypted:!!c.encrypted, enc:c.enc||null, cards:c.cards||[], anchor: oa });
                 });
             }
-            await parseSectionsArray(s);
+            await parseSectionsArray(s, false);
         }
 
-        if (!getSections().find(s => s.key === currentSection)) currentSection = BUILTIN_SECTIONS[0].key;
+        if (!getSections().find(s => s.key === currentSection)) currentSection = getFirstAvailableSectionKey();
 
         const mergedN = mergeCommentOverrides();
         if (mergedN > 0) { setTimeout(() => toast(t('toastOverridesMerged', { n: mergedN }), 3200), 300); }
@@ -3812,15 +3822,17 @@ async function parseAndLoad(text) {
 }
 
 // ★ 解析 sections 数组 → store + customSectionsMeta（异步：需解密加密分类）
-async function parseSectionsArray(rawSections) {
+async function parseSectionsArray(rawSections, preserveMissingBuiltins) {
     BUILTIN_SECTIONS.forEach(s => { store[s.key] = []; });
     Object.keys(store).forEach(k => { if (!isBuiltinKey(k)) delete store[k]; });
     customSectionsMeta = [];
     builtinSectionMeta = {}; // ★ 重置内置大类覆盖
 
+    const seenBuiltinKeys = new Set();
     for (const sec of rawSections) {
         if (!sec || !sec.key) continue;
         if (sec.builtin) {
+            seenBuiltinKeys.add(sec.key);
             store[sec.key] = Array.isArray(sec.cards) ? sec.cards : [];
 
             // ★ 解析内置大类的 visible / 自定义 label / anchor（P3-5）
@@ -3843,7 +3855,7 @@ async function parseSectionsArray(rawSections) {
             var label = (sec.key === UNCLASSIFIED_KEY) ? t('secUnclassified') : (sec.label || sec.key);
             // ★ P3-5: 读取 anchor 字段；非法或缺失 → 空字符串（视为未设置）
             var rawAnchor = (typeof sec.anchor === 'string' && /^[a-zA-Z0-9_-]+$/.test(sec.anchor)) ? sec.anchor : '';
-            var meta = { key: sec.key, label: label, anchor: rawAnchor, dynamic: !!sec.dynamic, encrypted: false, locked: false, _enc: null };
+            var meta = { key: sec.key, label: label, anchor: rawAnchor, visible: sec.visible !== false, dynamic: !!sec.dynamic, encrypted: false, locked: false, _enc: null };
 
             if (sec.encrypted && sec.enc) {
                 meta.encrypted = true;
@@ -3864,6 +3876,14 @@ async function parseSectionsArray(rawSections) {
             }
             customSectionsMeta.push(meta);
         }
+    }
+    if (preserveMissingBuiltins) {
+        BUILTIN_SECTIONS.forEach(function(def) {
+            if (!seenBuiltinKeys.has(def.key)) {
+                builtinSectionMeta[def.key] = Object.assign({}, builtinSectionMeta[def.key] || {}, { deleted: true });
+                store[def.key] = [];
+            }
+        });
     }
 }
 
@@ -4003,6 +4023,7 @@ async function generateDataJs() {
         if (!s.builtin) {
             const c = customSectionsMeta.find(x => x.key === s.key);
             if (c) {
+                secObj.visible = c.visible !== false;
                 secObj.encrypted = !!c.encrypted;
                 if (c.encrypted) {
                     if (c.locked) {
@@ -4403,25 +4424,34 @@ function renderSectionsModalLists() {
     BUILTIN_SECTIONS.forEach(s => {
         const cnt = (store[s.key] || []).length;
         const m = builtinSectionMeta[s.key] || {};
+        const deleted = !!m.deleted;
         const displayLabel = m.label || t(s.labelKey);
         const visible = m.visible !== false;
         const hasCustomLabel = !!m.label;
         const hiddenBadge = !visible
             ? ` <span class="sec-badge badge-locked">${escapeHtml(t('sectionBadgeHidden'))}</span>` : '';
+        const deletedBadge = deleted
+            ? ` <span class="sec-badge badge-locked">${escapeHtml(t('sectionBadgeDeleted'))}</span>` : '';
         const visBtn = `<button class="btn btn-ghost btn-sm" data-bi-act="vis"
+            ${deleted ? 'disabled' : ''}
             title="${escapeHtml(visible ? t('sectionBuiltinHide') : t('sectionBuiltinShow'))}">${visible ? '👁' : '🚫'}</button>`;
         const editBtn = `<button class="btn btn-primary btn-sm" data-bi-act="edit"
+            ${deleted ? 'disabled' : ''}
             title="${escapeHtml(t('sectionBuiltinEdit'))}">✏️</button>`;
         const resetBtn = hasCustomLabel
             ? `<button class="btn btn-warn btn-sm" data-bi-act="reset"
+                 ${deleted ? 'disabled' : ''}
                  title="${escapeHtml(t('sectionBuiltinResetName'))}">🔄</button>`
             : '';
+        const delRestoreBtn = deleted
+            ? `<button class="btn btn-success btn-sm" data-bi-act="restore" title="${escapeHtml(t('sectionBuiltinRestore'))}">↩</button>`
+            : `<button class="btn btn-danger btn-sm" data-bi-act="del" title="${escapeHtml(t('sectionBuiltinDelete'))}">🗑</button>`;
 
         const el = document.createElement('div'); el.className = 'sec-row builtin';
-        el.innerHTML = `<div class="sec-label">${escapeHtml(displayLabel)}${hiddenBadge}
+        el.innerHTML = `<div class="sec-label">${escapeHtml(displayLabel)}${hiddenBadge}${deletedBadge}
             <span class="sec-meta"> · ${escapeHtml(s.key)}${escapeHtml(t('sectionMetaSuffix', { kind: s.kind, cnt }))}</span></div>
             <span class="sec-badge badge-builtin">${escapeHtml(t('sectionBadgeBuiltin'))}</span>
-            <div style="display:flex; gap:4px;">${visBtn}${editBtn}${resetBtn}</div>`;
+            <div style="display:flex; gap:4px;">${visBtn}${editBtn}${resetBtn}${delRestoreBtn}</div>`;
         el.querySelectorAll('button[data-bi-act]').forEach(btn =>
             btn.onclick = () => handleBuiltinSectionAction(btn.dataset.biAct, s.key));
         blt.appendChild(el);
@@ -4437,6 +4467,7 @@ function renderSectionsModalLists() {
         if (c.dynamic)   badges += '<span class="sec-badge badge-dynamic">'   + escapeHtml(t('sectionBadgeDynamic'))   + '</span>';
         if (c.encrypted) badges += '<span class="sec-badge badge-encrypted">' + escapeHtml(t('sectionBadgeEncrypted')) + '</span>';
         if (c.locked)    badges += '<span class="sec-badge badge-locked">'    + escapeHtml(t('sectionBadgeLocked'))    + '</span>';
+        if (c.visible === false) badges += '<span class="sec-badge badge-locked">' + escapeHtml(t('sectionBadgeHidden')) + '</span>';
         const isUnc = c.key === UNCLASSIFIED_KEY;
         const displayLabel = isUnc ? t('secUnclassified') : c.label;
         const metaText = isUnc ? t('sectionMetaCustomUnc', { key: c.key, cnt }) : t('sectionMetaCustom', { key: c.key, cnt });
@@ -4444,6 +4475,7 @@ function renderSectionsModalLists() {
             <div class="sec-meta">${escapeHtml(metaText)}</div></div>
             <span class="sec-badge badge-custom">${escapeHtml(t('sectionBadgeCustom'))}</span>
             <div style="display:flex; gap:4px;">
+                <button class="btn btn-ghost btn-sm" data-cs-act="vis" title="${escapeHtml(c.visible === false ? t('sectionBuiltinShow') : t('sectionBuiltinHide'))}">${c.visible === false ? '🚫' : '👁'}</button>
                 <button class="btn btn-ghost btn-sm" data-cs-act="up"   ${idx === 0 ? 'disabled' : ''}>⬆</button>
                 <button class="btn btn-ghost btn-sm" data-cs-act="down" ${idx === customSectionsMeta.length - 1 ? 'disabled' : ''}>⬇</button>
                 <button class="btn btn-primary btn-sm" data-cs-act="edit">✏️</button>
@@ -4467,6 +4499,18 @@ function handleBuiltinSectionAction(act, key) {
         toast(t('toastUpdatedUnsaved'));
     } else if (act === 'edit') {
         openSectionEditModal({ type: 'builtin', key });
+    } else if (act === 'del') {
+        deleteBuiltinSection(key);
+    } else if (act === 'restore') {
+        if (!builtinSectionMeta[key]) builtinSectionMeta[key] = {};
+        delete builtinSectionMeta[key].deleted;
+        delete builtinSectionMeta[key].visible;
+        if (!Array.isArray(store[key])) store[key] = [];
+        if (!Object.keys(builtinSectionMeta[key]).length) delete builtinSectionMeta[key];
+        if (!getSections().find(s => s.key === currentSection)) currentSection = key;
+        renderSectionsModalLists(); renderSectionTabs(); renderCurrentSection();
+        markConfigDirty();
+        toast(t('toastUpdatedUnsaved'));
     } else if (act === 'reset') {
         if (builtinSectionMeta[key]) {
             delete builtinSectionMeta[key].label;
@@ -4478,11 +4522,42 @@ function handleBuiltinSectionAction(act, key) {
     }
 }
 
+function deleteBuiltinSection(key) {
+    const def = BUILTIN_SECTIONS.find(s => s.key === key);
+    if (!def) return;
+    const m = builtinSectionMeta[key] || {};
+    const label = m.label || t(def.labelKey);
+    const cards = store[key] || [];
+    if (cards.length === 0) {
+        if (!confirm(t('confirmDelSection', { label }))) return;
+    } else {
+        if (!confirm(t('confirmDelSectionCards', { label, n: cards.length, unc: t('secUnclassified') }))) return;
+        ensureUnclassifiedSection();
+        store[UNCLASSIFIED_KEY] = (store[UNCLASSIFIED_KEY] || []).concat(cards);
+    }
+    if (!builtinSectionMeta[key]) builtinSectionMeta[key] = {};
+    builtinSectionMeta[key].deleted = true;
+    delete builtinSectionMeta[key].visible;
+    store[key] = [];
+    if (currentSection === key) currentSection = customSectionsMeta.find(x => x.key === UNCLASSIFIED_KEY) ? UNCLASSIFIED_KEY : getFirstAvailableSectionKey();
+    renderSectionsModalLists(); renderSectionTabs(); renderCurrentSection();
+    markConfigDirty();
+    toast(t('toastDeletedSectionUnsaved'));
+}
+
 function handleCustomSectionAction(act, idx) {
     if (act === 'up' && idx > 0) { [customSectionsMeta[idx-1], customSectionsMeta[idx]] = [customSectionsMeta[idx], customSectionsMeta[idx-1]]; renderSectionsModalLists(); renderSectionTabs(); markConfigDirty(); toast(t('toastMovedUp')); }
     else if (act === 'down' && idx < customSectionsMeta.length - 1) { [customSectionsMeta[idx+1], customSectionsMeta[idx]] = [customSectionsMeta[idx], customSectionsMeta[idx+1]]; renderSectionsModalLists(); renderSectionTabs(); markConfigDirty(); toast(t('toastMovedDown')); }
+    else if (act === 'vis') toggleCustomSectionVisible(idx);
     else if (act === 'edit') openSectionEditModal(idx);
     else if (act === 'del') deleteCustomSection(idx);
+}
+function toggleCustomSectionVisible(idx) {
+    const c = customSectionsMeta[idx]; if (!c) return;
+    c.visible = c.visible === false ? true : false;
+    renderSectionsModalLists(); renderSectionTabs(); renderCurrentSection();
+    markConfigDirty();
+    toast(t('toastUpdatedUnsaved'));
 }
 function deleteCustomSection(idx) {
     const c = customSectionsMeta[idx]; if (!c) return;
@@ -4498,7 +4573,7 @@ function deleteCustomSection(idx) {
         store[UNCLASSIFIED_KEY] = (store[UNCLASSIFIED_KEY] || []).concat(cards);
     }
     customSectionsMeta.splice(idx, 1); delete store[c.key];
-    if (currentSection === c.key) currentSection = customSectionsMeta.find(x => x.key === UNCLASSIFIED_KEY) ? UNCLASSIFIED_KEY : BUILTIN_SECTIONS[0].key;
+    if (currentSection === c.key) currentSection = customSectionsMeta.find(x => x.key === UNCLASSIFIED_KEY) ? UNCLASSIFIED_KEY : getFirstAvailableSectionKey();
     renderSectionsModalLists(); renderSectionTabs(); renderCurrentSection();
     markConfigDirty();
     toast(t('toastDeletedSectionUnsaved'));
@@ -4627,7 +4702,7 @@ function saveSectionEdit() {
     if (editingCustomSectionIdx === -1) {
         if (encrypted && !getEncPassword()) { toast(t('toastEncNoSessionPwd')); return; }
         const key = genCustomKey();
-        customSectionsMeta.push({ key, label, anchor, dynamic, encrypted, locked: false, _enc: null });
+        customSectionsMeta.push({ key, label, anchor, visible: true, dynamic, encrypted, locked: false, _enc: null });
         store[key] = [];
         toast(t('toastAddedSectionUnsaved'));
     } else {
@@ -5556,6 +5631,7 @@ function doCsvImportApply() {
             customSectionsMeta.push({
                 key: secKey,
                 label: secKey,        // 名字用 key 暂代；用户可以到"管理"里改
+                visible: true,
                 dynamic: false,
                 encrypted: false,
                 locked: false
