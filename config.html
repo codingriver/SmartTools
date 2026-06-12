@@ -261,6 +261,46 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     box-shadow: 0 3px 10px rgba(255,152,0,0.35);
 }
 .pending-banner .pb-save-btn:active { transform: translateY(0); }
+.open-tabs-import-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+    gap: 12px;
+    align-items: end;
+}
+.open-tabs-import-fields .form-row { margin: 0; }
+.open-tabs-import-list {
+    max-height: 52vh;
+    overflow: auto;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 8px;
+    background: #fafafa;
+}
+.open-tabs-import-item {
+    display: grid;
+    grid-template-columns: 20px 20px 1fr;
+    gap: 8px;
+    align-items: start;
+    padding: 7px 4px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+.open-tabs-import-text { min-width: 0; }
+.open-tabs-import-title {
+    display: -webkit-box;
+    font-weight: 700;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.open-tabs-import-url {
+    display: -webkit-box;
+    font-size: 11px;
+    overflow: hidden;
+    word-break: break-all;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
 
 @media (max-width: 640px) {
     body { padding: 10px; }
@@ -299,6 +339,8 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     .md-tb-btn { padding: 3px 5px; min-width: 24px; height: 24px; }
     .pending-banner { padding: 10px 12px; font-size: 12px; }
     .pending-banner .pb-save-btn { width: 100%; margin-top: 4px; }
+    .open-tabs-import-fields { grid-template-columns: 1fr; }
+    .open-tabs-import-list { max-height: 48vh; }
 }
 
 /* ★ All Cards tree view (全部卡片树形视图) */
@@ -1306,21 +1348,22 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     <div class="modal-box" style="max-width:720px;">
         <h2 data-i18n="openTabsImportTitle">🧩 导入打开的标签页</h2>
         <p class="muted" data-i18n="openTabsImportDesc">勾选要导入的标签，设置父卡片名称和所属分类。导入后请手动点击「💾 保存」。</p>
-        <div class="form-row">
-            <label data-i18n="openTabsParentTitleLabel">父卡片名称</label>
-            <input type="text" id="openTabsParentTitle">
-        </div>
-        <div class="form-row">
-            <label data-i18n="openTabsSectionLabel">所属分类</label>
-            <select id="openTabsSectionSelect"></select>
-            <div class="muted" style="font-size:12px; margin-top:4px;" data-i18n="openTabsSectionHint">会记住上次选择；分类不存在时自动回到未分类。</div>
+        <div class="open-tabs-import-fields">
+            <div class="form-row">
+                <label data-i18n="openTabsParentTitleLabel">父卡片名称</label>
+                <input type="text" id="openTabsParentTitle">
+            </div>
+            <div class="form-row">
+                <label data-i18n="openTabsSectionLabel">所属分类</label>
+                <select id="openTabsSectionSelect"></select>
+            </div>
         </div>
         <div style="display:flex; gap:8px; margin:8px 0;">
             <button type="button" class="btn btn-ghost btn-sm" id="btnOpenTabsSelectAll" data-i18n="openTabsSelectAll">全选</button>
             <button type="button" class="btn btn-ghost btn-sm" id="btnOpenTabsSelectNone" data-i18n="openTabsSelectNone">全不选</button>
             <span class="muted" id="openTabsImportCount" style="align-self:center; font-size:12px;"></span>
         </div>
-        <div id="openTabsImportList" style="max-height:320px; overflow:auto; border:1px solid #eee; border-radius:8px; padding:8px; background:#fafafa;"></div>
+        <div id="openTabsImportList" class="open-tabs-import-list"></div>
         <div class="modal-footer">
             <button class="btn btn-ghost" id="btnOpenTabsImportCancel" data-i18n="btnCancel">取消</button>
             <button class="btn btn-success" id="btnOpenTabsImportApply" data-i18n="openTabsImportApply">✓ 确认导入</button>
@@ -1650,7 +1693,6 @@ const I18N = {
         openTabsImportDesc: '勾选要导入的标签，设置父卡片名称和所属分类。导入后请手动点击「💾 保存」。',
         openTabsParentTitleLabel: '父卡片名称',
         openTabsSectionLabel: '所属分类',
-        openTabsSectionHint: '会记住上次选择；分类不存在时自动回到未分类。',
         openTabsSelectAll: '全选',
         openTabsSelectNone: '全不选',
         openTabsImportApply: '✓ 确认导入',
@@ -2242,7 +2284,6 @@ const I18N = {
         openTabsImportDesc: 'Select tabs to import, then set the parent card name and target section. Click 「💾 Save」 afterwards.',
         openTabsParentTitleLabel: 'Parent card name',
         openTabsSectionLabel: 'Target section',
-        openTabsSectionHint: 'The last section is remembered locally; missing sections fall back to Uncategorized.',
         openTabsSelectAll: 'Select all',
         openTabsSelectNone: 'Select none',
         openTabsImportApply: '✓ Confirm Import',
@@ -6825,12 +6866,12 @@ function renderOpenTabsImportList(subCards) {
         var icon = sc.iconImg
             ? '<img src="' + escapeHtml(sc.iconImg) + '" alt="" style="width:16px;height:16px;object-fit:contain;">'
             : '<span style="width:16px;display:inline-block;">' + escapeHtml(sc.icon || '🌐') + '</span>';
-        return '<label style="display:grid;grid-template-columns:20px 20px 1fr;gap:8px;align-items:start;padding:7px 4px;border-bottom:1px solid #eee;cursor:pointer;">'
+        return '<label class="open-tabs-import-item">'
             + '<input type="checkbox" class="open-tabs-check" data-idx="' + idx + '" checked style="width:auto;margin-top:2px;">'
             + icon
-            + '<span style="min-width:0;">'
-            + '<span style="display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(sc.title || '') + '">' + escapeHtml(sc.title || sc.url || '') + '</span>'
-            + '<span class="muted" style="display:block;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(sc.url || '') + '">' + escapeHtml(sc.url || '') + '</span>'
+            + '<span class="open-tabs-import-text">'
+            + '<span class="open-tabs-import-title" title="' + escapeHtml(sc.title || '') + '">' + escapeHtml(sc.title || sc.url || '') + '</span>'
+            + '<span class="muted open-tabs-import-url" title="' + escapeHtml(sc.url || '') + '">' + escapeHtml(sc.url || '') + '</span>'
             + '</span></label>';
     }).join('');
     list.querySelectorAll('.open-tabs-check').forEach(function(cb) {
