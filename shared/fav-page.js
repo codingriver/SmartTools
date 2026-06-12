@@ -465,7 +465,7 @@ function renderIcon(item, extraAttrs) {
     if (item.iconImg) {
         var safeImg = __safeImgUrl(item.iconImg);
         if (safeImg) {
-            return '<span class="link-icon" ' + extraAttrs + ' aria-hidden="true"><img src="' + __attr(safeImg) + '" alt="" /></span>';
+            return '<span class="link-icon" ' + extraAttrs + ' aria-hidden="true"><img src="' + __attr(safeImg) + '" alt="" onerror="this.style.display=\'none\';" /></span>';
         }
         return '<span class="link-icon" ' + extraAttrs + ' aria-hidden="true"></span>';
     }
