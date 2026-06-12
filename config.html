@@ -1528,6 +1528,67 @@ function clearEncPassword() {
     try { sessionStorage.removeItem(SS_ENC_PWD); } catch (e) {}
 }
 
+const DATA_CACHE_DB = 'smarttools_data_cache_v1';
+const DATA_CACHE_STORE = 'entries';
+const DATA_CACHE_KEY_PREFIX = 'data:';
+
+function idbOpenDataCache() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DATA_CACHE_DB, 1);
+        req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(DATA_CACHE_STORE)) db.createObjectStore(DATA_CACHE_STORE);
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error || new Error('IndexedDB open failed'));
+    });
+}
+async function idbPutDataCache(key, value) {
+    const db = await idbOpenDataCache();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(DATA_CACHE_STORE, 'readwrite');
+        tx.objectStore(DATA_CACHE_STORE).put(value, key);
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error || new Error('IndexedDB put failed')); };
+    });
+}
+async function deriveDataCacheKey(password, saltB64) {
+    const salt = Uint8Array.from(atob(saltB64), c => c.charCodeAt(0));
+    const baseKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), { name: 'PBKDF2' }, false, ['deriveKey']);
+    return await crypto.subtle.deriveKey(
+        { name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 150000 },
+        baseKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+    );
+}
+async function cacheOnlineData(content, meta) {
+    if (currentMode !== MODE_ONLINE || !currentUser || !content) return;
+    const pwd = getEncPassword();
+    if (!pwd || !crypto || !crypto.subtle || !indexedDB) return;
+    try {
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const saltB64 = b64e(salt);
+        const key = await deriveDataCacheKey(pwd, saltB64);
+        const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(content));
+        await idbPutDataCache(DATA_CACHE_KEY_PREFIX + (currentUser.uid || currentUser.username || 'admin'), {
+            v: 1,
+            uid: currentUser.uid || currentUser.username || 'admin',
+            role: currentUser.role || 'user',
+            dataVersion: meta && meta.dataVersion || null,
+            dataEtag: meta && meta.dataEtag || null,
+            salt: saltB64,
+            iv: b64e(iv),
+            cipher: b64e(new Uint8Array(encrypted)),
+            updatedAt: new Date().toISOString()
+        });
+    } catch (e) {
+        console.warn('data cache write failed:', e && e.message);
+    }
+}
+
 function b64e(bytes) {
     let s = ''; const a = (bytes instanceof Uint8Array) ? bytes : new Uint8Array(bytes);
     for (let i = 0; i < a.length; i++) s += String.fromCharCode(a[i]);
@@ -3799,6 +3860,7 @@ async function loadData_online() {
     const r = await api('/api/data?format=json', { method: 'GET' });
     if (r.ok && r.data && r.data.ok && r.data.content) {
         await parseAndLoad(r.data.content);
+        await cacheOnlineData(r.data.content, r.data);
         $('dataStatus').textContent = t('stServerLoaded'); $('dataStatus').className = 'st-ok'; return true;
     }
     $('dataStatus').textContent = t('stServerLoadFail'); $('dataStatus').className = 'st-warn'; return false;
@@ -3823,6 +3885,7 @@ async function saveDataJs_online() {
         toast(msg);
         $('dataStatus').textContent = t('stServerSaved', { time: new Date().toLocaleString() });
         $('dataStatus').className = 'st-ok';
+        await cacheOnlineData(content, r.data);
 
         // ★ 保存成功 → 清空 localStorage 中的 comment override + 配置后台 dirty 标志
         clearCommentOverrides();
