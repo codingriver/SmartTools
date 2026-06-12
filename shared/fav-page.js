@@ -24,12 +24,10 @@
 (function () {
     try {
         var vi = window.__viewerInfo;
-        // viewerInfo 未注入(罕见:静态 data.js 兜底)→ 保守显示按钮,与未登录默认行为一致
-        if (!vi || (vi.isAdminView && !vi.slug)) {
+        if (vi && vi.isAdminView && !vi.slug) {
             document.documentElement.setAttribute('data-admin-view', '');
         }
     } catch (e) {
-        document.documentElement.setAttribute('data-admin-view', '');
     }
 })();
 
@@ -110,7 +108,6 @@ function normalizeData() {
     }
     throw new Error('数据文件未加载');
 }
-normalizeData();
 
 
 /* ════════════════════════════════════════════════════════════════════════════════
@@ -143,7 +140,7 @@ var currentExpanded  = null;
 var currentLayout    = 'mobile';
 var currentEmailData = null;  // ★ 动态设置（首个 email 类型 section 的第一张卡片）
 var isAnimating      = false;
-var __allSections    = window.__sections;  // ★ 统一数据源
+var __allSections    = window.__sections || [];  // ★ 统一数据源
 var __privateAccess  = false;              // 当前 data.js 已包含 private section 时才显示
 
 function detectPrivateAccessFromLoadedData() {
@@ -1094,7 +1091,22 @@ function renderAllSections(layout) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', async function() {
+async function bootFavPage() {
+    try {
+        if (window.__SmartToolsDataReady && typeof window.__SmartToolsDataReady.then === 'function') {
+            await window.__SmartToolsDataReady;
+        }
+    } catch (e) {}
+    normalizeData();
+    __allSections = window.__sections || [];
+    try {
+        var vi = window.__viewerInfo;
+        if (vi && vi.isAdminView && !vi.slug) {
+            document.documentElement.setAttribute('data-admin-view', '');
+        } else {
+            document.documentElement.removeAttribute('data-admin-view');
+        }
+    } catch (e) {}
 
     document.addEventListener('click', function(e) {
         if (!e.target.closest('#styleSwitcher')) {
@@ -1166,6 +1178,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         // 注:"← 前往小工具"按钮的显隐已由区块 0 + indexN.html 的 CSS 协同处理(防闪烁),此处不再做
     } catch (e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    bootFavPage();
 });
 
 
