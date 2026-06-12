@@ -3414,6 +3414,75 @@ const LS_COMMENT_OVERRIDES = 'bm_comment_overrides';
 let configDirty = false;
 function markConfigDirty()  { configDirty = true;  refreshPendingBanner(); }
 function clearConfigDirty() { configDirty = false; refreshPendingBanner(); }
+let sectionSaveBaseline = null;
+
+function sectionPayloadMeta(meta) {
+    return {
+        key: meta.key,
+        label: (meta.key === UNCLASSIFIED_KEY) ? t('secUnclassified') : (meta.label || meta.key),
+        kind: meta.kind || 'card',
+        anchor: meta.anchor || '',
+        visible: meta.visible !== false,
+        dynamic: !!meta.dynamic,
+        private: !!meta.private
+    };
+}
+
+function stableStringify(value) {
+    if (Array.isArray(value)) return '[' + value.map(stableStringify).join(',') + ']';
+    if (value && typeof value === 'object') {
+        return '{' + Object.keys(value).sort().map(function(key) {
+            return JSON.stringify(key) + ':' + stableStringify(value[key]);
+        }).join(',') + '}';
+    }
+    return JSON.stringify(value);
+}
+
+function buildSectionSaveSnapshot() {
+    var metas = getSections().map(sectionPayloadMeta);
+    var hashes = {};
+    metas.forEach(function(meta) {
+        hashes[meta.key] = stableStringify({
+            meta: meta,
+            cards: Array.isArray(store[meta.key]) ? store[meta.key] : []
+        });
+    });
+    return {
+        metaOrder: metas.map(function(meta) { return meta.key; }),
+        metas: metas,
+        hashes: hashes
+    };
+}
+
+function resetSectionSaveBaseline() {
+    sectionSaveBaseline = buildSectionSaveSnapshot();
+}
+
+function buildSectionDeltaPayload() {
+    if (!sectionSaveBaseline) return null;
+    sanitizeStoreBeforeSave();
+    var snapshot = buildSectionSaveSnapshot();
+    var currentKeys = new Set(snapshot.metaOrder);
+    var deletedSectionKeys = (sectionSaveBaseline.metaOrder || []).filter(function(key) {
+        return !currentKeys.has(key);
+    });
+    var changedSections = [];
+    snapshot.metas.forEach(function(meta) {
+        if (sectionSaveBaseline.hashes[meta.key] !== snapshot.hashes[meta.key]) {
+            changedSections.push({
+                key: meta.key,
+                meta: meta,
+                cards: deepClone(Array.isArray(store[meta.key]) ? store[meta.key] : [])
+            });
+        }
+    });
+    return {
+        mode: 'sections',
+        sectionsMeta: snapshot.metas,
+        changedSections: changedSections,
+        deletedSectionKeys: deletedSectionKeys
+    };
+}
 
 function readCommentOverrides() {
     try { return JSON.parse(localStorage.getItem(LS_COMMENT_OVERRIDES) || '{}') || {}; }
@@ -3930,12 +3999,31 @@ async function saveDataJs_online() {
     const needPwd = customSectionsMeta.some(c => c.encrypted && !c.locked);
     if (needPwd && !getEncPassword()) { toast(t('toastEncNoSessionPwd')); openUnlockModal(); return; }
 
-    let content;
-    try { content = await generateDataJs(); }
+    mergeCommentOverrides();
+    let requestBody = null;
+    let content = null;
+    try {
+        requestBody = buildSectionDeltaPayload();
+        if (!requestBody) {
+            content = await generateDataJs();
+            requestBody = { content: content };
+        }
+    }
     catch (e) { toast(t('toastSaveFail') + ': ' + e.message); return; }
 
     $('btnSave').disabled = true;
-    const r = await api('/api/save', { method: 'POST', body: JSON.stringify({ content }) });
+    let r = await api('/api/save', { method: 'POST', body: JSON.stringify(requestBody) });
+    if (!r.ok && requestBody && requestBody.mode === 'sections') {
+        try {
+            content = await generateDataJs();
+            requestBody = { content: content };
+            r = await api('/api/save', { method: 'POST', body: JSON.stringify(requestBody) });
+        } catch (e) {
+            $('btnSave').disabled = false;
+            toast(t('toastSaveFail') + ': ' + e.message);
+            return;
+        }
+    }
     $('btnSave').disabled = false;
     if (r.status === 401) { toast(t('toastSessExpired')); await logout_online(); return; }
     if (r.ok && r.data && r.data.ok) {
@@ -3948,6 +4036,7 @@ async function saveDataJs_online() {
         $('dataStatus').textContent = t('stServerSaved', { time: new Date().toLocaleString() });
         $('dataStatus').className = 'st-ok';
         await cacheOnlineData(content, r.data);
+        resetSectionSaveBaseline();
 
         // ★ 保存成功 → 清空 localStorage 中的 comment override + 配置后台 dirty 标志
         clearCommentOverrides();
@@ -4480,6 +4569,7 @@ async function parseAndLoad(text) {
         const mergedN = mergeCommentOverrides();
         if (mergedN > 0) { setTimeout(() => toast(t('toastOverridesMerged', { n: mergedN }), 3200), 300); }
 
+        resetSectionSaveBaseline();
         clearConfigDirty();   // 重新载入数据后，配置后台无未保存改动
         renderSectionTabs(); renderCurrentSection(); updateEncKeyStatus();
         return true;

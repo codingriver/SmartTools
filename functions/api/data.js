@@ -22,6 +22,7 @@
 import { jsonResponse, getPayload } from '../_shared/auth.js';
 import { isValidSlug, getUserBySlug, lookupOldSlugRedirect } from '../_shared/slug.js';
 import { ensureDataMeta, makeDataEtag, sha256HexText } from '../_shared/data-meta.js';
+import { readSplitSnapshot } from '../_shared/data-split.js';
 
 const OLD_DATA_KEY    = 'data_js';
 const OLD_SOURCE_KEY  = 'data_source';
@@ -276,16 +277,17 @@ export async function onRequestGet({ request, env }) {
         sourceKey = userSourceKey(uid);
     }
 
-    // 并行读 source + data
+    // 并行读 source + data；split snapshot 命中时优先用快照，避免按分类多 key 聚合。
     let source = 'static';
     let kvContent = null;
     if (env.FAV_KV) {
-        const [saved, dataResult] = await Promise.all([
+        const [saved, dataResult, splitSnapshot] = await Promise.all([
             env.FAV_KV.get(sourceKey),
-            env.FAV_KV.get(dataKey)
+            env.FAV_KV.get(dataKey),
+            readSplitSnapshot(env, ns)
         ]);
         if (saved === 'kv' || saved === 'static') source = saved;
-        kvContent = dataResult || null;
+        kvContent = splitSnapshot || dataResult || null;
 
         // admin 命名空间下的迁移期回退:admin:* 没有时,读老 key
         if (ns === 'admin') {

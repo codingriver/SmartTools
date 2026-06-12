@@ -1,5 +1,6 @@
 import { requireAuth, jsonResponse, getPayload } from '../_shared/auth.js';
 import { writeDataMeta } from '../_shared/data-meta.js';
+import { applySectionDelta, readSplitSnapshot, writeSplitFromContent } from '../_shared/data-split.js';
 
 // A0 v2 改造（2026-05-17）：按身份选 namespace
 //   admin → admin:data_js / admin:data_source / admin:backup:*
@@ -41,13 +42,30 @@ export async function onRequestPost({ request, env }) {
     try { body = await request.json(); }
     catch { return jsonResponse({ ok: false, error: '请求格式错误' }, 400); }
 
-    const { content } = body || {};
-    if (typeof content !== 'string' || !content.trim()) {
+    const saveMode = body && body.mode === 'sections' ? 'sections' : 'full';
+    let content = body && body.content;
+    if (saveMode === 'full' && (typeof content !== 'string' || !content.trim())) {
         return jsonResponse({ ok: false, error: '内容为空' }, 400);
     }
 
     // 读旧版本用于对比
-    const old = await env.FAV_KV.get(KEYS.data);
+    const [oldData, oldSnapshot] = await Promise.all([
+        env.FAV_KV.get(KEYS.data),
+        readSplitSnapshot(env, ns)
+    ]);
+    const old = oldSnapshot || oldData;
+    if (saveMode === 'sections') {
+        if (!old || !old.trim()) {
+            return jsonResponse({ ok: false, error: '当前没有可增量更新的数据，请先完整保存一次' }, 409);
+        }
+        try {
+            const applied = await applySectionDelta(env, ns, old, body);
+            content = applied.content;
+            body.__sectionDeltaResult = applied;
+        } catch (e) {
+            return jsonResponse({ ok: false, error: e && e.message ? e.message : '分类级保存失败' }, 400);
+        }
+    }
     const contentChanged = old !== content;
 
     const backupSettings = await getBackupSettings(env);
@@ -66,6 +84,7 @@ export async function onRequestPost({ request, env }) {
     const writes = [];
     if (contentChanged) {
         writes.push(env.FAV_KV.put(KEYS.data, content));
+        writes.push(writeSplitFromContent(env, ns, content));
     }
     if (!_sourceConfirmedKv.has(ns)) {
         const currentSource = await env.FAV_KV.get(KEYS.source);
@@ -99,6 +118,12 @@ export async function onRequestPost({ request, env }) {
         prunedBackups,
         unchanged: !contentChanged,
         namespace: ns,
+        saveMode,
+        sectionDelta: body.__sectionDeltaResult ? {
+            changedCount: body.__sectionDeltaResult.changedCount,
+            deletedCount: body.__sectionDeltaResult.deletedCount,
+            sectionCount: body.__sectionDeltaResult.sectionCount
+        } : null,
         dataVersion: dataMeta && dataMeta.version,
         dataEtag: dataMeta && dataMeta.etag
     });

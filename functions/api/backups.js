@@ -10,6 +10,7 @@
 //   admin **不跨用户**（即使是 admin 也只看 admin 自己的备份；A1 会单独提供归档管理 API）
 
 import { requireAuth, jsonResponse, getPayload } from '../_shared/auth.js';
+import { readSplitSnapshot, writeSplitFromContent } from '../_shared/data-split.js';
 
 const ADMIN_SITE_CONFIG_KEY = 'admin:site_config';
 const DEFAULT_BACKUP_RETENTION = 30;
@@ -84,7 +85,7 @@ export async function onRequestPost({ request, env }) {
     const name = url.searchParams.get('name');
     const action = url.searchParams.get('action');
     if (action === 'create') {
-        const current = await env.FAV_KV.get(KEYS.data);
+        const current = await readSplitSnapshot(env, ns) || await env.FAV_KV.get(KEYS.data);
         if (!current || !current.trim()) return jsonResponse({ ok: false, error: '当前没有可备份的数据' }, 404);
         const backupName = timestamp();
         await env.FAV_KV.put(KEYS.backupP + backupName, current);
@@ -102,11 +103,14 @@ export async function onRequestPost({ request, env }) {
         }
         if (content == null) return jsonResponse({ ok: false, error: '备份不存在' }, 404);
         // 保存当前作为新备份（同 namespace 内，写到新 key）
-        const old = await env.FAV_KV.get(KEYS.data);
+        const old = await readSplitSnapshot(env, ns) || await env.FAV_KV.get(KEYS.data);
         if (old && old.trim()) {
             await env.FAV_KV.put(KEYS.backupP + timestamp(), old);
         }
-        await env.FAV_KV.put(KEYS.data, content);
+        await Promise.all([
+            env.FAV_KV.put(KEYS.data, content),
+            writeSplitFromContent(env, ns, content)
+        ]);
         return jsonResponse({ ok: true, namespace: ns });
     }
     return jsonResponse({ ok: false, error: '未知 action' }, 400);
