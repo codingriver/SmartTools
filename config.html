@@ -6664,11 +6664,17 @@ function isImportableTabUrl(url) {
     return /^(https?:|mailto:|ftp:)/i.test(String(url || '').trim());
 }
 
-function pickOpenTabsImportTargetSection() {
-    var sec = getSections().find(function(s) { return s.key === currentSection; });
-    if (sec && sec.kind === 'card' && !sec.locked && currentSection !== ALL_CARDS_SECTION) return sec.key;
-    var first = getSections().find(function(s) { return s.kind === 'card' && !s.locked; });
-    if (first) return first.key;
+function getOpenTabsImportSections() {
+    ensureUnclassifiedSection();
+    return getSections()
+        .filter(function(s) { return s.kind === 'card' && !s.locked; })
+        .map(function(s) { return { key: s.key, label: s.label || s.key }; });
+}
+
+function pickOpenTabsImportTargetSection(payload) {
+    var requested = payload && payload.sectionKey ? String(payload.sectionKey).trim() : '';
+    var sections = getOpenTabsImportSections();
+    if (requested && sections.find(function(s) { return s.key === requested; })) return requested;
     ensureUnclassifiedSection();
     return UNCLASSIFIED_KEY;
 }
@@ -6723,7 +6729,7 @@ function importOpenTabsFromExtension(payload) {
         toast(t('openTabsImportEmpty') || '没有可导入的标签页');
         return;
     }
-    var targetKey = pickOpenTabsImportTargetSection();
+    var targetKey = pickOpenTabsImportTargetSection(payload);
     if (!Array.isArray(store[targetKey])) store[targetKey] = [];
     var existing = store[targetKey];
     var parentCard = buildOpenTabsParentCard(payload, subCards);
@@ -6741,6 +6747,14 @@ function importOpenTabsFromExtension(payload) {
 function handleOpenTabsExtensionMessage(event) {
     var data = event && event.data;
     if (!data || data.source !== 'smarttools-open-tabs-extension') return;
+    if (data.action === 'get-sections') {
+        window.postMessage({
+            source: 'smarttools-open-tabs-page',
+            action: 'sections',
+            sections: getOpenTabsImportSections()
+        }, window.location.origin);
+        return;
+    }
     importOpenTabsFromExtension(data);
 }
 

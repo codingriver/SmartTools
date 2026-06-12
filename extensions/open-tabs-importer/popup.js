@@ -6,6 +6,8 @@ const els = {
   loadCurrent: document.getElementById('loadCurrent'),
   loadAll: document.getElementById('loadAll'),
   parentTitle: document.getElementById('parentTitle'),
+  sectionSelect: document.getElementById('sectionSelect'),
+  refreshSections: document.getElementById('refreshSections'),
   selectAll: document.getElementById('selectAll'),
   selectNone: document.getElementById('selectNone'),
   importSelected: document.getElementById('importSelected'),
@@ -15,6 +17,7 @@ const els = {
 
 let loadedScope = 'current';
 let loadedTabs = [];
+let sectionResponseTimer = null;
 
 function setStatus(message, kind = '') {
   els.status.textContent = message;
@@ -155,6 +158,62 @@ async function injectTabs(tabId, payload) {
   });
 }
 
+async function ensureBridge(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['content-bridge.js']
+    });
+  } catch (e) {
+    // If the bridge is already injected or the page is not scriptable, the next call will surface the real issue.
+  }
+}
+
+function renderSections(sections) {
+  const currentValue = els.sectionSelect.value;
+  const opts = ['<option value="">未设置：导入未分类</option>'];
+  (sections || []).forEach(section => {
+    opts.push(`<option value="${escapeHtml(section.key)}">${escapeHtml(section.label || section.key)}</option>`);
+  });
+  els.sectionSelect.innerHTML = opts.join('');
+  if ([...els.sectionSelect.options].some(opt => opt.value === currentValue)) {
+    els.sectionSelect.value = currentValue;
+  }
+}
+
+async function requestSections() {
+  let configUrl;
+  try {
+    configUrl = normalizeConfigUrl(els.configUrl.value || await getConfigUrl());
+  } catch (e) {
+    setStatus('请先填写正确的后台地址', 'err');
+    return;
+  }
+  await chrome.storage.sync.set({ configUrl });
+  const configTab = await findConfigTab(configUrl);
+  if (!configTab) {
+    setStatus('请先打开并登录 SmartTools 后台，再刷新分类', 'err');
+    return;
+  }
+  if (sectionResponseTimer) clearTimeout(sectionResponseTimer);
+  await ensureBridge(configTab.id);
+  await injectTabs(configTab.id, {
+    source: 'smarttools-open-tabs-extension',
+    action: 'get-sections',
+    sentAt: new Date().toISOString()
+  });
+  sectionResponseTimer = setTimeout(() => {
+    setStatus('未收到分类列表，请确认后台已登录并加载数据', 'err');
+  }, 1500);
+}
+
+chrome.runtime.onMessage.addListener(message => {
+  if (!message || message.source !== 'smarttools-open-tabs-page' || message.action !== 'sections') return;
+  if (sectionResponseTimer) clearTimeout(sectionResponseTimer);
+  renderSections(message.sections || []);
+  setStatus(`已读取 ${(message.sections || []).length} 个可用分类`, 'ok');
+});
+
 async function importSelectedTabs() {
   let configUrl;
   try {
@@ -185,6 +244,7 @@ async function importSelectedTabs() {
     source: 'smarttools-open-tabs-extension',
     scope: loadedScope,
     parentTitle,
+    sectionKey: els.sectionSelect.value || '',
     sentAt: new Date().toISOString(),
     tabs
   });
@@ -195,6 +255,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   els.configUrl.value = await getConfigUrl();
   els.parentTitle.value = `打开的标签页 ${new Date().toLocaleString()}`;
   els.saveUrl.addEventListener('click', saveConfigUrl);
+  els.refreshSections.addEventListener('click', requestSections);
   els.loadCurrent.addEventListener('click', () => loadTabs('current'));
   els.loadAll.addEventListener('click', () => loadTabs('all'));
   els.selectAll.addEventListener('click', () => setAllChecked(true));

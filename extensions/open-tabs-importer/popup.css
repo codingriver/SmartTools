@@ -21,7 +21,8 @@ label {
   margin-bottom: 10px;
 }
 
-input {
+input,
+select {
   box-sizing: border-box;
   width: 100%;
   margin-top: 5px;
