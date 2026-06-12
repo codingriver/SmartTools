@@ -128,6 +128,11 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        html { scrollbar-gutter: stable; }
+        @supports not (scrollbar-gutter: stable) {
+            html { overflow-y: scroll; }
+        }
+
         body {
             font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont,
                          "Segoe UI", "PingFang SC", "Hiragino Sans GB",
