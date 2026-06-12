@@ -485,9 +485,10 @@ function generateCardHTML(card, meta) {
     var cid = __registerCard(card, meta || {});
     var noteCls = __noteCls(card);
     var pushedBadge = __renderPushedByBadge(card, cid);
+    var cardType = card.type || ((card.subCards && card.subCards.length) ? 'expandable' : (card.descClickable ? 'desc-clickable' : 'simple'));
 
     // ─── 类型 1：简单卡片 ──────────────────────────────────────────────
-    if (card.type === 'simple') {
+    if (cardType === 'simple') {
         // ★ 有 url → 用 <a>（支持中键 / Ctrl+点击在新标签打开）
         // ★ 无 url → 用 <div>（避免 href=undefined 空白页；此时一般都有 comment）
         if (card.url) {
@@ -508,7 +509,7 @@ function generateCardHTML(card, meta) {
     }
 
     // ─── 类型 2：描述可独立点击的卡片 ───────────────────────────────
-    if (card.type === 'desc-clickable') {
+    if (cardType === 'desc-clickable') {
         // descUrl 放 data-* 属性，由全局事件委托接管，避免 onclick 字符串拼接的 XSS
         var descUrlAttr = card.descUrl ? ' data-desc-url="' + __attr(__safeUrl(card.descUrl)) + '"' : '';
         // 中键后台打开:有 card.url 时改 <a> 包裹,左键复用 __favLinkClick(有 comment 拦截弹注释,无 comment 浏览器原生跳)
@@ -530,7 +531,7 @@ function generateCardHTML(card, meta) {
     }
 
     // ─── 类型 3：可展开子卡片的卡片 ─────────────────────────────────
-    if (card.type === 'expandable') {
+    if (cardType === 'expandable') {
         var descHTML = '';
         if (card.descClickable) {
             var descUrlAttr2 = card.descUrl ? ' data-desc-url="' + __attr(__safeUrl(card.descUrl)) + '"' : '';
