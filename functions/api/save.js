@@ -50,12 +50,13 @@ export async function onRequestPost({ request, env }) {
     const old = await env.FAV_KV.get(KEYS.data);
     const contentChanged = old !== content;
 
+    const backupSettings = await getBackupSettings(env);
     let backupName = null;
     let prunedBackups = 0;
-    if (old && old.trim() && contentChanged) {
+    if (backupSettings.autoBackupEnabled && old && old.trim() && contentChanged) {
         backupName = KEYS.backupP + timestamp();
         await env.FAV_KV.put(backupName, old);
-        const backupRetention = await getBackupRetention(env);
+        const backupRetention = backupSettings.backupRetention;
         if (backupRetention > 0) {
             try { prunedBackups = await pruneBackups(env.FAV_KV, KEYS.backupP, backupRetention); } catch {}
         }
@@ -115,14 +116,17 @@ function timestamp() {
            p(d.getUTCSeconds());
 }
 
-async function getBackupRetention(env) {
+async function getBackupSettings(env) {
     try {
         const raw = await env.FAV_KV.get(ADMIN_SITE_CONFIG_KEY);
-        if (!raw) return DEFAULT_BACKUP_RETENTION;
+        if (!raw) return { autoBackupEnabled: false, backupRetention: DEFAULT_BACKUP_RETENTION };
         const parsed = JSON.parse(raw);
-        return normalizeBackupRetention(parsed.backupRetention, DEFAULT_BACKUP_RETENTION);
+        return {
+            autoBackupEnabled: parsed.autoBackupEnabled === true,
+            backupRetention: normalizeBackupRetention(parsed.backupRetention, DEFAULT_BACKUP_RETENTION)
+        };
     } catch {
-        return DEFAULT_BACKUP_RETENTION;
+        return { autoBackupEnabled: false, backupRetention: DEFAULT_BACKUP_RETENTION };
     }
 }
 

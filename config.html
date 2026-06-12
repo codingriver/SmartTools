@@ -765,6 +765,7 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     <div class="modal-box">
         <h2 data-i18n="historyTitle">🕐 历史备份版本</h2>
         <p class="muted" id="historyHint"></p>
+        <button type="button" class="btn btn-primary btn-sm" id="btnCreateBackupNow" style="margin-bottom:10px;" data-i18n="backupCreateNow">立即创建备份</button>
         <div id="backupList"></div>
         <div class="modal-footer"><button class="btn btn-ghost" id="btnHistoryClose" data-i18n="sectionsClose">关闭</button></div>
     </div>
@@ -822,6 +823,13 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
             <label data-i18n="siteConfigBackupRetentionLabel">历史备份保留数量</label>
             <input type="number" id="siteConfigBackupRetentionInput" min="0" max="500" step="1" value="30">
             <p class="muted" style="font-size:12px; margin-top:4px;" data-i18n="siteConfigBackupRetentionHint">默认保留最近 30 个；填 0 表示不自动清理。</p>
+        </div>
+        <div class="form-row">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="siteConfigAutoBackupInput" style="width:auto;">
+                <span data-i18n="siteConfigAutoBackupLabel">保存时自动创建历史备份</span>
+            </label>
+            <p class="muted" style="font-size:12px; margin-top:4px;" data-i18n="siteConfigAutoBackupHint">默认关闭；大量书签时建议关闭，只在需要时到历史备份中手动创建。</p>
         </div>
         <div class="form-row">
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
@@ -2165,6 +2173,8 @@ const I18N = {
         siteConfigDefaultThemeHint: '访问首页或公开链接未指定主题时使用。',
         siteConfigBackupRetentionLabel: '历史备份保留数量',
         siteConfigBackupRetentionHint: '默认保留最近 30 个；填 0 表示不自动清理。',
+        siteConfigAutoBackupLabel: '保存时自动创建历史备份',
+        siteConfigAutoBackupHint: '默认关闭；大量书签时建议关闭，只在需要时到历史备份中手动创建。',
         siteConfigDeleteConfirmLabel: '删除操作开启二次确认',
         siteConfigDeleteConfirmHint: '默认开启；关闭后普通删除操作将不再弹出确认框。',
         siteConfigDangerZoneLabel: '危险操作',
@@ -2175,6 +2185,9 @@ const I18N = {
         toastBookmarksClearedUnsaved: '已清空所有书签（未保存）',
         toastSiteConfigSaved: '✅ 基础设置已保存',
         toastSiteConfigFail: '❌ 保存失败',
+        backupCreateNow: '立即创建备份',
+        toastBackupCreated: '已创建备份：{name}',
+        toastBackupCreateFail: '创建备份失败',
         ioImportTitle: '📥 导入 data.js', ioExportTitle: '👁 预览生成的 data.js',
         ioImportDesc: '粘贴 data.js 内容或选择文件导入。', ioImportPh: '粘贴 data.js 内容...',
         ioExportDesc: '此为将写入 data.js 的内容预览。', ioPreviewTitle: '👁 预览：{name}',
@@ -2756,6 +2769,8 @@ const I18N = {
         siteConfigDefaultThemeHint: 'Used when home or public links do not specify a theme.',
         siteConfigBackupRetentionLabel: 'Backup retention count',
         siteConfigBackupRetentionHint: 'Keep the latest 30 backups by default; enter 0 to disable auto cleanup.',
+        siteConfigAutoBackupLabel: 'Create a history backup on save',
+        siteConfigAutoBackupHint: 'Disabled by default; keep it off for large bookmark sets and create backups manually when needed.',
         siteConfigDeleteConfirmLabel: 'Require confirmation before delete',
         siteConfigDeleteConfirmHint: 'Enabled by default; disabling it skips confirmation for normal delete operations.',
         siteConfigDangerZoneLabel: 'Danger zone',
@@ -2765,6 +2780,9 @@ const I18N = {
         confirmClearAllBookmarksAgain: 'Second confirmation: really clear all bookmarks?',
         toastBookmarksClearedUnsaved: 'All bookmarks cleared (not saved)',
         toastSiteConfigSaved: '✅ Basic settings saved',
+        backupCreateNow: 'Create backup now',
+        toastBackupCreated: 'Backup created: {name}',
+        toastBackupCreateFail: 'Failed to create backup',
         historyTitle: '🕐 Backup History',
         historyHintOnline: 'Stored in Cloudflare KV',
         historyHintLocal: 'In <code>databak/</code> of current folder',
@@ -2926,6 +2944,7 @@ let currentUser = { username: null, uid: null, role: null, publicSlug: null, pub
 let currentMigrationNeeded = false;
 let deleteConfirmEnabled = true;
 let backupRetention = 30;
+let autoBackupEnabled = false;
 const LS_MODE = 'bm_cfg_mode';
 
 const DEFAULT_SECTIONS = [
@@ -3981,6 +4000,7 @@ async function openSiteConfigModal() {
         $('siteConfigHeaderInput').value = r.data.header || '';
         $('siteConfigFooterInput').value = r.data.footer || '';
         $('siteConfigDefaultThemeInput').value = normalizeDefaultTheme(r.data.defaultTheme);
+        autoBackupEnabled = r.data.autoBackupEnabled === true;
         backupRetention = normalizeBackupRetention(r.data.backupRetention, 30);
         deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
     } else {
@@ -3988,9 +4008,11 @@ async function openSiteConfigModal() {
         $('siteConfigHeaderInput').value = '';
         $('siteConfigFooterInput').value = '';
         $('siteConfigDefaultThemeInput').value = 'notion';
+        autoBackupEnabled = false;
         backupRetention = 30;
         deleteConfirmEnabled = true;
     }
+    $('siteConfigAutoBackupInput').checked = autoBackupEnabled;
     $('siteConfigBackupRetentionInput').value = String(backupRetention);
     $('siteConfigDeleteConfirmInput').checked = deleteConfirmEnabled;
     show('siteConfigModal');
@@ -4012,10 +4034,12 @@ async function saveSiteConfig() {
     const header = $('siteConfigHeaderInput').value;
     const footer = $('siteConfigFooterInput').value;
     const defaultTheme = normalizeDefaultTheme($('siteConfigDefaultThemeInput').value);
+    const nextAutoBackupEnabled = $('siteConfigAutoBackupInput').checked;
     const nextBackupRetention = normalizeBackupRetention($('siteConfigBackupRetentionInput').value, backupRetention);
     const nextDeleteConfirmEnabled = $('siteConfigDeleteConfirmInput').checked;
-    const r = await api('/api/site-config', { method: 'POST', body: JSON.stringify({ title, header, footer, defaultTheme, backupRetention: nextBackupRetention, deleteConfirmEnabled: nextDeleteConfirmEnabled }) });
+    const r = await api('/api/site-config', { method: 'POST', body: JSON.stringify({ title, header, footer, defaultTheme, autoBackupEnabled: nextAutoBackupEnabled, backupRetention: nextBackupRetention, deleteConfirmEnabled: nextDeleteConfirmEnabled }) });
     if (r.ok && r.data && r.data.ok) {
+        autoBackupEnabled = r.data.autoBackupEnabled === true;
         backupRetention = normalizeBackupRetention(r.data.backupRetention, nextBackupRetention);
         deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
         toast(t('toastSiteConfigSaved'));
@@ -4046,10 +4070,12 @@ function clearAllBookmarksFromSiteConfig() {
 
 async function loadAdminSettings() {
     deleteConfirmEnabled = true;
+    autoBackupEnabled = false;
     backupRetention = 30;
     if (currentMode !== MODE_ONLINE) return;
     const r = await api('/api/site-config', { method: 'GET' });
     if (r.ok && r.data) {
+        autoBackupEnabled = r.data.autoBackupEnabled === true;
         backupRetention = normalizeBackupRetention(r.data.backupRetention, 30);
         deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
     }
@@ -4060,6 +4086,23 @@ async function openHistoryModal_online() {
     if (!r.ok || !r.data || !r.data.ok) { toast(t('toastBkLoadFail')); return; }
     renderBackupList_online(r.data.backups || []);
     show('historyModal');
+}
+async function createBackupNow_online() {
+    const btn = $('btnCreateBackupNow');
+    if (btn) btn.disabled = true;
+    const r = await api('/api/backups?action=create', { method: 'POST' });
+    if (btn) btn.disabled = false;
+    if (r.status === 401) { toast(t('toastSessExpired')); await logout_online(); return; }
+    if (r.ok && r.data && r.data.ok) {
+        deletedBackupNamesOnline.delete(r.data.backup);
+        let msg = t('toastBackupCreated', { name: r.data.backup });
+        if (r.data.prunedBackups > 0) msg += t('toastSaveLocalCleaned', { n: r.data.prunedBackups });
+        toast(msg);
+        await openHistoryModal_online();
+        await refreshBackupStatus_online();
+    } else {
+        toast((r.data && r.data.error) || t('toastBackupCreateFail'));
+    }
 }
 function renderBackupList_online(backups) {
     const list = (backups || []).filter(b => b && !deletedBackupNamesOnline.has(b.name));
@@ -4190,7 +4233,7 @@ async function saveDataJs_local() {
         let backupName = null, bakDir = null, oldText = '';
         try { const oldHandle = await folderHandle.getFileHandle('data.js'); const oldFile = await oldHandle.getFile(); oldText = await oldFile.text(); } catch (e) {}
         const changed = oldText !== content;
-        if (oldText && oldText.trim() && changed) {
+        if (autoBackupEnabled && oldText && oldText.trim() && changed) {
             try {
                 bakDir = await folderHandle.getDirectoryHandle('databak', { create: true });
                 backupName = 'data_' + timestamp() + '.js';
@@ -4267,6 +4310,28 @@ async function openHistoryModal_local() {
         wrap.appendChild(el);
     });
     show('historyModal');
+}
+async function createBackupNow_local() {
+    if (!folderHandle) { alert(t('toastNeedFolder')); return; }
+    if (!(await verifyPermission(folderHandle))) { alert(t('alertNoPermRW')); return; }
+    try {
+        const oldHandle = await folderHandle.getFileHandle('data.js');
+        const oldFile = await oldHandle.getFile();
+        const oldText = await oldFile.text();
+        if (!oldText || !oldText.trim()) { toast(t('toastBackupCreateFail')); return; }
+        const bakDir = await folderHandle.getDirectoryHandle('databak', { create: true });
+        const backupName = 'data_' + timestamp() + '.js';
+        const bakFh = await bakDir.getFileHandle(backupName, { create: true });
+        const bw = await bakFh.createWritable(); await bw.write(oldText); await bw.close();
+        const cleaned = await pruneOldBackups_local(bakDir);
+        let msg = t('toastBackupCreated', { name: backupName });
+        if (cleaned > 0) msg += t('toastSaveLocalCleaned', { n: cleaned });
+        toast(msg);
+        await openHistoryModal_local();
+        await refreshBackupStatus_local();
+    } catch (e) {
+        toast(t('toastBackupCreateFail') + ': ' + (e.message || e));
+    }
 }
 async function handleBackupAction_local(act, bak) {
     if (act === 'restore') {
@@ -5858,7 +5923,7 @@ async function confirmImport() {
 var __fullBackupImportParsed = null;
 
 async function getSiteConfigSnapshot() {
-    if (currentMode !== MODE_ONLINE) return { title: '', header: '', footer: '', defaultTheme: 'notion', backupRetention: normalizeBackupRetention(backupRetention, 30), deleteConfirmEnabled: deleteConfirmEnabled !== false };
+    if (currentMode !== MODE_ONLINE) return { title: '', header: '', footer: '', defaultTheme: 'notion', autoBackupEnabled: autoBackupEnabled === true, backupRetention: normalizeBackupRetention(backupRetention, 30), deleteConfirmEnabled: deleteConfirmEnabled !== false };
     try {
         var r = await api('/api/site-config', { method: 'GET' });
         if (r.ok && r.data) {
@@ -5867,12 +5932,13 @@ async function getSiteConfigSnapshot() {
                 header: r.data.header || '',
                 footer: r.data.footer || '',
                 defaultTheme: normalizeDefaultTheme(r.data.defaultTheme),
+                autoBackupEnabled: r.data.autoBackupEnabled === true,
                 backupRetention: normalizeBackupRetention(r.data.backupRetention, 30),
                 deleteConfirmEnabled: r.data.deleteConfirmEnabled !== false
             };
         }
     } catch (e) {}
-    return { title: '', header: '', footer: '', defaultTheme: 'notion', backupRetention: normalizeBackupRetention(backupRetention, 30), deleteConfirmEnabled: deleteConfirmEnabled !== false };
+    return { title: '', header: '', footer: '', defaultTheme: 'notion', autoBackupEnabled: autoBackupEnabled === true, backupRetention: normalizeBackupRetention(backupRetention, 30), deleteConfirmEnabled: deleteConfirmEnabled !== false };
 }
 
 function buildSectionsSnapshot() {
@@ -5971,7 +6037,7 @@ function doFullBackupImportPreview() {
         var cnt = countBackupSections(parsed.sections);
         var hasSite = parsed.siteConfig && (
             parsed.siteConfig.title || parsed.siteConfig.header || parsed.siteConfig.footer || parsed.siteConfig.deleteConfirmEnabled !== undefined
-            || parsed.siteConfig.defaultTheme || parsed.siteConfig.backupRetention !== undefined
+            || parsed.siteConfig.defaultTheme || parsed.siteConfig.autoBackupEnabled !== undefined || parsed.siteConfig.backupRetention !== undefined
         );
         $('fullBackupImportPreview').style.display = 'block';
         $('fullBackupImportPreview').textContent = t('fullBackupImportPreview', {
@@ -6000,11 +6066,13 @@ async function applyFullBackupSiteConfig(siteConfig) {
             header: siteConfig.header || '',
             footer: siteConfig.footer || '',
             defaultTheme: normalizeDefaultTheme(siteConfig.defaultTheme),
+            autoBackupEnabled: siteConfig.autoBackupEnabled === true,
             backupRetention: normalizeBackupRetention(siteConfig.backupRetention, 30),
             deleteConfirmEnabled: siteConfig.deleteConfirmEnabled !== false
         })
     });
     if (r.ok && r.data && r.data.ok) {
+        autoBackupEnabled = r.data.autoBackupEnabled === true;
         backupRetention = normalizeBackupRetention(r.data.backupRetention, 30);
         deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
         return t('fullBackupSiteApplied');
@@ -9594,6 +9662,10 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnSave').onclick = doSave;
     $('btnHistory').onclick = doHistory;
     $('btnHistoryClose').onclick = () => hide('historyModal');
+    $('btnCreateBackupNow').onclick = () => {
+        if (currentMode === MODE_ONLINE) createBackupNow_online();
+        else createBackupNow_local();
+    };
 
     $('btnDataSource').onclick = () => { if (currentMode === MODE_ONLINE) openSourceModal_online(); };
     $('btnSourceClose').onclick = () => hide('sourceModal');

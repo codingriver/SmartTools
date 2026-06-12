@@ -2,7 +2,7 @@
 // POST /api/site-config  → 保存网站配置（需登录）
 //
 // 配置结构：
-//   { title: string, header: string, footer: string, defaultTheme: string, backupRetention: number, deleteConfirmEnabled: boolean }
+//   { title: string, header: string, footer: string, defaultTheme: string, autoBackupEnabled: boolean, backupRetention: number, deleteConfirmEnabled: boolean }
 // 空字符串表示使用主题默认。
 
 import { requireAuth, jsonResponse } from '../_shared/auth.js';
@@ -15,6 +15,7 @@ const DEFAULT_CONFIG = {
     header: '',
     footer: '',
     defaultTheme: 'notion',
+    autoBackupEnabled: false,
     backupRetention: 30,
     deleteConfirmEnabled: true
 };
@@ -46,6 +47,7 @@ export async function onRequestGet({ request, env }) {
                 if (parsed.header != null) result.header = parsed.header;
                 if (parsed.footer != null) result.footer = parsed.footer;
                 if (parsed.defaultTheme != null) result.defaultTheme = normalizeTheme(parsed.defaultTheme);
+                if (parsed.autoBackupEnabled != null) result.autoBackupEnabled = parsed.autoBackupEnabled === true;
                 if (parsed.backupRetention != null) result.backupRetention = normalizeBackupRetention(parsed.backupRetention);
                 if (parsed.deleteConfirmEnabled != null) result.deleteConfirmEnabled = parsed.deleteConfirmEnabled !== false;
             }
@@ -70,6 +72,7 @@ export async function onRequestPost({ request, env }) {
         const saved = await env.FAV_KV.get(ADMIN_SITE_CONFIG_KEY);
         if (saved) Object.assign(current, JSON.parse(saved));
     } catch {}
+    current.autoBackupEnabled = current.autoBackupEnabled === true;
     current.deleteConfirmEnabled = current.deleteConfirmEnabled !== false;
 
     const config = {
@@ -77,6 +80,7 @@ export async function onRequestPost({ request, env }) {
         header: body.header !== undefined ? String(body.header || '') : current.header,
         footer: body.footer !== undefined ? String(body.footer || '') : current.footer,
         defaultTheme: body.defaultTheme !== undefined ? normalizeTheme(body.defaultTheme, current.defaultTheme) : normalizeTheme(current.defaultTheme),
+        autoBackupEnabled: body.autoBackupEnabled !== undefined ? body.autoBackupEnabled === true : current.autoBackupEnabled === true,
         backupRetention: body.backupRetention !== undefined ? normalizeBackupRetention(body.backupRetention, current.backupRetention) : normalizeBackupRetention(current.backupRetention),
         deleteConfirmEnabled: body.deleteConfirmEnabled !== undefined ? body.deleteConfirmEnabled !== false : current.deleteConfirmEnabled !== false
     };

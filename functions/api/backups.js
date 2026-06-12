@@ -1,5 +1,6 @@
 // GET    /api/backups                          → 列出当前身份的所有备份
 // GET    /api/backups?name=xxx                 → 读取指定备份内容（当前身份的）
+// POST   /api/backups?action=create             → 手动创建当前主数据备份（当前身份的）
 // POST   /api/backups?name=xxx&action=restore  → 恢复为主数据（当前身份的）
 // DELETE /api/backups?name=xxx                 → 删除备份（当前身份的）
 //
@@ -9,6 +10,9 @@
 //   admin **不跨用户**（即使是 admin 也只看 admin 自己的备份；A1 会单独提供归档管理 API）
 
 import { requireAuth, jsonResponse, getPayload } from '../_shared/auth.js';
+
+const ADMIN_SITE_CONFIG_KEY = 'admin:site_config';
+const DEFAULT_BACKUP_RETENTION = 30;
 
 function nsKeys(ns) {
     return {
@@ -79,6 +83,15 @@ export async function onRequestPost({ request, env }) {
     const url = new URL(request.url);
     const name = url.searchParams.get('name');
     const action = url.searchParams.get('action');
+    if (action === 'create') {
+        const current = await env.FAV_KV.get(KEYS.data);
+        if (!current || !current.trim()) return jsonResponse({ ok: false, error: '当前没有可备份的数据' }, 404);
+        const backupName = timestamp();
+        await env.FAV_KV.put(KEYS.backupP + backupName, current);
+        const backupRetention = await getBackupRetention(env);
+        const prunedBackups = backupRetention > 0 ? await pruneBackups(env.FAV_KV, KEYS.backupP, backupRetention) : 0;
+        return jsonResponse({ ok: true, backup: backupName, prunedBackups, namespace: ns });
+    }
     if (!name) return jsonResponse({ ok: false, error: '缺少 name' }, 400);
 
     if (action === 'restore') {
@@ -129,4 +142,32 @@ export async function onRequestDelete({ request, env }) {
         await env.FAV_KV.delete('backup:' + name);
     }
     return jsonResponse({ ok: true, namespace: ns });
+}
+
+async function getBackupRetention(env) {
+    try {
+        const raw = await env.FAV_KV.get(ADMIN_SITE_CONFIG_KEY);
+        if (!raw) return DEFAULT_BACKUP_RETENTION;
+        const parsed = JSON.parse(raw);
+        return normalizeBackupRetention(parsed.backupRetention, DEFAULT_BACKUP_RETENTION);
+    } catch {
+        return DEFAULT_BACKUP_RETENTION;
+    }
+}
+
+function normalizeBackupRetention(value, fallback = DEFAULT_BACKUP_RETENTION) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    const rounded = Math.floor(n);
+    if (rounded === 0) return 0;
+    return Math.max(1, Math.min(500, rounded));
+}
+
+async function pruneBackups(kv, prefix, maxBackups) {
+    const list = await kv.list({ prefix });
+    if (list.keys.length <= maxBackups) return 0;
+    const sorted = list.keys.sort((a, b) => a.name.localeCompare(b.name));
+    const toDelete = sorted.slice(0, sorted.length - maxBackups);
+    await Promise.all(toDelete.map(k => kv.delete(k.name)));
+    return toDelete.length;
 }
