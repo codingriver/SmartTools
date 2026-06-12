@@ -4,7 +4,7 @@
  * CSV 导入导出 schema 与工具库（B0 阶段产出）
  *
  * 用途：把 sections 数组（来自 data.js 或 KV）与 CSV 文本互相转换。
- * 阶段：B0 只产出本文件 + tools/test-csv.html；不动现有任何文件；不加 UI 入口。
+ * 阶段：B0 只产出本文件；不动现有任何文件；不加 UI 入口。
  * 后续：B1 在 config.html 加"导出 CSV"按钮；B2 加"导入 CSV"；B3 加模板下载入口。
  *
  * 规则参考：.claude/下一阶段计划.md §3 阶段 B0 v2 实施版（v2-2 ~ v2-5）。

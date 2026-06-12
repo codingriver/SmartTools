@@ -1,7 +1,4 @@
 /l /index.html 200
-/t /toolsindex.html 200
-/tool /toolsindex.html 200
-/tools /toolsindex.html 200
 /c /config.html 200
 
 # 2026-05-22 启用:Cloudflare Pages 不识别 functions/@[[slug]].js(部署后整个 functions bundle 挂掉,

@@ -16,7 +16,7 @@
 
 
 /* ════════════════════════════════════════════════════════════════════════════════
- * 【区块 0】视图态早期标记 — 防"前往小工具"按钮闪现
+ * 【区块 0】视图态早期标记
  *   CSS 默认 `html:not([data-admin-view]) .back-link {display:none}`,
  *   只有 admin 视图(viewerInfo.isAdminView 且无 slug)才在这里设上 attribute → 显示按钮。
  *   本块同步执行,在 DOMContentLoaded 之前完成,避免渲染闪烁。
@@ -103,7 +103,7 @@ function normalizeData() {
                 '<span class="error-emoji">📂</span>' +
                 '<h2 class="error-title">数据加载失败</h2>' +
                 '<p class="error-message">收藏夹内容未能加载，可能是数据文件缺失或存在语法错误。</p>' +
-                '<a href="toolsindex.html" class="error-home-btn">← 返回主页</a>' +
+                '<a href="index.html" class="error-home-btn">← 返回主页</a>' +
             '</div></div>';
     }
     throw new Error('数据文件未加载');
@@ -1176,7 +1176,7 @@ async function bootFavPage() {
             }
             wm.textContent = label;
         }
-        // 注:"← 前往小工具"按钮的显隐已由区块 0 + indexN.html 的 CSS 协同处理(防闪烁),此处不再做
+        // 预留页脚/水印同步逻辑。
     } catch (e) {}
 }
 

@@ -30,7 +30,6 @@ const ALL_DIGITS_RE = /^[0-9]+$/;
 // 2026-05-22 扩充:子域名常用前缀 / 系统路径 / 内容站常用 / JS 关键字 / HTTP 状态码 / 自指概念词。
 const RESERVED_SLUGS = new Set([
     // 项目内已有路径
-    'tools', 'toolsindex',
     'databak', 'shared', 'scripts',
     'config', 'admin', 'login', 'logout',
     'about', 'index', 'data',

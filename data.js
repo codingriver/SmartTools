@@ -214,13 +214,6 @@ var sections = [
                         url: 'https://www.jianguoyun.com/p/DYsBRugQzLmCCRjd74AG'
                     },
                     {
-                        icon: '🩺',
-                        title: '生理知识大纲',
-                        desc: '关联临床知识',
-                        url: 'tools/slxzsd.html?from=index',
-                        isLocal: true
-                    },
-                    {
                         icon: '🚑',
                         title: '急救知识',
                         desc: 'f66.fun/aid',

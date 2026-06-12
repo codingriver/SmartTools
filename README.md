@@ -2,9 +2,9 @@
 
 > 🌏 [中文版 README](./README_CN.md)
 
-A personal bookmark system featuring **multiple card styles, visual configuration, and dual-mode deployment**, with a collection of self-made utility tools as one of its sections.
+A personal bookmark system featuring **multiple card styles, visual configuration, and dual-mode deployment**.
 
-This project started as a few small online tools I wrote for my kids, and gradually evolved into the current **online bookmark system**, with those utilities preserved as one section. Bookmarks, URLs, and frequently-used tools can all be edited directly through a web interface — **no code changes or redeployment required**.
+Bookmarks, URLs, and frequently-used tools can all be edited directly through a web interface — **no code changes or redeployment required**.
 
 ---
 
@@ -26,20 +26,6 @@ This project started as a few small online tools I wrote for my kids, and gradua
 - **Automatic fallback**: if KV is selected as the data source but no data exists yet in KV, the system automatically falls back to the static `data.js` in the repository — no blank pages
 - **Import / Export**: import from any `data.js` file, or preview/download the current data at any time
 - **Security**: online mode uses HttpOnly cookies with HMAC-SHA256-signed session tokens; local-mode credentials are hashed with SHA-256 and stored only in the browser
-
-### 🧰 Built-in Utility Tools
-
-This section holds the small online tools I originally wrote for my kids' daily study. They now live as one category within the bookmark system (accessible from the top of the homepage). All are responsive, work out of the box, and require no installation:
-
-- **Estimation Calculator**: trains mental estimation of addition, subtraction, multiplication, and division. Provides multiple methods such as leading-digit estimation, rounding to tens, and secondary-digit rounding, with detailed steps and comparisons to the exact result — helping children systematically master estimation techniques.
-- **Poetry 9-Grid Game**: a 3×3 grid game that helps kids memorize classical Chinese poems. Comes with a built-in library for grades 1–6 (one poem per week for each semester), supports random poems (via the Jinrishici API), and custom input — learning through play.
-- **Daily Math Practice**: automatically generates elementary-school mental arithmetic, vertical calculations, step-by-step expressions, and word problems, with full answers and solution steps. Print-friendly, designed for daily drilling.
-- **AI Mistake Notebook**: snap a photo of a problem → AI analyzes it → generates variant practice problems. Multi-subject management, automatic knowledge-point tagging, PWA offline support, and compatibility with Gemini / OpenAI APIs — turning mistakes into real improvement.
-- **Physiology Knowledge Outline**: a systematic four-level knowledge tree covering 12 core chapters of human physiology, with clinical application examples and disease correlations — suitable as a reference for medical students and healthcare professionals.
-- **Password Manager**: a purely local password generator supporting custom length and character combinations, with real-time strength evaluation. No data is ever uploaded.
-- **Video Aggregator**: a serverless video aggregator/player based on [MoonTV](https://github.com/gagabba/MoonTV-gas), featuring multi-source search, online playback, automatic ad-removal, and cloud-synced favorites.
-
----
 
 ## 🚀 Getting Started
 
@@ -189,13 +175,6 @@ You can toggle this from the top of `config.html` with one click, or preview via
 │       └── backups.js      # Version history management
 ├── scripts/
 │   └── update-timestamp.js # Helper for stamping data.js version/timestamp
-├── tools/                  # Built-in utility tools
-│   ├── font/               # Fonts used by the tools
-│   ├── ydyjsq.html         # Estimation Calculator
-│   ├── 9gg3.html           # Poetry 9-Grid Game
-│   ├── math3.html          # Daily Math Practice (Grade 3)
-│   ├── math3-4.html        # Daily Math Practice (Grade 3 → 4)
-│   └── slxzsd.html         # Physiology Knowledge Outline
 └── README.md
 ```
 
@@ -268,8 +247,7 @@ Sub-cards also support two styles: **two-line** (icon + title + description) and
 
 - **Online mode**: all data is stored in your own Cloudflare KV account — nothing passes through any third-party server.
 - **Local mode**: data and credentials are kept entirely on your local device; nothing is uploaded.
-- **Built-in tools** (password manager, estimation calculator, etc.): all run purely in the browser and never send data to any server.
-- The AI Mistake Notebook uses your own Gemini / OpenAI API key — requests go directly from your browser to the provider, not through this site.
+- The browser open-tabs importer only reads the current browser tab list and submits it to your own admin endpoint.
 
 ---
 
@@ -307,8 +285,6 @@ MIT License
 
 ## 🙏 Acknowledgements
 
-- The Video Aggregator section is based on [MoonTV](https://github.com/gagabba/MoonTV-gas).
-- The random-poem feature uses the [Jinrishici API](https://www.jinrishici.com/).
 - Some icons come from Emoji sets and the official logos of the respective sites.
 - Hosted on [Cloudflare Pages](https://pages.cloudflare.com/) with [Workers KV](https://developers.cloudflare.com/kv/).
 

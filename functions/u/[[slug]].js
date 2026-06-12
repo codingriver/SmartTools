@@ -76,7 +76,7 @@ export async function onRequest({ request, env, params }) {
         return new Response('Not Found', { status: 404 });
     }
 
-    // 关键:URL 是 /u/<slug>,而 indexN.html 内的相对路径(shared/*.css/js,toolsindex.html,
+    // 关键:URL 是 /u/<slug>,而 indexN.html 内的相对路径(shared/*.css/js,
     // indexN.html 等)默认会相对于 /u/<slug> 解析,变成 /u/shared/...(404)。
     // 在 <head> 开标签后立即注入 <base href="/">,把所有相对路径锚定到根域,所有资源正常加载。
     let html = await resp.text();
