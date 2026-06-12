@@ -106,8 +106,16 @@ async function importTabs(scope) {
 
   const configTab = await findConfigTab(configUrl);
   if (!configTab) {
+    await chrome.storage.local.set({
+      pendingOpenTabsImport: {
+        configUrl,
+        scope,
+        sentAt: new Date().toISOString(),
+        tabs
+      }
+    });
     await chrome.tabs.create({ url: configUrl, active: true });
-    setStatus('已打开 SmartTools 后台。请登录并加载数据后，再点一次导入。', 'err');
+    setStatus(`已打开 SmartTools 后台，并准备导入 ${tabs.length} 个标签`, 'ok');
     return;
   }
 

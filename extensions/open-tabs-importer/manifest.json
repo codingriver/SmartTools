@@ -5,6 +5,13 @@
   "description": "Import currently open Chrome/Edge tabs into SmartTools.",
   "permissions": ["tabs", "scripting", "storage"],
   "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["pending-import.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_title": "Import open tabs to SmartTools",
     "default_popup": "popup.html"
