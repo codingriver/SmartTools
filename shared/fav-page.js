@@ -1042,7 +1042,6 @@ function renderOneSection(sec, layout) {
         // kind === 'card'
         if (sec.dynamic) {
             contentEl.innerHTML = generateDynamicGrid(sec.key, cards, layout, !!sec.encrypted);
-            if (layout === 'desktop') autoExpandSection(sec.key);
         } else {
             contentEl.innerHTML = generateStaticGrid(cards, sec.key, !!sec.encrypted);
         }
@@ -1207,7 +1206,6 @@ window.addEventListener('resize', function() {
                 var contentEl = document.getElementById(sec.key + '-content');
                 if (contentEl) {
                     contentEl.innerHTML = generateDynamicGrid(sec.key, sec.cards || [], currentLayout, !!sec.encrypted);
-                    if (currentLayout === 'desktop') autoExpandSection(sec.key);
                 }
             }
         });
