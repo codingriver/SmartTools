@@ -31,5 +31,6 @@ window.addEventListener('message', event => {
   if (event.source !== window) return;
   const data = event.data;
   if (!data || data.source !== 'smarttools-open-tabs-page' || data.action !== 'pending-received') return;
+  if (!chrome?.storage?.local) return;
   chrome.storage.local.remove('pendingOpenTabsImport');
 });
