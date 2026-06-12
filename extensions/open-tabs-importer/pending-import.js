@@ -1,40 +1,40 @@
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+// Guard: only run in extension context with chrome.storage available
+if (!(chrome && chrome.storage && chrome.storage.local)) {
+  window.addEventListener('message', function noop() {});
+} else {
+  function sleep(ms) {
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
+  }
 
-const hasStorage = !!(chrome && chrome.storage && chrome.storage.local);
-
-if (hasStorage) {
-  (async () => {
+  (async function() {
     try {
-      const data = await chrome.storage.local.get('pendingOpenTabsImport');
-      const payload = data.pendingOpenTabsImport;
+      var data = await chrome.storage.local.get('pendingOpenTabsImport');
+      var payload = data.pendingOpenTabsImport;
       if (!payload || !payload.configUrl) return;
 
-      const current = new URL(window.location.href);
-      const target = new URL(payload.configUrl);
+      var current = new URL(window.location.href);
+      var target = new URL(payload.configUrl);
       if (current.origin !== target.origin || current.pathname.replace(/\/$/, '') !== target.pathname.replace(/\/$/, '')) return;
 
-      const message = {
+      var message = {
         source: 'smarttools-open-tabs-extension',
         scope: payload.scope,
         sentAt: payload.sentAt,
         tabs: payload.tabs || []
       };
-      for (let i = 0; i < 6; i++) {
+      for (var i = 0; i < 6; i++) {
         window.postMessage(message, window.location.origin);
         await sleep(500);
       }
     } catch (e) {
-      // Ignore: normal pages may be inaccessible or not SmartTools.
+      // Ignore errors on non-SmartTools pages
     }
   })();
-}
 
-window.addEventListener('message', event => {
-  if (event.source !== window) return;
-  const data = event.data;
-  if (!data || data.source !== 'smarttools-open-tabs-page' || data.action !== 'pending-received') return;
-  if (!hasStorage) return;
-  chrome.storage.local.remove('pendingOpenTabsImport');
-});
+  window.addEventListener('message', function(event) {
+    if (event.source !== window) return;
+    var data = event.data;
+    if (!data || data.source !== 'smarttools-open-tabs-page' || data.action !== 'pending-received') return;
+    chrome.storage.local.remove('pendingOpenTabsImport');
+  });
+}

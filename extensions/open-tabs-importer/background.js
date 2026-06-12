@@ -24,8 +24,10 @@ async function postPayloadToTab(tabId, payload) {
 }
 
 async function tryDeliverPending(tabId, tabUrl) {
-  const data = await chrome.storage.local.get('pendingOpenTabsImport');
-  const payload = data.pendingOpenTabsImport;
+  const storageData = chrome.storage && chrome.storage.local
+    ? await chrome.storage.local.get('pendingOpenTabsImport')
+    : {};
+  const payload = storageData.pendingOpenTabsImport;
   if (!payload || !payload.configUrl || !sameConfigPage(tabUrl, payload.configUrl)) return;
 
   for (let i = 0; i < 8; i++) {
