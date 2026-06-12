@@ -15,36 +15,75 @@ h1 {
   font-size: 17px;
 }
 
-label {
+.url-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.url-input-wrap {
+  flex: 1;
+}
+
+.url-input-wrap label {
   display: block;
   font-weight: 700;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
+}
+
+.url-btn-wrap {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-bottom: 1px;
+}
+
+.url-btn-wrap button {
+  width: auto;
+  margin-top: 0;
+  white-space: nowrap;
 }
 
 input {
   box-sizing: border-box;
   width: 100%;
-  margin-top: 5px;
   padding: 8px;
   border: 1px solid #d8d2c3;
   border-radius: 8px;
   font: inherit;
 }
 
-button {
-  width: 100%;
+.btn-row {
+  display: flex;
+  gap: 6px;
   margin-top: 8px;
-  padding: 9px 10px;
+}
+
+.btn-row button {
+  flex: 1;
+  width: 100%;
+  margin: 0;
+  padding: 9px 6px;
   border: 0;
   border-radius: 9px;
   background: #234236;
   color: #fff;
   font-weight: 700;
   cursor: pointer;
+  font-size: 12px;
+  line-height: 1.3;
 }
 
-button:first-of-type {
+.btn-row button:first-child {
   background: #7b6b46;
+}
+
+.btn-row button.copy-btn {
+  background: #1d4e6e;
+}
+
+.btn-row button.export-btn {
+  background: #6b3d8a;
 }
 
 .hint,
