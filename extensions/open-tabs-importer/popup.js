@@ -1,16 +1,22 @@
 const DEFAULT_CONFIG_URL = 'https://smarttools-4xj.pages.dev/config.html';
 
+function requireElement(id) {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`Missing required popup element: #${id}`);
+  return el;
+}
+
 const els = {
-  configUrl: document.getElementById('configUrl'),
-  saveUrl: document.getElementById('saveUrl'),
-  openBackend: document.getElementById('openBackend'),
-  importCurrent: document.getElementById('importCurrent'),
-  importAll: document.getElementById('importAll'),
-  copyCurrent: document.getElementById('copyCurrent'),
-  copyAll: document.getElementById('copyAll'),
-  exportCurrentFile: document.getElementById('exportCurrentFile'),
-  exportAllFile: document.getElementById('exportAllFile'),
-  status: document.getElementById('status')
+  configUrl: requireElement('configUrl'),
+  saveUrl: requireElement('saveUrl'),
+  openBackend: requireElement('openBackend'),
+  importCurrent: requireElement('importCurrent'),
+  importAll: requireElement('importAll'),
+  copyCurrent: requireElement('copyCurrent'),
+  copyAll: requireElement('copyAll'),
+  exportCurrentFile: requireElement('exportCurrentFile'),
+  exportAllFile: requireElement('exportAllFile'),
+  status: requireElement('status')
 };
 
 function setStatus(message, kind = '') {
@@ -72,6 +78,14 @@ function sanitizeFaviconUrl(url) {
   const raw = String(url || '').trim();
   if (!raw || /^data:image\//i.test(raw)) return '';
   return raw;
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function toPayloadTab(tab) {
@@ -203,8 +217,8 @@ async function exportTabsToFile(scope) {
     '<H1>SmartTools Tabs</H1>',
     '<DL><p>',
     ...tabs.map(tab => {
-      const escapedTitle = (tab.title || tab.url || '').replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
-      const escapedUrl = (tab.url || '').replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+      const escapedTitle = escapeHtml(tab.title || tab.url || '');
+      const escapedUrl = escapeHtml(tab.url || '');
       return `    <DT><A HREF="${escapedUrl}">${escapedTitle}</A>`;
     }),
     '</p></DL>'

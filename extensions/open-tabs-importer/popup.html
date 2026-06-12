@@ -17,7 +17,19 @@
       <button id="saveUrl" class="url-btn" type="button">保存地址</button>
       <button id="openBackend" class="url-btn" type="button">打开后台</button>
     </div>
-<p id="status" class="status"></p>
+    <div class="btn-row">
+      <button id="importCurrent" type="button">导入当前窗口</button>
+      <button id="importAll" type="button">导入全部窗口</button>
+    </div>
+    <div class="btn-row">
+      <button id="copyCurrent" class="copy-btn" type="button">复制当前 JSON</button>
+      <button id="copyAll" class="copy-btn" type="button">复制全部 JSON</button>
+    </div>
+    <div class="btn-row">
+      <button id="exportCurrentFile" class="export-btn" type="button">导出当前 HTML</button>
+      <button id="exportAllFile" class="export-btn" type="button">导出全部 HTML</button>
+    </div>
+    <p id="status" class="status"></p>
     <p class="hint">先在浏览器中打开并登录 SmartTools 后台，再点击导入。</p>
   </main>
   <script src="popup.js"></script>
