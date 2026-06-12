@@ -144,17 +144,12 @@ var currentLayout    = 'mobile';
 var currentEmailData = null;  // ★ 动态设置（首个 email 类型 section 的第一张卡片）
 var isAnimating      = false;
 var __allSections    = window.__sections;  // ★ 统一数据源
-var __privateAccess  = false;              // 登录后才显示 private section
+var __privateAccess  = false;              // 当前 data.js 已包含 private section 时才显示
 
-async function detectPrivateAccess() {
-    try {
-        var r = await fetch('/api/check', { credentials: 'include', cache: 'no-store' });
-        if (!r.ok) return false;
-        var data = await r.json();
-        return !!(data && data.ok && data.loggedIn);
-    } catch (e) {
-        return false;
-    }
+function detectPrivateAccessFromLoadedData() {
+    return (__allSections || []).some(function(sec) {
+        return !!(sec && (sec.private || sec.encrypted));
+    });
 }
 
 
@@ -1114,7 +1109,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     currentLayout = detectLayout();
-    __privateAccess = await detectPrivateAccess();
+    __privateAccess = detectPrivateAccessFromLoadedData();
 
     // ★ 初始化第一个 email section 的 currentEmailData
     var emailSec = __allSections.find(function(s) { return s.kind === 'email' && s.visible !== false; });
