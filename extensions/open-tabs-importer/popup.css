@@ -31,17 +31,23 @@ h1 {
   margin-bottom: 5px;
 }
 
-.url-btn-wrap {
+.url-btn-row {
   display: flex;
   gap: 6px;
-  flex-shrink: 0;
-  padding-bottom: 1px;
+  margin-top: 6px;
 }
 
-.url-btn-wrap button {
-  width: auto;
-  margin-top: 0;
-  white-space: nowrap;
+.url-btn {
+  flex: 1;
+  width: 100%;
+  margin: 0;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: #6b6253;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 input {
