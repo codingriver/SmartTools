@@ -1301,6 +1301,33 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     </div>
 </div>
 
+<!-- 导入浏览器当前打开标签 -->
+<div id="openTabsImportModal" class="modal-mask hidden">
+    <div class="modal-box" style="max-width:720px;">
+        <h2 data-i18n="openTabsImportTitle">🧩 导入打开的标签页</h2>
+        <p class="muted" data-i18n="openTabsImportDesc">勾选要导入的标签，设置父卡片名称和所属分类。导入后请手动点击「💾 保存」。</p>
+        <div class="form-row">
+            <label data-i18n="openTabsParentTitleLabel">父卡片名称</label>
+            <input type="text" id="openTabsParentTitle">
+        </div>
+        <div class="form-row">
+            <label data-i18n="openTabsSectionLabel">所属分类</label>
+            <select id="openTabsSectionSelect"></select>
+            <div class="muted" style="font-size:12px; margin-top:4px;" data-i18n="openTabsSectionHint">会记住上次选择；分类不存在时自动回到未分类。</div>
+        </div>
+        <div style="display:flex; gap:8px; margin:8px 0;">
+            <button type="button" class="btn btn-ghost btn-sm" id="btnOpenTabsSelectAll" data-i18n="openTabsSelectAll">全选</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnOpenTabsSelectNone" data-i18n="openTabsSelectNone">全不选</button>
+            <span class="muted" id="openTabsImportCount" style="align-self:center; font-size:12px;"></span>
+        </div>
+        <div id="openTabsImportList" style="max-height:320px; overflow:auto; border:1px solid #eee; border-radius:8px; padding:8px; background:#fafafa;"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btnOpenTabsImportCancel" data-i18n="btnCancel">取消</button>
+            <button class="btn btn-success" id="btnOpenTabsImportApply" data-i18n="openTabsImportApply">✓ 确认导入</button>
+        </div>
+    </div>
+</div>
+
 <!-- 导出表格（CSV / XLSX） -->
 <div id="csvExportModal" class="modal-mask hidden">
     <div class="modal-box" style="max-width:500px;">
@@ -1619,6 +1646,15 @@ const I18N = {
         bookmarkExportFail: '浏览器收藏夹导出失败：{msg}',
         openTabsImportDone: '已导入父卡片「{title}」及 {n} 个子标签到「{section}」。请记得点「💾 保存」。',
         openTabsImportEmpty: '没有可导入的标签页',
+        openTabsImportTitle: '🧩 导入打开的标签页',
+        openTabsImportDesc: '勾选要导入的标签，设置父卡片名称和所属分类。导入后请手动点击「💾 保存」。',
+        openTabsParentTitleLabel: '父卡片名称',
+        openTabsSectionLabel: '所属分类',
+        openTabsSectionHint: '会记住上次选择；分类不存在时自动回到未分类。',
+        openTabsSelectAll: '全选',
+        openTabsSelectNone: '全不选',
+        openTabsImportApply: '✓ 确认导入',
+        openTabsImportCount: '共 {n} 个标签，已选择 {sel} 个',
         fullBackupImportTitle: '📦 导入完整备份 JSON',
         fullBackupImportDesc: '完整备份会恢复收藏原始字段、分类配置和基础信息。导入只写入编辑器，收藏数据确认无误后请手动点击「💾 保存」。',
         fullBackupImportWarn: '⚠️ 导入会替换当前编辑器中的全部收藏数据；建议先导出一份完整备份。',
@@ -2202,6 +2238,15 @@ const I18N = {
         bookmarkExportFail: 'Browser bookmarks export failed: {msg}',
         openTabsImportDone: 'Imported parent card "{title}" with {n} tab sub-card(s) into "{section}". Remember to click 「💾 Save」.',
         openTabsImportEmpty: 'No importable open tabs',
+        openTabsImportTitle: '🧩 Import Open Tabs',
+        openTabsImportDesc: 'Select tabs to import, then set the parent card name and target section. Click 「💾 Save」 afterwards.',
+        openTabsParentTitleLabel: 'Parent card name',
+        openTabsSectionLabel: 'Target section',
+        openTabsSectionHint: 'The last section is remembered locally; missing sections fall back to Uncategorized.',
+        openTabsSelectAll: 'Select all',
+        openTabsSelectNone: 'Select none',
+        openTabsImportApply: '✓ Confirm Import',
+        openTabsImportCount: '{n} tab(s), {sel} selected',
         fullBackupImportTitle: '📦 Import Full JSON Backup',
         fullBackupImportDesc: 'A full backup restores raw card fields, section config, and site config. Import only loads to editor; after checking, click 「💾 Save」 manually.',
         fullBackupImportWarn: '⚠️ Import replaces all bookmark data currently loaded in the editor. Export a full backup first if needed.',
@@ -6660,6 +6705,23 @@ function doBookmarkImportApply() {
    Open tabs import from browser extension
    普通网页不能读取浏览器标签页；扩展读取 tabs 后通过 postMessage 注入到本页。
 ================================================================ */
+const LS_OPEN_TABS_LAST_SECTION = 'smarttools_open_tabs_last_section';
+let __openTabsImportPayload = null;
+
+function setOpenTabsCookie(name, value) {
+    document.cookie = encodeURIComponent(name) + '=' + encodeURIComponent(value || '') + '; Path=/; Max-Age=31536000; SameSite=Lax';
+}
+
+function getOpenTabsCookie(name) {
+    var prefix = encodeURIComponent(name) + '=';
+    var parts = (document.cookie || '').split(';');
+    for (var i = 0; i < parts.length; i++) {
+        var part = parts[i].trim();
+        if (part.indexOf(prefix) === 0) return decodeURIComponent(part.slice(prefix.length));
+    }
+    return '';
+}
+
 function isImportableTabUrl(url) {
     return /^(https?:|mailto:|ftp:)/i.test(String(url || '').trim());
 }
@@ -6720,19 +6782,106 @@ function buildOpenTabsParentCard(payload, subCards) {
     };
 }
 
-function importOpenTabsFromExtension(payload) {
+function normalizeOpenTabsPayload(payload) {
     var tabs = payload && Array.isArray(payload.tabs) ? payload.tabs : [];
     var subCards = tabs
         .filter(function(tab) { return tab && isImportableTabUrl(tab.url); })
         .map(tabToSubCard);
     if (!subCards.length) {
+        return null;
+    }
+    return {
+        scope: payload && payload.scope || '',
+        sentAt: payload && payload.sentAt || '',
+        tabs: tabs,
+        subCards: subCards
+    };
+}
+
+function renderOpenTabsSectionOptions() {
+    var sel = $('openTabsSectionSelect');
+    var sections = getOpenTabsImportSections();
+    var saved = getOpenTabsCookie(LS_OPEN_TABS_LAST_SECTION);
+    var html = '<option value="' + escapeHtml(UNCLASSIFIED_KEY) + '">' + escapeHtml(t('secUnclassified')) + '</option>';
+    sections.forEach(function(sec) {
+        if (sec.key === UNCLASSIFIED_KEY) return;
+        html += '<option value="' + escapeHtml(sec.key) + '">' + escapeHtml(sec.label || sec.key) + '</option>';
+    });
+    sel.innerHTML = html;
+    if (saved && sections.find(function(s) { return s.key === saved; })) sel.value = saved;
+    else sel.value = UNCLASSIFIED_KEY;
+}
+
+function updateOpenTabsImportCount() {
+    var total = $('openTabsImportList').querySelectorAll('.open-tabs-check').length;
+    var sel = $('openTabsImportList').querySelectorAll('.open-tabs-check:checked').length;
+    $('openTabsImportCount').textContent = t('openTabsImportCount', { n: total, sel: sel });
+}
+
+function renderOpenTabsImportList(subCards) {
+    var list = $('openTabsImportList');
+    list.innerHTML = subCards.map(function(sc, idx) {
+        var icon = sc.iconImg
+            ? '<img src="' + escapeHtml(sc.iconImg) + '" alt="" style="width:16px;height:16px;object-fit:contain;">'
+            : '<span style="width:16px;display:inline-block;">' + escapeHtml(sc.icon || '🌐') + '</span>';
+        return '<label style="display:grid;grid-template-columns:20px 20px 1fr;gap:8px;align-items:start;padding:7px 4px;border-bottom:1px solid #eee;cursor:pointer;">'
+            + '<input type="checkbox" class="open-tabs-check" data-idx="' + idx + '" checked style="width:auto;margin-top:2px;">'
+            + icon
+            + '<span style="min-width:0;">'
+            + '<span style="display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(sc.title || '') + '">' + escapeHtml(sc.title || sc.url || '') + '</span>'
+            + '<span class="muted" style="display:block;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(sc.url || '') + '">' + escapeHtml(sc.url || '') + '</span>'
+            + '</span></label>';
+    }).join('');
+    list.querySelectorAll('.open-tabs-check').forEach(function(cb) {
+        cb.addEventListener('change', updateOpenTabsImportCount);
+    });
+    updateOpenTabsImportCount();
+}
+
+function openOpenTabsImportModal(payload) {
+    var normalized = normalizeOpenTabsPayload(payload);
+    if (!normalized) {
         toast(t('openTabsImportEmpty') || '没有可导入的标签页');
         return;
     }
-    var targetKey = pickOpenTabsImportTargetSection(payload);
+    __openTabsImportPayload = normalized;
+    $('openTabsParentTitle').value = '打开的标签页 ' + new Date().toLocaleString();
+    renderOpenTabsSectionOptions();
+    renderOpenTabsImportList(normalized.subCards);
+    show('openTabsImportModal');
+}
+
+function setOpenTabsImportChecked(checked) {
+    $('openTabsImportList').querySelectorAll('.open-tabs-check').forEach(function(cb) {
+        cb.checked = checked;
+    });
+    updateOpenTabsImportCount();
+}
+
+function applyOpenTabsImport() {
+    var payload = __openTabsImportPayload;
+    if (!payload) return;
+    var selected = [];
+    $('openTabsImportList').querySelectorAll('.open-tabs-check:checked').forEach(function(cb) {
+        var idx = parseInt(cb.getAttribute('data-idx'), 10);
+        if (!isNaN(idx) && payload.subCards[idx]) selected.push(payload.subCards[idx]);
+    });
+    if (!selected.length) {
+        toast(t('openTabsImportEmpty') || '没有可导入的标签页');
+        return;
+    }
+    var sectionKey = $('openTabsSectionSelect').value || UNCLASSIFIED_KEY;
+    setOpenTabsCookie(LS_OPEN_TABS_LAST_SECTION, sectionKey);
+    var cardPayload = {
+        parentTitle: $('openTabsParentTitle').value,
+        scope: payload.scope,
+        sentAt: payload.sentAt,
+        sectionKey: sectionKey
+    };
+    var targetKey = pickOpenTabsImportTargetSection(cardPayload);
     if (!Array.isArray(store[targetKey])) store[targetKey] = [];
     var existing = store[targetKey];
-    var parentCard = buildOpenTabsParentCard(payload, subCards);
+    var parentCard = buildOpenTabsParentCard(cardPayload, selected);
     parentCard.id = generateUniqueCardId(existing);
     existing.push(parentCard);
     currentSection = targetKey;
@@ -6741,21 +6890,15 @@ function importOpenTabsFromExtension(payload) {
     markConfigDirty();
     var sec = getSections().find(function(s) { return s.key === targetKey; });
     var label = (sec && sec.label) || targetKey;
-    toast(t('openTabsImportDone', { title: parentCard.title, n: subCards.length, section: label }), 3600);
+    hide('openTabsImportModal');
+    __openTabsImportPayload = null;
+    toast(t('openTabsImportDone', { title: parentCard.title, n: selected.length, section: label }), 3600);
 }
 
 function handleOpenTabsExtensionMessage(event) {
     var data = event && event.data;
     if (!data || data.source !== 'smarttools-open-tabs-extension') return;
-    if (data.action === 'get-sections') {
-        window.postMessage({
-            source: 'smarttools-open-tabs-page',
-            action: 'sections',
-            sections: getOpenTabsImportSections()
-        }, window.location.origin);
-        return;
-    }
-    importOpenTabsFromExtension(data);
+    openOpenTabsImportModal(data);
 }
 
 function bookmarkHtmlEscape(s) {
@@ -9177,6 +9320,10 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnFullBackupImportPreview').onclick = doFullBackupImportPreview;
     $('btnFullBackupImportApply').onclick = doFullBackupImportApply;
     $('fullBackupImportFile').addEventListener('change', handleFullBackupImportFile);
+    $('btnOpenTabsImportCancel').onclick = () => { hide('openTabsImportModal'); __openTabsImportPayload = null; };
+    $('btnOpenTabsSelectAll').onclick = () => setOpenTabsImportChecked(true);
+    $('btnOpenTabsSelectNone').onclick = () => setOpenTabsImportChecked(false);
+    $('btnOpenTabsImportApply').onclick = applyOpenTabsImport;
     $('btnBookmarkImportCancel').onclick = () => closeChildOrReturnHub('bookmarkImportModal');
     $('btnBookmarkImportPreview').onclick = doBookmarkImportPreview;
     $('btnBookmarkImportApply').onclick = doBookmarkImportApply;

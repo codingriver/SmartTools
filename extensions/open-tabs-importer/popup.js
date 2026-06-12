@@ -3,21 +3,10 @@ const DEFAULT_CONFIG_URL = 'https://smarttools-4xj.pages.dev/config.html';
 const els = {
   configUrl: document.getElementById('configUrl'),
   saveUrl: document.getElementById('saveUrl'),
-  loadCurrent: document.getElementById('loadCurrent'),
-  loadAll: document.getElementById('loadAll'),
-  parentTitle: document.getElementById('parentTitle'),
-  sectionSelect: document.getElementById('sectionSelect'),
-  refreshSections: document.getElementById('refreshSections'),
-  selectAll: document.getElementById('selectAll'),
-  selectNone: document.getElementById('selectNone'),
-  importSelected: document.getElementById('importSelected'),
-  tabsList: document.getElementById('tabsList'),
+  importCurrent: document.getElementById('importCurrent'),
+  importAll: document.getElementById('importAll'),
   status: document.getElementById('status')
 };
-
-let loadedScope = 'current';
-let loadedTabs = [];
-let sectionResponseTimer = null;
 
 function setStatus(message, kind = '') {
   els.status.textContent = message;
@@ -83,66 +72,6 @@ async function collectTabs(scope, configUrl) {
     .map(toPayloadTab);
 }
 
-function escapeHtml(text) {
-  return String(text || '').replace(/[&<>"']/g, c => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[c]));
-}
-
-function renderTabsList() {
-  if (!loadedTabs.length) {
-    els.tabsList.innerHTML = '<p class="empty">没有可导入的普通网页标签</p>';
-    return;
-  }
-  els.tabsList.innerHTML = loadedTabs.map((tab, index) => {
-    const icon = tab.favIconUrl
-      ? `<img class="tab-icon" src="${escapeHtml(tab.favIconUrl)}" alt="">`
-      : '<span class="tab-icon">🌐</span>';
-    return `
-      <label class="tab-row">
-        <input type="checkbox" class="tab-check" data-index="${index}" checked>
-        ${icon}
-        <span>
-          <span class="tab-title" title="${escapeHtml(tab.title)}">${escapeHtml(tab.title)}</span>
-          <span class="tab-url" title="${escapeHtml(tab.url)}">${escapeHtml(tab.url)}</span>
-        </span>
-      </label>
-    `;
-  }).join('');
-}
-
-async function loadTabs(scope) {
-  let configUrl;
-  try {
-    configUrl = normalizeConfigUrl(els.configUrl.value || await getConfigUrl());
-  } catch (e) {
-    setStatus('请先填写正确的后台地址', 'err');
-    return;
-  }
-  await chrome.storage.sync.set({ configUrl });
-  els.configUrl.value = configUrl;
-  loadedScope = scope;
-  loadedTabs = await collectTabs(scope, configUrl);
-  renderTabsList();
-  setStatus(`已读取 ${loadedTabs.length} 个可导入标签`, loadedTabs.length ? 'ok' : 'err');
-}
-
-function setAllChecked(checked) {
-  els.tabsList.querySelectorAll('.tab-check').forEach(input => {
-    input.checked = checked;
-  });
-}
-
-function getSelectedTabs() {
-  return [...els.tabsList.querySelectorAll('.tab-check:checked')]
-    .map(input => loadedTabs[Number(input.dataset.index)])
-    .filter(Boolean);
-}
-
 async function findConfigTab(configUrl) {
   const tabs = await chrome.tabs.query({});
   return tabs.find(tab => sameConfigPage(tab.url, configUrl)) || null;
@@ -158,30 +87,7 @@ async function injectTabs(tabId, payload) {
   });
 }
 
-async function ensureBridge(tabId) {
-  try {
-    await chrome.scripting.executeScript({
-      target: { tabId },
-      files: ['content-bridge.js']
-    });
-  } catch (e) {
-    // If the bridge is already injected or the page is not scriptable, the next call will surface the real issue.
-  }
-}
-
-function renderSections(sections) {
-  const currentValue = els.sectionSelect.value;
-  const opts = ['<option value="">未设置：导入未分类</option>'];
-  (sections || []).forEach(section => {
-    opts.push(`<option value="${escapeHtml(section.key)}">${escapeHtml(section.label || section.key)}</option>`);
-  });
-  els.sectionSelect.innerHTML = opts.join('');
-  if ([...els.sectionSelect.options].some(opt => opt.value === currentValue)) {
-    els.sectionSelect.value = currentValue;
-  }
-}
-
-async function requestSections() {
+async function importTabs(scope) {
   let configUrl;
   try {
     configUrl = normalizeConfigUrl(els.configUrl.value || await getConfigUrl());
@@ -190,43 +96,11 @@ async function requestSections() {
     return;
   }
   await chrome.storage.sync.set({ configUrl });
-  const configTab = await findConfigTab(configUrl);
-  if (!configTab) {
-    setStatus('请先打开并登录 SmartTools 后台，再刷新分类', 'err');
-    return;
-  }
-  if (sectionResponseTimer) clearTimeout(sectionResponseTimer);
-  await ensureBridge(configTab.id);
-  await injectTabs(configTab.id, {
-    source: 'smarttools-open-tabs-extension',
-    action: 'get-sections',
-    sentAt: new Date().toISOString()
-  });
-  sectionResponseTimer = setTimeout(() => {
-    setStatus('未收到分类列表，请确认后台已登录并加载数据', 'err');
-  }, 1500);
-}
+  els.configUrl.value = configUrl;
 
-chrome.runtime.onMessage.addListener(message => {
-  if (!message || message.source !== 'smarttools-open-tabs-page' || message.action !== 'sections') return;
-  if (sectionResponseTimer) clearTimeout(sectionResponseTimer);
-  renderSections(message.sections || []);
-  setStatus(`已读取 ${(message.sections || []).length} 个可用分类`, 'ok');
-});
-
-async function importSelectedTabs() {
-  let configUrl;
-  try {
-    configUrl = normalizeConfigUrl(els.configUrl.value || await getConfigUrl());
-  } catch (e) {
-    setStatus('请先填写正确的后台地址', 'err');
-    return;
-  }
-  await chrome.storage.sync.set({ configUrl });
-
-  const tabs = getSelectedTabs();
+  const tabs = await collectTabs(scope, configUrl);
   if (!tabs.length) {
-    setStatus('请至少勾选一个标签', 'err');
+    setStatus('没有可导入的普通网页标签', 'err');
     return;
   }
 
@@ -237,28 +111,20 @@ async function importSelectedTabs() {
     return;
   }
 
-  const parentTitle = els.parentTitle.value.trim() || `打开的标签页 ${new Date().toLocaleString()}`;
   await chrome.tabs.update(configTab.id, { active: true });
   await chrome.windows.update(configTab.windowId, { focused: true });
   await injectTabs(configTab.id, {
     source: 'smarttools-open-tabs-extension',
-    scope: loadedScope,
-    parentTitle,
-    sectionKey: els.sectionSelect.value || '',
+    scope,
     sentAt: new Date().toISOString(),
     tabs
   });
-  setStatus(`已发送父卡片「${parentTitle}」和 ${tabs.length} 个子标签`, 'ok');
+  setStatus(`已发送 ${tabs.length} 个标签到 SmartTools 后台`, 'ok');
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
   els.configUrl.value = await getConfigUrl();
-  els.parentTitle.value = `打开的标签页 ${new Date().toLocaleString()}`;
   els.saveUrl.addEventListener('click', saveConfigUrl);
-  els.refreshSections.addEventListener('click', requestSections);
-  els.loadCurrent.addEventListener('click', () => loadTabs('current'));
-  els.loadAll.addEventListener('click', () => loadTabs('all'));
-  els.selectAll.addEventListener('click', () => setAllChecked(true));
-  els.selectNone.addEventListener('click', () => setAllChecked(false));
-  els.importSelected.addEventListener('click', importSelectedTabs);
+  els.importCurrent.addEventListener('click', () => importTabs('current'));
+  els.importAll.addEventListener('click', () => importTabs('all'));
 });
