@@ -808,6 +808,17 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
             <textarea id="siteConfigFooterInput" rows="3" data-i18n-placeholder="siteConfigFooterPh" placeholder="留空使用主题默认页脚（支持 HTML）"></textarea>
         </div>
         <div class="form-row">
+            <label data-i18n="siteConfigDefaultThemeLabel">默认主题</label>
+            <select id="siteConfigDefaultThemeInput">
+                <option value="nebula">🌌 Nebula</option>
+                <option value="notion">📄 Notion</option>
+                <option value="stripe">💎 Stripe</option>
+                <option value="dark">🖤 Framer</option>
+                <option value="mint">🌿 Mintlify</option>
+            </select>
+            <p class="muted" style="font-size:12px; margin-top:4px;" data-i18n="siteConfigDefaultThemeHint">访问首页或公开链接未指定主题时使用。</p>
+        </div>
+        <div class="form-row">
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
                 <input type="checkbox" id="siteConfigDeleteConfirmInput" style="width:auto;">
                 <span data-i18n="siteConfigDeleteConfirmLabel">删除操作开启二次确认</span>
@@ -2140,6 +2151,8 @@ const I18N = {
         siteConfigHeaderPh: '留空使用主题默认页眉（支持 HTML）',
         siteConfigFooterLabel: '自定义页脚',
         siteConfigFooterPh: '留空使用主题默认页脚（支持 HTML）',
+        siteConfigDefaultThemeLabel: '默认主题',
+        siteConfigDefaultThemeHint: '访问首页或公开链接未指定主题时使用。',
         siteConfigDeleteConfirmLabel: '删除操作开启二次确认',
         siteConfigDeleteConfirmHint: '默认开启；关闭后普通删除操作将不再弹出确认框。',
         toastSiteConfigSaved: '✅ 基础设置已保存',
@@ -2721,6 +2734,8 @@ const I18N = {
         siteConfigHeaderPh: 'Blank = use theme default header (HTML supported)',
         siteConfigFooterLabel: 'Custom footer',
         siteConfigFooterPh: 'Blank = use theme default footer (HTML supported)',
+        siteConfigDefaultThemeLabel: 'Default theme',
+        siteConfigDefaultThemeHint: 'Used when home or public links do not specify a theme.',
         siteConfigDeleteConfirmLabel: 'Require confirmation before delete',
         siteConfigDeleteConfirmHint: 'Enabled by default; disabling it skips confirmation for normal delete operations.',
         toastSiteConfigSaved: '✅ Basic settings saved',
@@ -3936,22 +3951,29 @@ async function openSiteConfigModal() {
         $('siteConfigTitleInput').value = r.data.title || '';
         $('siteConfigHeaderInput').value = r.data.header || '';
         $('siteConfigFooterInput').value = r.data.footer || '';
+        $('siteConfigDefaultThemeInput').value = normalizeDefaultTheme(r.data.defaultTheme);
         deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
     } else {
         $('siteConfigTitleInput').value = '';
         $('siteConfigHeaderInput').value = '';
         $('siteConfigFooterInput').value = '';
+        $('siteConfigDefaultThemeInput').value = 'notion';
         deleteConfirmEnabled = true;
     }
     $('siteConfigDeleteConfirmInput').checked = deleteConfirmEnabled;
     show('siteConfigModal');
 }
+function normalizeDefaultTheme(value) {
+    const theme = String(value || '').trim().toLowerCase();
+    return ['nebula', 'notion', 'stripe', 'dark', 'mint'].includes(theme) ? theme : 'notion';
+}
 async function saveSiteConfig() {
     const title = $('siteConfigTitleInput').value;
     const header = $('siteConfigHeaderInput').value;
     const footer = $('siteConfigFooterInput').value;
+    const defaultTheme = normalizeDefaultTheme($('siteConfigDefaultThemeInput').value);
     const nextDeleteConfirmEnabled = $('siteConfigDeleteConfirmInput').checked;
-    const r = await api('/api/site-config', { method: 'POST', body: JSON.stringify({ title, header, footer, deleteConfirmEnabled: nextDeleteConfirmEnabled }) });
+    const r = await api('/api/site-config', { method: 'POST', body: JSON.stringify({ title, header, footer, defaultTheme, deleteConfirmEnabled: nextDeleteConfirmEnabled }) });
     if (r.ok && r.data && r.data.ok) {
         deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
         toast(t('toastSiteConfigSaved'));
@@ -5754,7 +5776,7 @@ async function confirmImport() {
 var __fullBackupImportParsed = null;
 
 async function getSiteConfigSnapshot() {
-    if (currentMode !== MODE_ONLINE) return { title: '', header: '', footer: '', deleteConfirmEnabled: deleteConfirmEnabled !== false };
+    if (currentMode !== MODE_ONLINE) return { title: '', header: '', footer: '', defaultTheme: 'notion', deleteConfirmEnabled: deleteConfirmEnabled !== false };
     try {
         var r = await api('/api/site-config', { method: 'GET' });
         if (r.ok && r.data) {
@@ -5762,11 +5784,12 @@ async function getSiteConfigSnapshot() {
                 title: r.data.title || '',
                 header: r.data.header || '',
                 footer: r.data.footer || '',
+                defaultTheme: normalizeDefaultTheme(r.data.defaultTheme),
                 deleteConfirmEnabled: r.data.deleteConfirmEnabled !== false
             };
         }
     } catch (e) {}
-    return { title: '', header: '', footer: '', deleteConfirmEnabled: deleteConfirmEnabled !== false };
+    return { title: '', header: '', footer: '', defaultTheme: 'notion', deleteConfirmEnabled: deleteConfirmEnabled !== false };
 }
 
 function buildSectionsSnapshot() {
@@ -5865,6 +5888,7 @@ function doFullBackupImportPreview() {
         var cnt = countBackupSections(parsed.sections);
         var hasSite = parsed.siteConfig && (
             parsed.siteConfig.title || parsed.siteConfig.header || parsed.siteConfig.footer || parsed.siteConfig.deleteConfirmEnabled !== undefined
+            || parsed.siteConfig.defaultTheme
         );
         $('fullBackupImportPreview').style.display = 'block';
         $('fullBackupImportPreview').textContent = t('fullBackupImportPreview', {
@@ -5892,6 +5916,7 @@ async function applyFullBackupSiteConfig(siteConfig) {
             title: siteConfig.title || '',
             header: siteConfig.header || '',
             footer: siteConfig.footer || '',
+            defaultTheme: normalizeDefaultTheme(siteConfig.defaultTheme),
             deleteConfirmEnabled: siteConfig.deleteConfirmEnabled !== false
         })
     });

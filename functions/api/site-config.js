@@ -1,8 +1,8 @@
-// GET  /api/site-config  → 读取网站基础配置（标题/页眉/页脚/后台设置），公开访问
+// GET  /api/site-config  → 读取网站基础配置（标题/页眉/页脚/主题/后台设置），公开访问
 // POST /api/site-config  → 保存网站配置（需登录）
 //
 // 配置结构：
-//   { title: string, header: string, footer: string, deleteConfirmEnabled: boolean }
+//   { title: string, header: string, footer: string, defaultTheme: string, deleteConfirmEnabled: boolean }
 // 空字符串表示使用主题默认。
 
 import { requireAuth, jsonResponse } from '../_shared/auth.js';
@@ -14,8 +14,16 @@ const DEFAULT_CONFIG = {
     title: '',
     header: '',
     footer: '',
+    defaultTheme: 'notion',
     deleteConfirmEnabled: true
 };
+
+const ALLOWED_THEMES = new Set(['nebula', 'notion', 'stripe', 'dark', 'mint']);
+
+function normalizeTheme(value, fallback = DEFAULT_CONFIG.defaultTheme) {
+    const theme = String(value || '').trim().toLowerCase();
+    return ALLOWED_THEMES.has(theme) ? theme : fallback;
+}
 
 export async function onRequestGet({ request, env }) {
     const result = { ...DEFAULT_CONFIG };
@@ -28,6 +36,7 @@ export async function onRequestGet({ request, env }) {
                 if (parsed.title != null) result.title = parsed.title;
                 if (parsed.header != null) result.header = parsed.header;
                 if (parsed.footer != null) result.footer = parsed.footer;
+                if (parsed.defaultTheme != null) result.defaultTheme = normalizeTheme(parsed.defaultTheme);
                 if (parsed.deleteConfirmEnabled != null) result.deleteConfirmEnabled = parsed.deleteConfirmEnabled !== false;
             }
         } catch {}
@@ -57,6 +66,7 @@ export async function onRequestPost({ request, env }) {
         title: body.title !== undefined ? String(body.title || '') : current.title,
         header: body.header !== undefined ? String(body.header || '') : current.header,
         footer: body.footer !== undefined ? String(body.footer || '') : current.footer,
+        defaultTheme: body.defaultTheme !== undefined ? normalizeTheme(body.defaultTheme, current.defaultTheme) : normalizeTheme(current.defaultTheme),
         deleteConfirmEnabled: body.deleteConfirmEnabled !== undefined ? body.deleteConfirmEnabled !== false : current.deleteConfirmEnabled !== false
     };
 

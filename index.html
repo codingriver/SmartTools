@@ -203,21 +203,52 @@
         }
     } catch(e) {}
 
-    /* ② 再看 localStorage（和 index 页面统一用 fav_last_style） */
-    if (!target) {
-        try {
-            var saved = localStorage.getItem(STORAGE_KEY);
-            if (saved && allowed.indexOf(saved) !== -1) {
-                target = saved;
-            }
-        } catch(e) {}
+    function normalizeTheme(theme) {
+        theme = String(theme || '').trim().toLowerCase();
+        return themeToPage[theme] ? theme : '';
     }
 
-    /* ③ 兜底 */
+    function redirectTo(page) {
+        window.location.replace(page + (window.location.search || '') + hash);
+    }
+
+    /* ② 再看后台基础设置中的默认主题 */
+    if (!target) {
+        fetch('/api/site-config')
+            .then(function(r) { return r.json(); })
+            .then(function(cfg) {
+                var defaultTheme = cfg && cfg.ok ? normalizeTheme(cfg.defaultTheme) : '';
+                if (defaultTheme) {
+                    redirectTo(themeToPage[defaultTheme]);
+                    return;
+                }
+                try {
+                    var saved = localStorage.getItem(STORAGE_KEY);
+                    if (saved && allowed.indexOf(saved) !== -1) {
+                        redirectTo(saved);
+                        return;
+                    }
+                } catch(e) {}
+                redirectTo(DEFAULT_PAGE);
+            })
+            .catch(function() {
+                try {
+                    var saved = localStorage.getItem(STORAGE_KEY);
+                    if (saved && allowed.indexOf(saved) !== -1) {
+                        redirectTo(saved);
+                        return;
+                    }
+                } catch(e) {}
+                redirectTo(DEFAULT_PAGE);
+            });
+        return;
+    }
+
+    /* ③ URL 显式指定 theme 时直接跳转 */
     if (!target) target = DEFAULT_PAGE;
 
     /* ★ A1.5 透传 ?u=<slug> 等公开访问参数到 indexN.html */
-    window.location.replace(target + (window.location.search || '') + hash);
+    redirectTo(target);
 })();
 </script>
 </head>

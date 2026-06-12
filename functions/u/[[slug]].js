@@ -4,7 +4,7 @@
 //
 // 行为:
 //   1. 提取 slug 并转小写(大小写不敏感)
-//   2. 根据 ?theme=<key> query 选 indexN.html(默认 index2.html / notion)
+//   2. 根据 ?theme=<key> query 选 indexN.html；未指定时使用站点默认主题
 //   3. 用 env.ASSETS.fetch 读取该 indexN.html 的内容直接返回
 //   4. URL 保持 /u/<slug>(不 302 跳转,服务端 rewrite)
 //
@@ -25,6 +25,21 @@ const THEME_TO_INDEX = {
     mint:   'index5.html'
 };
 
+const ADMIN_SITE_CONFIG_KEY = 'admin:site_config';
+
+async function getDefaultTheme(env) {
+    if (!env.FAV_KV) return 'notion';
+    try {
+        const saved = await env.FAV_KV.get(ADMIN_SITE_CONFIG_KEY);
+        if (!saved) return 'notion';
+        const parsed = JSON.parse(saved);
+        const theme = String(parsed.defaultTheme || '').trim().toLowerCase();
+        return THEME_TO_INDEX[theme] ? theme : 'notion';
+    } catch {
+        return 'notion';
+    }
+}
+
 export async function onRequest({ request, env, params }) {
     // params.slug 可能是字符串(/u/foo)或数组(/u/foo/bar — 但当前用单段 [[slug]])
     let slugRaw = params && params.slug;
@@ -39,10 +54,11 @@ export async function onRequest({ request, env, params }) {
         return new Response('Not Found', { status: 404 });
     }
 
-    // 主题选择(可选 query)
+    // 主题选择(可选 query); 未指定时读取后台基础设置里的默认主题。
     const url = new URL(request.url);
     const themeKey = (url.searchParams.get('theme') || '').toLowerCase();
-    const indexFile = THEME_TO_INDEX[themeKey] || 'index2.html';
+    const defaultTheme = themeKey ? '' : await getDefaultTheme(env);
+    const indexFile = THEME_TO_INDEX[themeKey] || THEME_TO_INDEX[defaultTheme] || 'index2.html';
 
     // 读取 indexN.html 静态文件
     const indexUrl = new URL('/' + indexFile, url.origin);
