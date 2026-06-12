@@ -1,4 +1,4 @@
-# SmartTools Open Tabs Importer
+# SmartTools Tabs Importer
 
 用于 Chrome / Edge 一键把当前打开的标签页导入 SmartTools 后台。
 

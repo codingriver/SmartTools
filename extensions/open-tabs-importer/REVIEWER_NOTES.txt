@@ -1,7 +1,7 @@
 ## Reviewer Notes
 
 ### Extension Purpose
-SmartTools Open Tabs Importer lets users import their open Chrome/Edge tabs into their personal SmartTools bookmark manager. SmartTools is self-hosted — every user deploys it to their own domain, so we cannot hardcode a specific domain in the manifest.
+SmartTools Tabs Importer lets users import their open Chrome/Edge tabs into their personal SmartTools bookmark manager. SmartTools is self-hosted — every user deploys it to their own domain, so we cannot hardcode a specific domain in the manifest.
 
 ### Why <all_urls> Is Necessary
 

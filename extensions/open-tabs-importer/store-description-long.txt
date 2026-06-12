@@ -1,4 +1,4 @@
-# SmartTools Open Tabs Importer
+# SmartTools Tabs Importer
 
 Quickly import all currently open browser tabs into your SmartTools bookmark manager.
 
@@ -24,6 +24,11 @@ Quickly import all currently open browser tabs into your SmartTools bookmark man
 - Tab URL (http/https only)
 - Favicon image URL
 - No browser history, passwords, cookies, or any other data
+
+## Open Source
+
+This extension is part of the open-source SmartTools project.
+Source code: https://github.com/codingriver/SmartTools
 
 ## Privacy
 
