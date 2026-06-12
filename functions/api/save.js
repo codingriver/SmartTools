@@ -1,4 +1,5 @@
 import { requireAuth, jsonResponse, getPayload } from '../_shared/auth.js';
+import { writeDataMeta } from '../_shared/data-meta.js';
 
 // A0 v2 改造（2026-05-17）：按身份选 namespace
 //   admin → admin:data_js / admin:data_source / admin:backup:*
@@ -71,6 +72,7 @@ export async function onRequestPost({ request, env }) {
         _sourceConfirmedKv.add(ns);
     }
     if (writes.length) await Promise.all(writes);
+    const dataMeta = contentChanged ? await writeDataMeta(env, ns, content) : null;
 
     // user 路径：标记 hasData=true（best-effort）
     //   - 已经是 true 时跳过写,省 KV 操作
@@ -92,7 +94,9 @@ export async function onRequestPost({ request, env }) {
         ok: true,
         backup: backupName,
         unchanged: !contentChanged,
-        namespace: ns
+        namespace: ns,
+        dataVersion: dataMeta && dataMeta.version,
+        dataEtag: dataMeta && dataMeta.etag
     });
 }
 

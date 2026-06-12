@@ -21,6 +21,7 @@
 
 import { jsonResponse, getPayload } from '../_shared/auth.js';
 import { isValidSlug, getUserBySlug, lookupOldSlugRedirect } from '../_shared/slug.js';
+import { ensureDataMeta, makeDataEtag, sha256HexText } from '../_shared/data-meta.js';
 
 const OLD_DATA_KEY    = 'data_js';
 const OLD_SOURCE_KEY  = 'data_source';
@@ -336,6 +337,25 @@ export async function onRequestGet({ request, env }) {
 
     const canViewPrivateSections = isLoggedIn && !isPublicSlugMode;
     const responseContent = canViewPrivateSections ? content : stripPrivateSections(content);
+    const dataMetaNs = ns === 'admin' ? 'admin' : `user:${uid}`;
+    let fullMeta;
+    if (actualSource === 'kv' && env.FAV_KV) {
+        fullMeta = await ensureDataMeta(env, dataMetaNs, content);
+    } else {
+        const staticHash = await sha256HexText(content);
+        fullMeta = {
+            version: staticHash,
+            hash: staticHash,
+            etag: makeDataEtag(staticHash, 'full'),
+            size: String(content || '').length
+        };
+    }
+    const responseHash = canViewPrivateSections
+        ? fullMeta.hash
+        : await sha256HexText(responseContent);
+    const responseEtag = canViewPrivateSections
+        ? (fullMeta.etag || makeDataEtag(responseHash, 'full'))
+        : makeDataEtag(responseHash, 'public');
 
     // A1.5 增强 A:在响应内容首行前置 window.__publicSlugInfo
     // 前端 indexN.html 据此撤销/保留 data-public-mode(slug 失败时显示正常 admin UI)
@@ -390,6 +410,9 @@ export async function onRequestGet({ request, env }) {
             configured: source,
             namespace: ns,
             uid: uid,
+            dataVersion: fullMeta && fullMeta.version,
+            dataEtag: responseEtag,
+            dataHash: responseHash,
             publicSlug: isPublicSlugMode ? publicSlug : null,
             publicSlugHit: isPublicSlugMode,
             publicOldSlug: publicOldSlug || null,
@@ -411,6 +434,9 @@ export async function onRequestGet({ request, env }) {
     const headers = {
         'Content-Type': 'application/javascript;charset=utf-8',
         'Cache-Control': cacheHeader,
+        'ETag': responseEtag,
+        'X-Data-Version': fullMeta && fullMeta.version ? fullMeta.version : '',
+        'X-Data-ETag': responseEtag,
         'X-Data-Source': actualSource,
         'X-Data-Namespace': ns,
         'X-Private-Filtered': canViewPrivateSections ? '0' : '1'
@@ -420,6 +446,11 @@ export async function onRequestGet({ request, env }) {
         if (publicOldSlug) {
             headers['X-Public-Old-Slug'] = publicOldSlug;
         }
+    }
+
+    const ifNoneMatch = request.headers.get('If-None-Match');
+    if (ifNoneMatch && ifNoneMatch.split(',').map(s => s.trim()).includes(responseEtag)) {
+        return new Response(null, { status: 304, headers });
     }
 
     return new Response(finalContent, { headers });
