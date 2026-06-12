@@ -819,6 +819,11 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
             <p class="muted" style="font-size:12px; margin-top:4px;" data-i18n="siteConfigDefaultThemeHint">访问首页或公开链接未指定主题时使用。</p>
         </div>
         <div class="form-row">
+            <label data-i18n="siteConfigBackupRetentionLabel">历史备份保留数量</label>
+            <input type="number" id="siteConfigBackupRetentionInput" min="0" max="500" step="1" value="30">
+            <p class="muted" style="font-size:12px; margin-top:4px;" data-i18n="siteConfigBackupRetentionHint">默认保留最近 30 个；填 0 表示不自动清理。</p>
+        </div>
+        <div class="form-row">
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
                 <input type="checkbox" id="siteConfigDeleteConfirmInput" style="width:auto;">
                 <span data-i18n="siteConfigDeleteConfirmLabel">删除操作开启二次确认</span>
@@ -2158,6 +2163,8 @@ const I18N = {
         siteConfigFooterPh: '留空使用主题默认页脚（支持 HTML）',
         siteConfigDefaultThemeLabel: '默认主题',
         siteConfigDefaultThemeHint: '访问首页或公开链接未指定主题时使用。',
+        siteConfigBackupRetentionLabel: '历史备份保留数量',
+        siteConfigBackupRetentionHint: '默认保留最近 30 个；填 0 表示不自动清理。',
         siteConfigDeleteConfirmLabel: '删除操作开启二次确认',
         siteConfigDeleteConfirmHint: '默认开启；关闭后普通删除操作将不再弹出确认框。',
         siteConfigDangerZoneLabel: '危险操作',
@@ -2747,6 +2754,8 @@ const I18N = {
         siteConfigFooterPh: 'Blank = use theme default footer (HTML supported)',
         siteConfigDefaultThemeLabel: 'Default theme',
         siteConfigDefaultThemeHint: 'Used when home or public links do not specify a theme.',
+        siteConfigBackupRetentionLabel: 'Backup retention count',
+        siteConfigBackupRetentionHint: 'Keep the latest 30 backups by default; enter 0 to disable auto cleanup.',
         siteConfigDeleteConfirmLabel: 'Require confirmation before delete',
         siteConfigDeleteConfirmHint: 'Enabled by default; disabling it skips confirmation for normal delete operations.',
         siteConfigDangerZoneLabel: 'Danger zone',
@@ -2916,6 +2925,7 @@ let currentUser = { username: null, uid: null, role: null, publicSlug: null, pub
 // A1-d: 是否需要迁移（admin 视角，本地 KV 无 legacy 数据时永远 false）
 let currentMigrationNeeded = false;
 let deleteConfirmEnabled = true;
+let backupRetention = 30;
 const LS_MODE = 'bm_cfg_mode';
 
 const DEFAULT_SECTIONS = [
@@ -3058,7 +3068,6 @@ let moveFromIndex = -1;
 let movingCardSourceSection = null, movingCardSourceIndex = -1;
 let promotingSubIndex = -1;
 let editingCustomSectionIdx = -2;
-const MAX_BACKUPS_LOCAL = 100;
 
 /* ★ 默认 header 注释（仅在原 data.js 中没有任何头部注释时使用）
    原本的 sections.* 按节注释对象已删除：新格式只有一个 sections 数组，
@@ -3914,6 +3923,7 @@ async function saveDataJs_online() {
         if (r.data.unchanged) msg = t('toastSavedNoChange');
         else if (r.data.backup) msg = t('toastSavedWithBackup', { name: r.data.backup });
         else msg = t('toastSaved');
+        if (r.data.prunedBackups > 0) msg += t('toastSaveLocalCleaned', { n: r.data.prunedBackups });
         toast(msg);
         $('dataStatus').textContent = t('stServerSaved', { time: new Date().toLocaleString() });
         $('dataStatus').className = 'st-ok';
@@ -3969,14 +3979,17 @@ async function openSiteConfigModal() {
         $('siteConfigHeaderInput').value = r.data.header || '';
         $('siteConfigFooterInput').value = r.data.footer || '';
         $('siteConfigDefaultThemeInput').value = normalizeDefaultTheme(r.data.defaultTheme);
+        backupRetention = normalizeBackupRetention(r.data.backupRetention, 30);
         deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
     } else {
         $('siteConfigTitleInput').value = '';
         $('siteConfigHeaderInput').value = '';
         $('siteConfigFooterInput').value = '';
         $('siteConfigDefaultThemeInput').value = 'notion';
+        backupRetention = 30;
         deleteConfirmEnabled = true;
     }
+    $('siteConfigBackupRetentionInput').value = String(backupRetention);
     $('siteConfigDeleteConfirmInput').checked = deleteConfirmEnabled;
     show('siteConfigModal');
 }
@@ -3984,14 +3997,24 @@ function normalizeDefaultTheme(value) {
     const theme = String(value || '').trim().toLowerCase();
     return ['nebula', 'notion', 'stripe', 'dark', 'mint'].includes(theme) ? theme : 'notion';
 }
+function normalizeBackupRetention(value, fallback) {
+    const fb = (fallback === undefined) ? 30 : fallback;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fb;
+    const rounded = Math.floor(n);
+    if (rounded === 0) return 0;
+    return Math.max(1, Math.min(500, rounded));
+}
 async function saveSiteConfig() {
     const title = $('siteConfigTitleInput').value;
     const header = $('siteConfigHeaderInput').value;
     const footer = $('siteConfigFooterInput').value;
     const defaultTheme = normalizeDefaultTheme($('siteConfigDefaultThemeInput').value);
+    const nextBackupRetention = normalizeBackupRetention($('siteConfigBackupRetentionInput').value, backupRetention);
     const nextDeleteConfirmEnabled = $('siteConfigDeleteConfirmInput').checked;
-    const r = await api('/api/site-config', { method: 'POST', body: JSON.stringify({ title, header, footer, defaultTheme, deleteConfirmEnabled: nextDeleteConfirmEnabled }) });
+    const r = await api('/api/site-config', { method: 'POST', body: JSON.stringify({ title, header, footer, defaultTheme, backupRetention: nextBackupRetention, deleteConfirmEnabled: nextDeleteConfirmEnabled }) });
     if (r.ok && r.data && r.data.ok) {
+        backupRetention = normalizeBackupRetention(r.data.backupRetention, nextBackupRetention);
         deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
         toast(t('toastSiteConfigSaved'));
         hide('siteConfigModal');
@@ -4021,9 +4044,13 @@ function clearAllBookmarksFromSiteConfig() {
 
 async function loadAdminSettings() {
     deleteConfirmEnabled = true;
+    backupRetention = 30;
     if (currentMode !== MODE_ONLINE) return;
     const r = await api('/api/site-config', { method: 'GET' });
-    if (r.ok && r.data) deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
+    if (r.ok && r.data) {
+        backupRetention = normalizeBackupRetention(r.data.backupRetention, 30);
+        deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
+    }
 }
 
 async function openHistoryModal_online() {
@@ -4174,15 +4201,17 @@ async function saveDataJs_local() {
     } catch (e) { alert(t('alertSaveFail', { msg: e.message })); }
 }
 async function pruneOldBackups_local(bakDir) {
+    const maxBackups = normalizeBackupRetention(backupRetention, 30);
+    if (maxBackups === 0) return 0;
     const arr = [];
     for await (const entry of bakDir.values()) {
         if (entry.kind === 'file' && /\.js$/i.test(entry.name)) {
             try { const f = await entry.getFile(); arr.push({ name: entry.name, modified: f.lastModified }); } catch (e) {}
         }
     }
-    if (arr.length <= MAX_BACKUPS_LOCAL) return 0;
+    if (arr.length <= maxBackups) return 0;
     arr.sort((a, b) => b.modified - a.modified);
-    const toDel = arr.slice(MAX_BACKUPS_LOCAL); let n = 0;
+    const toDel = arr.slice(maxBackups); let n = 0;
     for (const it of toDel) { try { await bakDir.removeEntry(it.name); n++; } catch (e) {} }
     return n;
 }
@@ -5812,7 +5841,7 @@ async function confirmImport() {
 var __fullBackupImportParsed = null;
 
 async function getSiteConfigSnapshot() {
-    if (currentMode !== MODE_ONLINE) return { title: '', header: '', footer: '', defaultTheme: 'notion', deleteConfirmEnabled: deleteConfirmEnabled !== false };
+    if (currentMode !== MODE_ONLINE) return { title: '', header: '', footer: '', defaultTheme: 'notion', backupRetention: normalizeBackupRetention(backupRetention, 30), deleteConfirmEnabled: deleteConfirmEnabled !== false };
     try {
         var r = await api('/api/site-config', { method: 'GET' });
         if (r.ok && r.data) {
@@ -5821,11 +5850,12 @@ async function getSiteConfigSnapshot() {
                 header: r.data.header || '',
                 footer: r.data.footer || '',
                 defaultTheme: normalizeDefaultTheme(r.data.defaultTheme),
+                backupRetention: normalizeBackupRetention(r.data.backupRetention, 30),
                 deleteConfirmEnabled: r.data.deleteConfirmEnabled !== false
             };
         }
     } catch (e) {}
-    return { title: '', header: '', footer: '', defaultTheme: 'notion', deleteConfirmEnabled: deleteConfirmEnabled !== false };
+    return { title: '', header: '', footer: '', defaultTheme: 'notion', backupRetention: normalizeBackupRetention(backupRetention, 30), deleteConfirmEnabled: deleteConfirmEnabled !== false };
 }
 
 function buildSectionsSnapshot() {
@@ -5924,7 +5954,7 @@ function doFullBackupImportPreview() {
         var cnt = countBackupSections(parsed.sections);
         var hasSite = parsed.siteConfig && (
             parsed.siteConfig.title || parsed.siteConfig.header || parsed.siteConfig.footer || parsed.siteConfig.deleteConfirmEnabled !== undefined
-            || parsed.siteConfig.defaultTheme
+            || parsed.siteConfig.defaultTheme || parsed.siteConfig.backupRetention !== undefined
         );
         $('fullBackupImportPreview').style.display = 'block';
         $('fullBackupImportPreview').textContent = t('fullBackupImportPreview', {
@@ -5953,10 +5983,12 @@ async function applyFullBackupSiteConfig(siteConfig) {
             header: siteConfig.header || '',
             footer: siteConfig.footer || '',
             defaultTheme: normalizeDefaultTheme(siteConfig.defaultTheme),
+            backupRetention: normalizeBackupRetention(siteConfig.backupRetention, 30),
             deleteConfirmEnabled: siteConfig.deleteConfirmEnabled !== false
         })
     });
     if (r.ok && r.data && r.data.ok) {
+        backupRetention = normalizeBackupRetention(r.data.backupRetention, 30);
         deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
         return t('fullBackupSiteApplied');
     }

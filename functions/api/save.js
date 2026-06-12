@@ -6,9 +6,9 @@ import { writeDataMeta } from '../_shared/data-meta.js';
 //   user  → user:<uid>:data_js / user:<uid>:data_source / user:<uid>:backup:*
 //          + 写完后 users[uid].hasData = true（best-effort，失败不阻断保存）
 
-const MAX_BACKUPS = 100;
-const PRUNE_PROBABILITY = 0.2;
 const USERS_KEY = 'users';
+const ADMIN_SITE_CONFIG_KEY = 'admin:site_config';
+const DEFAULT_BACKUP_RETENTION = 30;
 
 function nsKeys(ns) {
     return {
@@ -51,11 +51,13 @@ export async function onRequestPost({ request, env }) {
     const contentChanged = old !== content;
 
     let backupName = null;
+    let prunedBackups = 0;
     if (old && old.trim() && contentChanged) {
         backupName = KEYS.backupP + timestamp();
         await env.FAV_KV.put(backupName, old);
-        if (Math.random() < PRUNE_PROBABILITY) {
-            try { await pruneBackups(env.FAV_KV, KEYS.backupP); } catch {}
+        const backupRetention = await getBackupRetention(env);
+        if (backupRetention > 0) {
+            try { prunedBackups = await pruneBackups(env.FAV_KV, KEYS.backupP, backupRetention); } catch {}
         }
     }
 
@@ -93,6 +95,7 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse({
         ok: true,
         backup: backupName,
+        prunedBackups,
         unchanged: !contentChanged,
         namespace: ns,
         dataVersion: dataMeta && dataMeta.version,
@@ -112,10 +115,30 @@ function timestamp() {
            p(d.getUTCSeconds());
 }
 
-async function pruneBackups(kv, prefix) {
+async function getBackupRetention(env) {
+    try {
+        const raw = await env.FAV_KV.get(ADMIN_SITE_CONFIG_KEY);
+        if (!raw) return DEFAULT_BACKUP_RETENTION;
+        const parsed = JSON.parse(raw);
+        return normalizeBackupRetention(parsed.backupRetention, DEFAULT_BACKUP_RETENTION);
+    } catch {
+        return DEFAULT_BACKUP_RETENTION;
+    }
+}
+
+function normalizeBackupRetention(value, fallback = DEFAULT_BACKUP_RETENTION) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    const rounded = Math.floor(n);
+    if (rounded === 0) return 0;
+    return Math.max(1, Math.min(500, rounded));
+}
+
+async function pruneBackups(kv, prefix, maxBackups) {
     const list = await kv.list({ prefix });
-    if (list.keys.length <= MAX_BACKUPS) return;
+    if (list.keys.length <= maxBackups) return 0;
     const sorted = list.keys.sort((a, b) => a.name.localeCompare(b.name));
-    const toDelete = sorted.slice(0, sorted.length - MAX_BACKUPS);
+    const toDelete = sorted.slice(0, sorted.length - maxBackups);
     await Promise.all(toDelete.map(k => kv.delete(k.name)));
+    return toDelete.length;
 }
