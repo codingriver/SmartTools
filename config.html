@@ -6903,6 +6903,11 @@ function handleOpenTabsExtensionMessage(event) {
     if (msgKey && msgKey === __openTabsLastMessageKey) return;
     __openTabsLastMessageKey = msgKey;
     openOpenTabsImportModal(data);
+    window.postMessage({
+        source: 'smarttools-open-tabs-page',
+        action: 'pending-received',
+        sentAt: data.sentAt || ''
+    }, window.location.origin);
 }
 
 function bookmarkHtmlEscape(s) {

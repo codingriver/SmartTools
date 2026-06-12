@@ -12,6 +12,9 @@
       "run_at": "document_idle"
     }
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_title": "Import open tabs to SmartTools",
     "default_popup": "popup.html"

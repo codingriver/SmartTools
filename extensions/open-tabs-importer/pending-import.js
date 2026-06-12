@@ -12,7 +12,6 @@ function sleep(ms) {
     const target = new URL(payload.configUrl);
     if (current.origin !== target.origin || current.pathname.replace(/\/$/, '') !== target.pathname.replace(/\/$/, '')) return;
 
-    await chrome.storage.local.remove('pendingOpenTabsImport');
     const message = {
       source: 'smarttools-open-tabs-extension',
       scope: payload.scope,
@@ -27,3 +26,10 @@ function sleep(ms) {
     // Ignore: normal pages may be inaccessible or not SmartTools.
   }
 })();
+
+window.addEventListener('message', event => {
+  if (event.source !== window) return;
+  const data = event.data;
+  if (!data || data.source !== 'smarttools-open-tabs-page' || data.action !== 'pending-received') return;
+  chrome.storage.local.remove('pendingOpenTabsImport');
+});
