@@ -825,6 +825,11 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
             </label>
             <p class="muted" style="font-size:12px; margin-top:4px;" data-i18n="siteConfigDeleteConfirmHint">默认开启；关闭后普通删除操作将不再弹出确认框。</p>
         </div>
+        <div class="form-row" style="border-top:1px solid #eee; padding-top:14px;">
+            <label data-i18n="siteConfigDangerZoneLabel">危险操作</label>
+            <p class="muted" style="font-size:12px; margin:0 0 8px;" data-i18n="siteConfigClearBookmarksHint">清空所有分类中的书签卡片，保留分类和基础设置。操作后仍需点击顶部「💾 保存」才会持久化。</p>
+            <button type="button" class="btn btn-danger" id="btnClearAllBookmarks" data-i18n="siteConfigClearBookmarksBtn">🗑️ 清空所有书签</button>
+        </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" id="btnSiteConfigClose" data-i18n="btnCancel">取消</button>
             <button class="btn btn-primary" id="btnSiteConfigSave" data-i18n="btnSave">保存</button>
@@ -2155,6 +2160,12 @@ const I18N = {
         siteConfigDefaultThemeHint: '访问首页或公开链接未指定主题时使用。',
         siteConfigDeleteConfirmLabel: '删除操作开启二次确认',
         siteConfigDeleteConfirmHint: '默认开启；关闭后普通删除操作将不再弹出确认框。',
+        siteConfigDangerZoneLabel: '危险操作',
+        siteConfigClearBookmarksHint: '清空所有分类中的书签卡片，保留分类和基础设置。操作后仍需点击顶部「💾 保存」才会持久化。',
+        siteConfigClearBookmarksBtn: '🗑️ 清空所有书签',
+        confirmClearAllBookmarks: '确认清空所有书签？此操作会删除所有分类中的主卡片和子卡片。分类和基础设置会保留。清空后还需要点击顶部「💾 保存」才会真正写入。',
+        confirmClearAllBookmarksAgain: '二次确认：真的要清空所有书签吗？',
+        toastBookmarksClearedUnsaved: '已清空所有书签（未保存）',
         toastSiteConfigSaved: '✅ 基础设置已保存',
         toastSiteConfigFail: '❌ 保存失败',
         ioImportTitle: '📥 导入 data.js', ioExportTitle: '👁 预览生成的 data.js',
@@ -2738,6 +2749,12 @@ const I18N = {
         siteConfigDefaultThemeHint: 'Used when home or public links do not specify a theme.',
         siteConfigDeleteConfirmLabel: 'Require confirmation before delete',
         siteConfigDeleteConfirmHint: 'Enabled by default; disabling it skips confirmation for normal delete operations.',
+        siteConfigDangerZoneLabel: 'Danger zone',
+        siteConfigClearBookmarksHint: 'Clear bookmark cards from all sections while keeping sections and basic settings. Click the top 「💾 Save」 afterwards to persist.',
+        siteConfigClearBookmarksBtn: '🗑️ Clear all bookmarks',
+        confirmClearAllBookmarks: 'Clear all bookmarks? This removes all main cards and sub-cards from every section. Sections and basic settings are kept. You still need to click the top 「💾 Save」 to persist.',
+        confirmClearAllBookmarksAgain: 'Second confirmation: really clear all bookmarks?',
+        toastBookmarksClearedUnsaved: 'All bookmarks cleared (not saved)',
         toastSiteConfigSaved: '✅ Basic settings saved',
         historyTitle: '🕐 Backup History',
         historyHintOnline: 'Stored in Cloudflare KV',
@@ -3981,6 +3998,25 @@ async function saveSiteConfig() {
     } else {
         toast(t('toastSiteConfigFail'));
     }
+}
+
+function clearAllBookmarksFromSiteConfig() {
+    if (!confirm(t('confirmClearAllBookmarks'))) return;
+    if (!confirm(t('confirmClearAllBookmarksAgain'))) return;
+    getSections().forEach(function(sec) {
+        store[sec.key] = [];
+        clearSectionExpanded(sec.key);
+    });
+    Object.keys(store).forEach(function(key) {
+        if (!getSections().find(function(sec) { return sec.key === key; })) {
+            store[key] = [];
+        }
+    });
+    renderSectionTabs();
+    renderCurrentSection();
+    markConfigDirty();
+    hide('siteConfigModal');
+    toast(t('toastBookmarksClearedUnsaved'));
 }
 
 async function loadAdminSettings() {
@@ -9519,6 +9555,7 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnSiteConfig').onclick = openSiteConfigModal;
     $('btnSiteConfigClose').onclick = () => hide('siteConfigModal');
     $('btnSiteConfigSave').onclick = saveSiteConfig;
+    $('btnClearAllBookmarks').onclick = clearAllBookmarksFromSiteConfig;
 
     // 顶栏按钮已整合到 ioHubModal,这些 id 不存在;保留 onclick 兼容逻辑(用可选链防护)
     $('btnImport') && ($('btnImport').onclick = openImportModal);
