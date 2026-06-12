@@ -1,3 +1,8 @@
+/t /index.html 302
+/tool /index.html 302
+/tools /index.html 302
+/toolsindex /index.html 302
+/toolsindex.html /index.html 302
 /l /index.html 200
 /c /config.html 200
 
