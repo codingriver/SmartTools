@@ -49,18 +49,17 @@ function isImportableUrl(url) {
   return /^https?:\/\//i.test(url || '');
 }
 
+function sanitizeFaviconUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw || /^data:image\//i.test(raw)) return '';
+  return raw;
+}
+
 function toPayloadTab(tab) {
   return {
     title: tab.title || tab.url || '',
     url: tab.url || '',
-    favIconUrl: tab.favIconUrl || '',
-    windowId: tab.windowId,
-    index: tab.index,
-    active: tab.active,
-    pinned: tab.pinned,
-    groupId: tab.groupId,
-    audible: tab.audible,
-    muted: tab.mutedInfo ? tab.mutedInfo.muted : undefined
+    favIconUrl: sanitizeFaviconUrl(tab.favIconUrl)
   };
 }
 

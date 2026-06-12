@@ -4292,6 +4292,8 @@ async function parseSectionsArray(rawSections, preserveLegacySections) {
        ];
 ================================================================ */
 async function generateDataJs() {
+    sanitizeStoreBeforeSave();
+
     // ★ 内置兜底 header：在线部署/KV 加载场景下 preservedComments.header 为空时使用
     //   这样无论数据来源是本地 data.js 还是远端 KV，导出文件的顶部说明都不会丢
     const FALLBACK_HEADER = [
@@ -6830,25 +6832,76 @@ function pickOpenTabsImportTargetSection(payload) {
     return UNCLASSIFIED_KEY;
 }
 
+function isDataImageUrl(value) {
+    return /^data:image\//i.test(String(value || '').trim());
+}
+
+function shouldKeepImportedFavicon(value) {
+    var raw = String(value || '').trim();
+    if (!raw || isDataImageUrl(raw)) return false;
+    return /^https?:\/\//i.test(raw) || /^\//.test(raw);
+}
+
+function sanitizeBookmarkForPublic(card) {
+    if (!card || typeof card !== 'object') return 0;
+    var removed = 0;
+    [
+        'openTabMeta',
+        'openTabsMeta',
+        'importedAt',
+        'source',
+        'sentAt',
+        'scope',
+        'windowId',
+        'index',
+        'active',
+        'pinned',
+        'groupId',
+        'audible',
+        'muted'
+    ].forEach(function(k) {
+        if (Object.prototype.hasOwnProperty.call(card, k)) {
+            delete card[k];
+            removed++;
+        }
+    });
+    if (isDataImageUrl(card.iconImg)) {
+        delete card.iconImg;
+        if (!card.icon) card.icon = '🌐';
+        removed++;
+    }
+    if (Array.isArray(card.subCards)) {
+        card.subCards.forEach(function(sub) {
+            removed += sanitizeBookmarkForPublic(sub);
+        });
+    }
+    return removed;
+}
+
+function sanitizeStoreBeforeSave() {
+    var removed = 0;
+    Object.keys(store || {}).forEach(function(sectionKey) {
+        var cards = store[sectionKey];
+        if (!Array.isArray(cards)) return;
+        cards.forEach(function(card) {
+            removed += sanitizeBookmarkForPublic(card);
+        });
+    });
+    return removed;
+}
+
 function tabToSubCard(tab) {
     var url = String((tab && tab.url) || '').trim();
     var title = String((tab && tab.title) || url).trim() || url;
     var subCard = {
         icon: '🌐',
         title: title,
-        url: url,
-        openTabMeta: {
-            source: 'browser-open-tabs',
-            importedAt: new Date().toISOString()
-        }
+        url: url
     };
-    if (tab && tab.favIconUrl) {
-        subCard.iconImg = String(tab.favIconUrl);
+    if (tab && shouldKeepImportedFavicon(tab.favIconUrl)) {
+        subCard.iconImg = String(tab.favIconUrl).trim();
         delete subCard.icon;
     }
-    ['windowId', 'index', 'active', 'pinned', 'groupId', 'audible', 'muted'].forEach(function(k) {
-        if (tab && tab[k] !== undefined) subCard.openTabMeta[k] = tab[k];
-    });
     return subCard;
 }
 
@@ -6861,13 +6914,7 @@ function buildOpenTabsParentCard(payload, subCards) {
         icon: '🗂️',
         title: title,
         desc: String(subCards.length) + ' tabs',
-        subCards: subCards,
-        openTabsMeta: {
-            source: 'browser-open-tabs',
-            importedAt: new Date().toISOString(),
-            scope: payload && payload.scope || '',
-            sentAt: payload && payload.sentAt || ''
-        }
+        subCards: subCards
     };
 }
 
