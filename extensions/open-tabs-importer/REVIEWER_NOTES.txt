@@ -1,0 +1,35 @@
+## Reviewer Notes
+
+### Extension Purpose
+SmartTools Open Tabs Importer lets users import their open Chrome/Edge tabs into their personal SmartTools bookmark manager. SmartTools is self-hosted — every user deploys it to their own domain, so we cannot hardcode a specific domain in the manifest.
+
+### Why <all_urls> Is Necessary
+
+This extension requires `<all_urls>` host permission for ONE specific technical reason: **auto-delivery of tab data to the user's own SmartTools instance, which may be hosted at any domain.**
+
+How it works:
+1. User saves their SmartTools config page URL (e.g., `https://smarttools-xxx.pages.dev/config.html`) in the extension popup.
+2. When the user clicks "Import", the extension reads open tab titles and URLs (using `tabs` API).
+3. If the SmartTools config page is already open, the extension injects the tab data into it via `chrome.scripting.executeScript` + `window.postMessage`.
+4. If the config page is NOT open, the extension opens it and then uses `tabs.onUpdated` to detect when it loads, then injects.
+
+**Step 4 is why `<all_urls>` is needed**: the `tabs.onUpdated` listener in the background script fires for ALL tab URL changes. Without `<all_urls>`, Chrome blocks the listener from receiving URLs for sites not declared in `host_permissions`.
+
+### What <all_urls> Actually Does in This Extension
+
+- The content script (`pending-import.js`) is injected into all pages but ONLY performs work on the user's own SmartTools config page (it checks `chrome.storage.local` and bails out immediately on non-matching origins).
+- The extension does NOT read, scrape, or collect any data from third-party websites.
+- All data (tab titles/URLs) stays in the user's browser and goes only to their own SmartTools instance.
+- No network requests are made to any server outside the user's control.
+
+### Alternative Considered and Rejected
+We cannot restrict to a fixed domain or domain pattern because SmartTools is user-deployed to arbitrary domains. Requiring users to manually paste tab data would make the extension nearly useless for its core purpose.
+
+### Privacy
+This extension:
+- Does not collect or transmit any personal data to third parties
+- Does not use analytics or tracking
+- Does not access cookies, passwords, or browsing history
+- Stores only the user's SmartTools URL in local browser storage
+
+A full permission justification document is available at: [link to PERMISSION_JUSTIFICATION.md in your repo]

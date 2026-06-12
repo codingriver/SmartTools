@@ -17,6 +17,14 @@
   },
   "action": {
     "default_title": "Import open tabs to SmartTools",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "icons": {
+    "48": "icons/48.png",
+    "128": "icons/128.png"
   }
 }
