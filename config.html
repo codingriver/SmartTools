@@ -344,9 +344,6 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     .open-tabs-import-list { max-height: 48vh; }
 }
 
-/* ★ All Cards tree view (全部卡片树形视图) */
-.section-tab.is-all { background: #e8f0fe; color: #1a73e8; border: 1px solid #aecbf7; }
-.section-tab.is-all.active { background: #1a73e8; color: #fff; border-color: transparent; }
 .tree-section-header {
     padding: 10px 14px; background: #f0f4ff; border-radius: 8px; margin: 16px 0 8px;
     font-weight: 700; font-size: 14px; color: #333; display: flex; align-items: center; gap: 8px;
@@ -1976,7 +1973,7 @@ const I18N = {
         secVideo: '🎬 视频聚合', secEmail: '📨 联系方式', secContact: '📨 其他联系方式',
         secUnclassified: '📦 未分类', secManageTab: '🗂 大类管理',
         secCustomTag: '大类', secCustomTitle: '大类',
-        btnAddCard: '➕ 新增卡片', titleItems: '（共 {n} 项）',
+        btnAddCard: '➕ 新增卡片', titleItems: '（共 {n} 项）', titleItemsWithSubs: '（共 {n} 项，共 {sub} 子项）',
         privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 私密</span>',
         encBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#f3e5f5; color:#6a1b9a; border-radius:10px; vertical-align:middle;">🔐 加密</span>',
         lockedBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffebee; color:#c62828; border-radius:10px; vertical-align:middle;">🔒 已锁定</span>',
@@ -2023,7 +2020,6 @@ const I18N = {
         sectionsAddBtn: '➕ 新增大类',
         sectionsDeleteHint: '💡 删除大类时，其下所有卡片会自动移动到「📦 未分类」中（不会丢失）。再次删除「📦 未分类」会彻底删除其中卡片。',
         sectionsClose: '关闭', sectionsNoCustom: '暂无大类。点击下方「➕ 新增大类」创建。',
-        allCardsTab: '📋 全部卡片',
         allCardsTitle: '📋 全部卡片 · {n} 张主卡，{sub} 张子卡',
         sectionDirectLinkNewKey: '保存后自动生成key',
         toastSectionLinkCopied: '大类直达链接已复制',
@@ -2571,7 +2567,7 @@ const I18N = {
         secVideo: '🎬 Videos', secEmail: '📨 Contacts', secContact: '📨 Contact Cards',
         secUnclassified: '📦 Unclassified', secManageTab: '🗂 Sections',
         secCustomTag: 'Section', secCustomTitle: 'Section',
-        btnAddCard: '➕ Add Card', titleItems: ' ({n} items)',
+        btnAddCard: '➕ Add Card', titleItems: ' ({n} items)', titleItemsWithSubs: ' ({n} items, {sub} sub-items)',
         privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 Private</span>',
         encBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#f3e5f5; color:#6a1b9a; border-radius:10px; vertical-align:middle;">🔐 Encrypted</span>',
         lockedBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffebee; color:#c62828; border-radius:10px; vertical-align:middle;">🔒 Locked</span>',
@@ -2618,7 +2614,6 @@ const I18N = {
         sectionsAddBtn: '➕ Add Section',
         sectionsDeleteHint: '💡 Deleting a section moves its cards to "📦 Unclassified" (not lost). Deleting "Unclassified" permanently removes its cards.',
         sectionsClose: 'Close', sectionsNoCustom: 'No sections. Click "➕ Add Section" below.',
-        allCardsTab: '📋 All Cards',
         allCardsTitle: '📋 All Cards · {n} main cards, {sub} sub-cards',
         sectionDirectLinkNewKey: 'key-generated-after-save',
         toastSectionLinkCopied: 'Section direct link copied',
@@ -4459,15 +4454,12 @@ function clearSectionExpanded(sectionKey) {
 
 function renderSectionTabs() {
     const wrap = $('sectionTabs'); wrap.innerHTML = '';
+    const sections = getSections();
+    if (currentSection === ALL_CARDS_SECTION) {
+        currentSection = sections[0] ? sections[0].key : UNCLASSIFIED_KEY;
+    }
 
-    // ★ 全部卡片 tab
-    const allEl = document.createElement('div');
-    allEl.className = 'section-tab is-all' + (currentSection === ALL_CARDS_SECTION ? ' active' : '');
-    allEl.textContent = t('allCardsTab');
-    allEl.onclick = () => { currentSection = ALL_CARDS_SECTION; renderSectionTabs(); renderCurrentSection(); };
-    wrap.appendChild(allEl);
-
-    getSections().forEach(s => {
+    sections.forEach(s => {
         const el = document.createElement('div');
         let cls = 'section-tab';
         if (s.key === currentSection) cls += ' active';
@@ -4597,13 +4589,14 @@ function renderCurrentSection() {
     }
     const sec = getSections().find(x => x.key === currentSection); if (!sec) return;
     const arr = store[sec.key] || [];
+    const subTotal = arr.reduce((sum, card) => sum + (Array.isArray(card.subCards) ? card.subCards.length : 0), 0);
     let badges = '';
     if (sec.private) badges += t('privateBadgeHtml');
     if (sec.encrypted) badges += t('encBadgeHtml');
     if (sec.locked) badges += t('lockedBadgeHtml');
     const title = sec.locked
         ? escapeHtml(sec.label) + badges
-        : escapeHtml(sec.label) + badges + ' <span style="font-size:14px;color:#888;font-weight:400;">' + escapeHtml(t('titleItems', { n: arr.length })) + '</span>';
+        : escapeHtml(sec.label) + badges + ' <span style="font-size:14px;color:#888;font-weight:400;">' + escapeHtml(t('titleItemsWithSubs', { n: arr.length, sub: subTotal })) + '</span>';
     $('currentSectionTitle').innerHTML = title;
 
     const list = $('cardList'); list.innerHTML = '';
