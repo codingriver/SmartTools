@@ -1,8 +1,8 @@
-// GET  /api/site-config  → 读取网站基础配置（标题/页眉/页脚），公开访问
+// GET  /api/site-config  → 读取网站基础配置（标题/页眉/页脚/后台设置），公开访问
 // POST /api/site-config  → 保存网站配置（需登录）
 //
 // 配置结构：
-//   { title: string, header: string, footer: string }
+//   { title: string, header: string, footer: string, deleteConfirmEnabled: boolean }
 // 空字符串表示使用主题默认。
 
 import { requireAuth, jsonResponse } from '../_shared/auth.js';
@@ -13,7 +13,8 @@ const ADMIN_SITE_CONFIG_KEY = 'admin:site_config';
 const DEFAULT_CONFIG = {
     title: '',
     header: '',
-    footer: ''
+    footer: '',
+    deleteConfirmEnabled: true
 };
 
 export async function onRequestGet({ request, env }) {
@@ -27,6 +28,7 @@ export async function onRequestGet({ request, env }) {
                 if (parsed.title != null) result.title = parsed.title;
                 if (parsed.header != null) result.header = parsed.header;
                 if (parsed.footer != null) result.footer = parsed.footer;
+                if (parsed.deleteConfirmEnabled != null) result.deleteConfirmEnabled = parsed.deleteConfirmEnabled !== false;
             }
         } catch {}
     }
@@ -49,11 +51,13 @@ export async function onRequestPost({ request, env }) {
         const saved = await env.FAV_KV.get(ADMIN_SITE_CONFIG_KEY);
         if (saved) Object.assign(current, JSON.parse(saved));
     } catch {}
+    current.deleteConfirmEnabled = current.deleteConfirmEnabled !== false;
 
     const config = {
         title: body.title !== undefined ? String(body.title || '') : current.title,
         header: body.header !== undefined ? String(body.header || '') : current.header,
-        footer: body.footer !== undefined ? String(body.footer || '') : current.footer
+        footer: body.footer !== undefined ? String(body.footer || '') : current.footer,
+        deleteConfirmEnabled: body.deleteConfirmEnabled !== undefined ? body.deleteConfirmEnabled !== false : current.deleteConfirmEnabled !== false
     };
 
     await env.FAV_KV.put(ADMIN_SITE_CONFIG_KEY, JSON.stringify(config));

@@ -450,7 +450,7 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
             <button class="btn btn-ghost btn-sm" id="btnReload" data-i18n="btnReload">🔄 重载 data.js</button>
             <button class="btn btn-ghost btn-sm" id="btnHistory" data-i18n="btnHistory">🕐 历史备份</button>
             <button class="btn btn-ghost btn-sm hidden" id="btnDataSource" data-i18n="btnDataSource">📡 数据源</button>
-            <button class="btn btn-ghost btn-sm" id="btnSiteConfig" data-i18n="btnSiteConfig">🏠 基础信息</button>
+            <button class="btn btn-ghost btn-sm" id="btnSiteConfig" data-i18n="btnSiteConfig">🏠 基础设置</button>
             <button class="btn btn-ghost btn-sm" id="btnIoHub" data-i18n="btnIoHub">📦 导入/导出</button>
             <button class="btn btn-success btn-sm" id="btnSave" data-i18n="btnSave">💾 保存</button>
             <button class="btn btn-warn btn-sm hidden" id="btnChangePwd" data-i18n="btnChangePwd">🔑 密码</button>
@@ -802,8 +802,8 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 <!-- 基础信息设置 -->
 <div id="siteConfigModal" class="modal-mask hidden">
     <div class="modal-box" style="max-width:560px;">
-        <h2 data-i18n="siteConfigTitle">🏠 基础信息设置</h2>
-        <p class="muted" data-i18n-html="siteConfigDesc">设置首页显示的标题、页眉、页脚。留空表示使用主题默认值。修改后<b>刷新首页</b>即可生效。</p>
+        <h2 data-i18n="siteConfigTitle">🏠 基础设置</h2>
+        <p class="muted" data-i18n-html="siteConfigDesc">设置首页显示的标题、页眉、页脚和后台行为。留空表示使用主题默认值。修改后<b>刷新首页</b>即可生效。</p>
         <div class="form-row">
             <label data-i18n="siteConfigTitleLabel">标题</label>
             <input type="text" id="siteConfigTitleInput" data-i18n-placeholder="siteConfigTitlePh" placeholder="如：⭐️收藏夹🌹">
@@ -815,6 +815,13 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
         <div class="form-row">
             <label data-i18n="siteConfigFooterLabel">自定义页脚</label>
             <textarea id="siteConfigFooterInput" rows="3" data-i18n-placeholder="siteConfigFooterPh" placeholder="留空使用主题默认页脚（支持 HTML）"></textarea>
+        </div>
+        <div class="form-row">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="siteConfigDeleteConfirmInput" style="width:auto;">
+                <span data-i18n="siteConfigDeleteConfirmLabel">删除操作开启二次确认</span>
+            </label>
+            <p class="muted" style="font-size:12px; margin-top:4px;" data-i18n="siteConfigDeleteConfirmHint">默认开启；关闭后普通删除操作将不再弹出确认框。</p>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" id="btnSiteConfigClose" data-i18n="btnCancel">取消</button>
@@ -1603,7 +1610,7 @@ const I18N = {
         topHome: '← 主页', topHomeTitle: '返回主页', topTitle: '⭐️ 收藏夹配置',
         modeBadgeOnline: '☁️ 在线模式', modeBadgeLocal: '💻 本地模式',
         btnConnect: '📂 连接文件夹', btnReload: '🔄 重载 data.js', btnHistory: '🕐 历史备份',
-        btnDataSource: '📡 数据源', btnSiteConfig: '🏠 基础信息', btnImport: '📥 导入 JS', btnExport: '👁 预览/导出 JS',
+        btnDataSource: '📡 数据源', btnSiteConfig: '🏠 基础设置', btnImport: '📥 导入 JS', btnExport: '👁 预览/导出 JS',
         btnExportCsv: '📤 导出 CSV',
         btnImportCsv: '📥 导入 CSV',
         btnExportTable: '📤 导出表格',
@@ -2072,15 +2079,17 @@ const I18N = {
         sourceStaticDesc: '使用 GitHub 仓库里的 <code>data.js</code> 文件。需要 <code>git push</code> 才能更新首页。',
         sourceSwitchHint: '💡 切换为「静态」后，本配置页保存的数据仍存在 KV 中不会丢失，但首页不再使用。再切回「KV」即可恢复。',
         sourceCurrent: '当前', dsKv: '☁️ KV', dsStatic: '📄 静态', dsDefault: '（默认）',
-        siteConfigTitle: '🏠 基础信息设置',
-        siteConfigDesc: '设置首页显示的标题、页眉、页脚。标题会同时用于浏览器标签页和页面主标题；页眉显示在主标题上方。留空表示使用主题默认值。修改后<b>刷新首页</b>即可生效。',
+        siteConfigTitle: '🏠 基础设置',
+        siteConfigDesc: '设置首页显示的标题、页眉、页脚和后台行为。标题会同时用于浏览器标签页和页面主标题；页眉显示在主标题上方。留空表示使用主题默认值。修改后<b>刷新首页</b>即可生效。',
         siteConfigTitleLabel: '标题',
         siteConfigTitlePh: '如：⭐️收藏夹🌹',
         siteConfigHeaderLabel: '自定义页眉',
         siteConfigHeaderPh: '留空使用主题默认页眉（支持 HTML）',
         siteConfigFooterLabel: '自定义页脚',
         siteConfigFooterPh: '留空使用主题默认页脚（支持 HTML）',
-        toastSiteConfigSaved: '✅ 基础信息已保存',
+        siteConfigDeleteConfirmLabel: '删除操作开启二次确认',
+        siteConfigDeleteConfirmHint: '默认开启；关闭后普通删除操作将不再弹出确认框。',
+        toastSiteConfigSaved: '✅ 基础设置已保存',
         toastSiteConfigFail: '❌ 保存失败',
         ioImportTitle: '📥 导入 data.js', ioExportTitle: '👁 预览生成的 data.js',
         ioImportDesc: '粘贴 data.js 内容或选择文件导入。', ioImportPh: '粘贴 data.js 内容...',
@@ -2194,7 +2203,7 @@ const I18N = {
         topHome: '← Home', topHomeTitle: 'Back to home', topTitle: '⭐️ Bookmarks Config',
         modeBadgeOnline: '☁️ Online', modeBadgeLocal: '💻 Local',
         btnConnect: '📂 Connect Folder', btnReload: '🔄 Reload data.js', btnHistory: '🕐 Backups',
-        btnDataSource: '📡 Source', btnImport: '📥 Import JS', btnExport: '👁 Preview/Export JS',
+        btnDataSource: '📡 Source', btnSiteConfig: '🏠 Basic Settings', btnImport: '📥 Import JS', btnExport: '👁 Preview/Export JS',
         btnExportCsv: '📤 Export CSV',
         btnImportCsv: '📥 Import CSV',
         btnExportTable: '📤 Export Table',
@@ -2650,6 +2659,17 @@ const I18N = {
         toastForceDelEncNeedConfirm: 'Check the confirmation first. Force delete permanently discards encrypted contents.',
         toastForceDelEncNeedPwd: 'Enter the unlock password, or check confirmation and force delete.',
         toastForceDelEncWrongPwd: 'Wrong password, cannot unlock and delete',
+        siteConfigTitle: '🏠 Basic Settings',
+        siteConfigDesc: 'Set the home title, header, footer, and admin behavior. The title is used for both the browser tab and main page title; the header appears above the title. Leave blank to use theme defaults. <b>Refresh home</b> after changes.',
+        siteConfigTitleLabel: 'Title',
+        siteConfigTitlePh: 'Example: ⭐️ Bookmarks',
+        siteConfigHeaderLabel: 'Custom header',
+        siteConfigHeaderPh: 'Blank = use theme default header (HTML supported)',
+        siteConfigFooterLabel: 'Custom footer',
+        siteConfigFooterPh: 'Blank = use theme default footer (HTML supported)',
+        siteConfigDeleteConfirmLabel: 'Require confirmation before delete',
+        siteConfigDeleteConfirmHint: 'Enabled by default; disabling it skips confirmation for normal delete operations.',
+        toastSiteConfigSaved: '✅ Basic settings saved',
         historyTitle: '🕐 Backup History',
         historyHintOnline: 'Stored in Cloudflare KV',
         historyHintLocal: 'In <code>databak/</code> of current folder',
@@ -2809,6 +2829,7 @@ let onlineAvailable = false;
 let currentUser = { username: null, uid: null, role: null, publicSlug: null, publicEnabled: false, inboxPolicy: 'open' };
 // A1-d: 是否需要迁移（admin 视角，本地 KV 无 legacy 数据时永远 false）
 let currentMigrationNeeded = false;
+let deleteConfirmEnabled = true;
 const LS_MODE = 'bm_cfg_mode';
 
 const DEFAULT_SECTIONS = [
@@ -2844,6 +2865,11 @@ function ensureUnclassifiedSection() {
     if (!Array.isArray(store[UNCLASSIFIED_KEY])) store[UNCLASSIFIED_KEY] = [];
 }
 function getCustomMeta(key) { return customSectionsMeta.find(c => c.key === key); }
+
+function confirmDeleteAction(message) {
+    if (!deleteConfirmEnabled) return true;
+    return confirm(message);
+}
 function isLockedKey(key) { const m = getCustomMeta(key); return !!(m && m.locked); }
 
 function setupDragReorder(container, itemSelector, onMove) {
@@ -3751,6 +3777,7 @@ async function enterMain() {
     refreshMainPageModeTexts();
     renderSectionTabs(); renderCurrentSection();
     if (currentMode === MODE_ONLINE) {
+        await loadAdminSettings();
         await loadData_online();
         await refreshBackupStatus_online();
         await loadSourceStatus_online();
@@ -3853,24 +3880,36 @@ async function openSiteConfigModal() {
         $('siteConfigTitleInput').value = r.data.title || '';
         $('siteConfigHeaderInput').value = r.data.header || '';
         $('siteConfigFooterInput').value = r.data.footer || '';
+        deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
     } else {
         $('siteConfigTitleInput').value = '';
         $('siteConfigHeaderInput').value = '';
         $('siteConfigFooterInput').value = '';
+        deleteConfirmEnabled = true;
     }
+    $('siteConfigDeleteConfirmInput').checked = deleteConfirmEnabled;
     show('siteConfigModal');
 }
 async function saveSiteConfig() {
     const title = $('siteConfigTitleInput').value;
     const header = $('siteConfigHeaderInput').value;
     const footer = $('siteConfigFooterInput').value;
-    const r = await api('/api/site-config', { method: 'POST', body: JSON.stringify({ title, header, footer }) });
+    const nextDeleteConfirmEnabled = $('siteConfigDeleteConfirmInput').checked;
+    const r = await api('/api/site-config', { method: 'POST', body: JSON.stringify({ title, header, footer, deleteConfirmEnabled: nextDeleteConfirmEnabled }) });
     if (r.ok && r.data && r.data.ok) {
+        deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
         toast(t('toastSiteConfigSaved'));
         hide('siteConfigModal');
     } else {
         toast(t('toastSiteConfigFail'));
     }
+}
+
+async function loadAdminSettings() {
+    deleteConfirmEnabled = true;
+    if (currentMode !== MODE_ONLINE) return;
+    const r = await api('/api/site-config', { method: 'GET' });
+    if (r.ok && r.data) deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
 }
 
 async function openHistoryModal_online() {
@@ -3919,7 +3958,7 @@ async function handleBackupAction_online(act, name) {
             show('ioModal');
         }
     } else if (act === 'del') {
-        if (!confirm(t('confirmDelBackup', { name }))) return;
+        if (!confirmDeleteAction(t('confirmDelBackup', { name }))) return;
         const r = await api('/api/backups?name=' + encodeURIComponent(name), { method: 'DELETE' });
         if (r.ok && r.data && r.data.ok) { toast(t('toastDeleted')); openHistoryModal_online(); refreshBackupStatus_online(); }
         else toast(t('toastDeleteFail'));
@@ -4094,7 +4133,7 @@ async function handleBackupAction_local(act, bak) {
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = bak.name; a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 500);
     } else if (act === 'del') {
-        if (!confirm(t('confirmDelBackup', { name: bak.name }))) return;
+        if (!confirmDeleteAction(t('confirmDelBackup', { name: bak.name }))) return;
         try { const bakDir = await folderHandle.getDirectoryHandle('databak'); await bakDir.removeEntry(bak.name); toast(t('toastDeleted')); openHistoryModal_local(); refreshBackupStatus_local(); }
         catch (e) { alert(t('alertDeleteFail', { msg: e.message })); }
     }
@@ -4546,7 +4585,7 @@ function handleAllCardAction(act, sectionKey, cardIdx, subIdx) {
     if (act === 'edit') {
         openCardModal(cardIdx, sectionKey);
     } else if (act === 'del') {
-        if (confirm(t('confirmDelCard'))) { clearSectionExpanded(sectionKey); arr.splice(cardIdx, 1); renderAllCardsView(); markConfigDirty(); toast(t('toastDeletedUnsaved')); }
+        if (confirmDeleteAction(t('confirmDelCard'))) { clearSectionExpanded(sectionKey); arr.splice(cardIdx, 1); renderAllCardsView(); markConfigDirty(); toast(t('toastDeletedUnsaved')); }
     } else if (act && act.endsWith('-sub')) {
         handleListSubAction(act, sectionKey, cardIdx, subIdx, ALL_CARDS_SECTION);
     }
@@ -4716,7 +4755,7 @@ function handleCardAction(act, idx) {
             openP2pPushModal({ prefillCards: [arr[idx]], prefillFromEncrypted: fromEnc });
         }
     }
-    else if (act === 'del') { if (confirm(t('confirmDelCard'))) { clearSectionExpanded(currentSection); arr.splice(idx, 1); renderCurrentSection(); markConfigDirty(); toast(t('toastDeletedUnsaved')); } }
+    else if (act === 'del') { if (confirmDeleteAction(t('confirmDelCard'))) { clearSectionExpanded(currentSection); arr.splice(idx, 1); renderCurrentSection(); markConfigDirty(); toast(t('toastDeletedUnsaved')); } }
 }
 function handleCardSubAction(act, idx, subIdx) {
     handleListSubAction(act, currentSection, idx, subIdx, currentSection);
@@ -4802,7 +4841,7 @@ function handleListSubAction(act, sectionKey, cardIdx, subIdx, returnSection) {
         if (currentUser.role === 'admin') openPushModal({ prefillCards: [flat], prefillFromEncrypted: fromEnc });
         else openP2pPushModal({ prefillCards: [flat], prefillFromEncrypted: fromEnc });
     } else if (act === 'del-sub') {
-        if (confirm(t('confirmDelCard'))) {
+        if (confirmDeleteAction(t('confirmDelCard'))) {
             subs.splice(subIdx, 1);
             if (!subs.length) expandedCardKeys.delete(getCardExpandKey(sectionKey, cardIdx));
             refreshAfterListSubAction();
@@ -4818,7 +4857,7 @@ function handlePushedByDelete(idx) {
     const arr = store[currentSection];
     const item = arr && arr[idx];
     if (!item || !item.pushedBy) return;
-    if (!confirm(t('confirmRemovePushedBy') || '移除"由 ' + item.pushedBy + ' 推送"的标注?')) return;
+    if (!confirmDeleteAction(t('confirmRemovePushedBy') || '移除"由 ' + item.pushedBy + ' 推送"的标注?')) return;
     delete item.pushedBy;
     delete item.pushedAt;
     renderCurrentSection();
@@ -5069,10 +5108,10 @@ function deleteCustomSection(idx) {
     const cards = store[c.key] || [];
     const isUnc = c.key === UNCLASSIFIED_KEY;
     const label = isUnc ? t('secUnclassified') : c.label;
-    if (cards.length === 0) { if (!confirm(t('confirmDelSection', { label }))) return; }
-    else if (isUnc) { if (!confirm(t('confirmDelUnclassified', { label, n: cards.length }))) return; }
+    if (cards.length === 0) { if (!confirmDeleteAction(t('confirmDelSection', { label }))) return; }
+    else if (isUnc) { if (!confirmDeleteAction(t('confirmDelUnclassified', { label, n: cards.length }))) return; }
     else {
-        if (!confirm(t('confirmDelSectionCards', { label, n: cards.length, unc: t('secUnclassified') }))) return;
+        if (!confirmDeleteAction(t('confirmDelSectionCards', { label, n: cards.length, unc: t('secUnclassified') }))) return;
         ensureUnclassifiedSection();
         store[UNCLASSIFIED_KEY] = (store[UNCLASSIFIED_KEY] || []).concat(cards);
     }
@@ -5501,7 +5540,7 @@ function handleSubAction(act, i) {
             openP2pPushModal({ prefillCards: [flat], prefillFromEncrypted: fromEnc });
         }
     }
-    else if (act === 'del') { if (confirm(t('confirmDelSub'))) { subs.splice(i,1); renderSubCardsList(); } }
+    else if (act === 'del') { if (confirmDeleteAction(t('confirmDelSub'))) { subs.splice(i,1); renderSubCardsList(); } }
 }
 function openSubModal(idx) {
     editingSubIndex = idx;
@@ -5648,18 +5687,19 @@ async function confirmImport() {
 var __fullBackupImportParsed = null;
 
 async function getSiteConfigSnapshot() {
-    if (currentMode !== MODE_ONLINE) return { title: '', header: '', footer: '' };
+    if (currentMode !== MODE_ONLINE) return { title: '', header: '', footer: '', deleteConfirmEnabled: deleteConfirmEnabled !== false };
     try {
         var r = await api('/api/site-config', { method: 'GET' });
         if (r.ok && r.data) {
             return {
                 title: r.data.title || '',
                 header: r.data.header || '',
-                footer: r.data.footer || ''
+                footer: r.data.footer || '',
+                deleteConfirmEnabled: r.data.deleteConfirmEnabled !== false
             };
         }
     } catch (e) {}
-    return { title: '', header: '', footer: '' };
+    return { title: '', header: '', footer: '', deleteConfirmEnabled: deleteConfirmEnabled !== false };
 }
 
 function buildSectionsSnapshot() {
@@ -5757,7 +5797,7 @@ function doFullBackupImportPreview() {
         var parsed = parseFullBackupJson(text);
         var cnt = countBackupSections(parsed.sections);
         var hasSite = parsed.siteConfig && (
-            parsed.siteConfig.title || parsed.siteConfig.header || parsed.siteConfig.footer
+            parsed.siteConfig.title || parsed.siteConfig.header || parsed.siteConfig.footer || parsed.siteConfig.deleteConfirmEnabled !== undefined
         );
         $('fullBackupImportPreview').style.display = 'block';
         $('fullBackupImportPreview').textContent = t('fullBackupImportPreview', {
@@ -5784,10 +5824,14 @@ async function applyFullBackupSiteConfig(siteConfig) {
         body: JSON.stringify({
             title: siteConfig.title || '',
             header: siteConfig.header || '',
-            footer: siteConfig.footer || ''
+            footer: siteConfig.footer || '',
+            deleteConfirmEnabled: siteConfig.deleteConfirmEnabled !== false
         })
     });
-    if (r.ok && r.data && r.data.ok) return t('fullBackupSiteApplied');
+    if (r.ok && r.data && r.data.ok) {
+        deleteConfirmEnabled = r.data.deleteConfirmEnabled !== false;
+        return t('fullBackupSiteApplied');
+    }
     return t('fullBackupSiteFail', { msg: (r.data && r.data.error) || ('HTTP ' + r.status) });
 }
 
@@ -7201,7 +7245,7 @@ async function deleteUserHandler(name, hasData) {
     // A1-c2: hasData=true 走强制删除归档流程,弹 modal 二次确认
     if (hasData) { openForceDeleteModal(name); return; }
     const msg = t('confirmDeleteUser').replace('{u}', name);
-    if (!confirm(msg)) return;
+    if (!confirmDeleteAction(msg)) return;
     const r = await api('/api/users?u=' + encodeURIComponent(name), { method: 'DELETE' });
     if (!r.ok || !r.data || !r.data.ok) {
         // 409 + requiresForce 兜底(理论上前端已拦截)
@@ -7377,7 +7421,7 @@ async function disableAndClearSlug() {
     const username = $('slugModalUsername').value;
     if (!username) return;
     const msg = t('slugDisableConfirm').replace('{u}', username);
-    if (!confirm(msg)) return;
+    if (!confirmDeleteAction(msg)) return;
     const r = await api('/api/public-slug?u=' + encodeURIComponent(username), { method: 'DELETE' });
     if (!r.ok || !r.data || !r.data.ok) {
         toast((r.data && r.data.error) || t('toastSlugSaveFail'));
@@ -8278,7 +8322,7 @@ async function handleInboxAction(act, msgId) {
         }
     } else if (act === 'delete-rejected') {
         // §16-A.3(2026-05-24):已拒绝列表的"彻底删除" — 后端从 KV 移除消息
-        if (!confirm(t('confirmInboxDeleteRejected'))) return;
+        if (!confirmDeleteAction(t('confirmInboxDeleteRejected'))) return;
         const r = await api('/api/inbox?action=delete-rejected', {
             method: 'POST',
             body: JSON.stringify({ msgId })
@@ -8291,7 +8335,7 @@ async function handleInboxAction(act, msgId) {
         await loadInbox();
     } else if (act === 'delete-accepted') {
         // §16-A.5(2026-05-24):删除已接受的历史记录 — 不动 user data.js 中已合并的卡片,仅删 inbox 索引
-        if (!confirm(t('confirmInboxDeleteAccepted'))) return;
+        if (!confirmDeleteAction(t('confirmInboxDeleteAccepted'))) return;
         const r = await api('/api/inbox?action=delete-accepted', {
             method: 'POST',
             body: JSON.stringify({ msgId })
@@ -8304,7 +8348,7 @@ async function handleInboxAction(act, msgId) {
         await loadInbox();
     } else if (act === 'delete-sent') {
         // §14 候选 A(2026-06-08):发件方删除自己的 sent 历史;不影响收件方 inbox / 已接受卡片
-        if (!confirm(t('confirmInboxDeleteSent'))) return;
+        if (!confirmDeleteAction(t('confirmInboxDeleteSent'))) return;
         const r = await api('/api/inbox?action=delete-sent', {
             method: 'POST',
             body: JSON.stringify({ msgId })
@@ -9395,7 +9439,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // §13:cardModal 内移除标注按钮(2026-05-23)
     $('btnCardModalRemovePushedBy').onclick = () => {
         if (!editingCardDraft || !editingCardDraft.pushedBy) return;
-        if (!confirm(t('confirmRemovePushedBy') || '移除"由 ' + editingCardDraft.pushedBy + ' 推送"的标注?')) return;
+        if (!confirmDeleteAction(t('confirmRemovePushedBy') || '移除"由 ' + editingCardDraft.pushedBy + ' 推送"的标注?')) return;
         delete editingCardDraft.pushedBy;
         delete editingCardDraft.pushedAt;
         $('cardModalPushedByRow').classList.add('hidden');
