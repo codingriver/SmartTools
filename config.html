@@ -3068,6 +3068,7 @@ let moveFromIndex = -1;
 let movingCardSourceSection = null, movingCardSourceIndex = -1;
 let promotingSubIndex = -1;
 let editingCustomSectionIdx = -2;
+const deletedBackupNamesOnline = new Set();
 
 /* ★ 默认 header 注释（仅在原 data.js 中没有任何头部注释时使用）
    原本的 sections.* 按节注释对象已删除：新格式只有一个 sections 数组，
@@ -3693,7 +3694,7 @@ async function idbDel(k) { const db = await idbOpen(); return new Promise((res, 
    Online API
 ================================================================ */
 async function api(path, opts = {}) {
-    const r = await fetch(path, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }, ...opts });
+    const r = await fetch(path, { credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }, ...opts });
     let data = null; try { data = await r.json(); } catch {}
     return { ok: r.ok, status: r.status, data };
 }
@@ -3941,7 +3942,8 @@ async function saveDataJs_online() {
 }
 async function refreshBackupStatus_online() {
     const r = await api('/api/backups', { method: 'GET' });
-    $('bakStatus').textContent = (r.ok && r.data && r.data.ok) ? t('stItemsCount', { n: r.data.backups.length }) : '—';
+    const n = (r.ok && r.data && r.data.ok) ? (r.data.backups || []).filter(b => b && !deletedBackupNamesOnline.has(b.name)).length : null;
+    $('bakStatus').textContent = n == null ? '—' : t('stItemsCount', { n });
 }
 
 async function loadSourceStatus_online() {
@@ -4056,7 +4058,11 @@ async function loadAdminSettings() {
 async function openHistoryModal_online() {
     const r = await api('/api/backups', { method: 'GET' });
     if (!r.ok || !r.data || !r.data.ok) { toast(t('toastBkLoadFail')); return; }
-    const list = r.data.backups;
+    renderBackupList_online(r.data.backups || []);
+    show('historyModal');
+}
+function renderBackupList_online(backups) {
+    const list = (backups || []).filter(b => b && !deletedBackupNamesOnline.has(b.name));
     const wrap = $('backupList'); wrap.innerHTML = '';
     $('historyHint').innerHTML = t('historyHintOnline');
     if (!list.length) wrap.innerHTML = '<div class="empty-hint">' + escapeHtml(t('historyEmpty')) + '</div>';
@@ -4071,7 +4077,18 @@ async function openHistoryModal_online() {
         el.querySelectorAll('button').forEach(btn => btn.onclick = () => handleBackupAction_online(btn.dataset.act, b.name));
         wrap.appendChild(el);
     });
-    show('historyModal');
+}
+function removeBackupFromList_online(name) {
+    deletedBackupNamesOnline.add(name);
+    const wrap = $('backupList');
+    if (!wrap) return;
+    Array.from(wrap.querySelectorAll('.backup-item')).forEach(item => {
+        const nameEl = item.querySelector('.bk-name');
+        if (nameEl && nameEl.textContent === name) item.remove();
+    });
+    if (!wrap.querySelector('.backup-item')) {
+        wrap.innerHTML = '<div class="empty-hint">' + escapeHtml(t('historyEmpty')) + '</div>';
+    }
 }
 async function handleBackupAction_online(act, name) {
     if (act === 'restore') {
@@ -4101,7 +4118,7 @@ async function handleBackupAction_online(act, name) {
     } else if (act === 'del') {
         if (!confirmDeleteAction(t('confirmDelBackup', { name }))) return;
         const r = await api('/api/backups?name=' + encodeURIComponent(name), { method: 'DELETE' });
-        if (r.ok && r.data && r.data.ok) { toast(t('toastDeleted')); openHistoryModal_online(); refreshBackupStatus_online(); }
+        if (r.ok && r.data && r.data.ok) { toast(t('toastDeleted')); removeBackupFromList_online(name); await refreshBackupStatus_online(); openHistoryModal_online(); }
         else toast(t('toastDeleteFail'));
     }
 }
