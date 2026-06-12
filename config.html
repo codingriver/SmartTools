@@ -1973,7 +1973,7 @@ const I18N = {
         secVideo: '🎬 视频聚合', secEmail: '📨 联系方式', secContact: '📨 其他联系方式',
         secUnclassified: '📦 未分类', secManageTab: '🗂 大类管理',
         secCustomTag: '大类', secCustomTitle: '大类',
-        btnAddCard: '➕ 新增卡片', titleItems: '（共 {n} 项）', titleItemsWithSubs: '（共 {n} 项，共 {sub} 子项）',
+        btnAddCard: '➕ 新增卡片', titleItems: '（共 {n} 项）', titleItemsWithSubs: '（共 {n} 项，共 {sub} 子项，共 {links} 链接）',
         privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 私密</span>',
         encBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#f3e5f5; color:#6a1b9a; border-radius:10px; vertical-align:middle;">🔐 加密</span>',
         lockedBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffebee; color:#c62828; border-radius:10px; vertical-align:middle;">🔒 已锁定</span>',
@@ -2567,7 +2567,7 @@ const I18N = {
         secVideo: '🎬 Videos', secEmail: '📨 Contacts', secContact: '📨 Contact Cards',
         secUnclassified: '📦 Unclassified', secManageTab: '🗂 Sections',
         secCustomTag: 'Section', secCustomTitle: 'Section',
-        btnAddCard: '➕ Add Card', titleItems: ' ({n} items)', titleItemsWithSubs: ' ({n} items, {sub} sub-items)',
+        btnAddCard: '➕ Add Card', titleItems: ' ({n} items)', titleItemsWithSubs: ' ({n} items, {sub} sub-items, {links} links)',
         privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 Private</span>',
         encBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#f3e5f5; color:#6a1b9a; border-radius:10px; vertical-align:middle;">🔐 Encrypted</span>',
         lockedBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffebee; color:#c62828; border-radius:10px; vertical-align:middle;">🔒 Locked</span>',
@@ -4581,6 +4581,16 @@ function handleAllCardAction(act, sectionKey, cardIdx, subIdx) {
     }
 }
 
+function countCardLinks(cards) {
+    return (cards || []).reduce((sum, card) => {
+        let count = card && card.url ? 1 : 0;
+        if (card && Array.isArray(card.subCards)) {
+            count += card.subCards.reduce((subSum, sub) => subSum + (sub && sub.url ? 1 : 0), 0);
+        }
+        return sum + count;
+    }, 0);
+}
+
 function renderCurrentSection() {
     // ★ 全部卡片视图
     if (currentSection === ALL_CARDS_SECTION) {
@@ -4590,13 +4600,14 @@ function renderCurrentSection() {
     const sec = getSections().find(x => x.key === currentSection); if (!sec) return;
     const arr = store[sec.key] || [];
     const subTotal = arr.reduce((sum, card) => sum + (Array.isArray(card.subCards) ? card.subCards.length : 0), 0);
+    const linkTotal = countCardLinks(arr);
     let badges = '';
     if (sec.private) badges += t('privateBadgeHtml');
     if (sec.encrypted) badges += t('encBadgeHtml');
     if (sec.locked) badges += t('lockedBadgeHtml');
     const title = sec.locked
         ? escapeHtml(sec.label) + badges
-        : escapeHtml(sec.label) + badges + ' <span style="font-size:14px;color:#888;font-weight:400;">' + escapeHtml(t('titleItemsWithSubs', { n: arr.length, sub: subTotal })) + '</span>';
+        : escapeHtml(sec.label) + badges + ' <span style="font-size:14px;color:#888;font-weight:400;">' + escapeHtml(t('titleItemsWithSubs', { n: arr.length, sub: subTotal, links: linkTotal })) + '</span>';
     $('currentSectionTitle').innerHTML = title;
 
     const list = $('cardList'); list.innerHTML = '';
