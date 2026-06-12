@@ -7050,6 +7050,11 @@ function openOpenTabsImportModal(payload) {
     show('openTabsImportModal');
 }
 
+function canOpenTabsImportModal() {
+    var main = $('mainPage');
+    return !!(main && !main.classList.contains('hidden'));
+}
+
 function setOpenTabsImportChecked(checked) {
     $('openTabsImportList').querySelectorAll('.open-tabs-check').forEach(function(cb) {
         cb.checked = checked;
@@ -7097,6 +7102,7 @@ function applyOpenTabsImport() {
 function handleOpenTabsExtensionMessage(event) {
     var data = event && event.data;
     if (!data || data.source !== 'smarttools-open-tabs-extension') return;
+    if (!canOpenTabsImportModal()) return;
     var msgKey = String(data.sentAt || '') + '::' + String(data.scope || '');
     if (msgKey && msgKey === __openTabsLastMessageKey) return;
     __openTabsLastMessageKey = msgKey;
