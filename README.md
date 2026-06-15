@@ -1,279 +1,365 @@
-# SmartTools - An Editable Online Bookmark System
+# SmartTools - Editable Online Bookmark & Sharing System
 
 > 🌏 [中文版 README](./README_CN.md)
 
-A personal bookmark system featuring **multiple card styles, visual configuration, and dual-mode deployment**.
+SmartTools is a self-hosted bookmark dashboard for personal links, tools, notes, and lightweight team sharing.
 
-Bookmarks, URLs, and frequently-used tools can all be edited directly through a web interface — **no code changes or redeployment required**.
+It can run as a pure static site, or as a Cloudflare Pages + Functions app with online editing, multi-user accounts, public share links, inbox-based card sharing, version backups, and browser tab importing.
 
 ---
 
-## ✨ Key Features
+## ✨ Highlights
 
-### 📚 Bookmark System
+### 📚 Bookmark Dashboard
 
-- **Multiple card styles**: full-card link (`simple`), clickable description (`desc-clickable`), expandable submenu (`expandable`, supporting multi-level sub-cards)
-- **Rich icon support**: Emoji / text / image URL / inline SVG — your choice
-- **Visual admin panel**: all cards, sub-cards, and categories can be added, edited, deleted, drag-sorted, and moved across categories directly in the browser
-- **Custom categories**: in addition to the built-in groups ("Online USB Drive", "Teaching Materials", "Web Resources", "Video Aggregators", "Email", "Other Contacts"), you can freely add/remove/rename/reorder your own categories, and configure per-category expand/collapse behavior on mobile
-- **🔐 Encrypted Categories (Privacy Protection)**: Any custom category can be encrypted with one click. Content is encrypted locally in the browser using **AES-GCM 256-bit** before being written to `data.js` — only ciphertext is stored on the server and in the repository. Accessing an encrypted category requires a separate password; decryption happens purely in memory. The unlocked state lives only in the current tab's `sessionStorage` and clears automatically when the tab closes. A floating **"Lock Now"** button in the bottom-right corner lets you re-lock instantly. When locked, even the category title is hidden — only a subtle pill-shaped placeholder remains, so **even if `data.js` is published to a public GitHub repo, the content cannot be recovered**
-- **📝 Card Notes / Markdown Mini-Notebook**: Any top-level card or sub-card can carry a Markdown note. Clicking a card first pops up the note preview; clicking the note area again then follows the link, while cards without a note keep the original direct-jump behavior. Common Markdown syntax is supported — headings, bold/italic, lists, quotes, inline code, code blocks, links, images — and the admin editor ships with a toolbar plus `Ctrl+B / Ctrl+I / Ctrl+K` shortcuts. This effectively turns the bookmark manager into a **lightweight Markdown scratchpad / short-text collection** for URL memos, code snippets, API cheatsheets, study points, and more. Logged-in admins can edit and save inline; notes inside encrypted sections are AES-GCM encrypted together with their card and only become readable after unlock.
-- **Dual-mode deployment**:
-  - ☁️ **Online mode**: deploy to Cloudflare Pages with data stored in KV — edit from any device or browser after login
-  - 💻 **Local mode**: read/write the local `data.js` directly from the browser (powered by the File System Access API, requires Chrome / Edge)
-- **Version management**: every save automatically backs up the previous version; preview, download, and one-click restore any historical version
-- **Data source switching**: in online mode, instantly toggle between "KV live data" and "static `data.js` in the GitHub repo"
-- **Automatic fallback**: if KV is selected as the data source but no data exists yet in KV, the system automatically falls back to the static `data.js` in the repository — no blank pages
-- **Import / Export**: import from any `data.js` file, or preview/download the current data at any time
-- **Security**: online mode uses HttpOnly cookies with HMAC-SHA256-signed session tokens; local-mode credentials are hashed with SHA-256 and stored only in the browser
+- **Multiple card styles**: full-card link (`simple`), clickable description (`desc-clickable`), and expandable groups (`expandable`) with nested sub-cards.
+- **Flexible icons**: Emoji, text, image URL, or inline SVG.
+- **Visual admin panel**: add, edit, delete, drag-sort, move cards across categories, and manage category visibility directly in the browser.
+- **Custom categories**: create, rename, reorder, hide, and configure mobile expand/collapse behavior.
+- **Five built-in themes**: Nebula, Notion, Stripe, Dark, and Mint, served through `index1.html` - `index5.html`.
+- **Site settings**: configure title, header, footer, default theme, backup behavior, backup retention, and delete-confirmation behavior from the admin UI.
+
+### 🔐 Privacy & Notes
+
+- **Encrypted categories**: any custom category can be encrypted locally with AES-GCM. The server and repository only store ciphertext; unlocking happens in browser memory.
+- **Hidden encrypted titles**: locked encrypted categories hide the real title and only show a small unlock entry.
+- **Session-only unlock state**: unlock state is stored in `sessionStorage` and disappears when the tab closes; a floating lock button can clear it immediately.
+- **Markdown card notes**: any top-level card or sub-card can store a Markdown note/comment. Notes support common Markdown syntax, toolbar editing, and keyboard shortcuts.
+- **Encrypted notes**: notes inside encrypted categories are encrypted together with their cards.
+
+### 👥 Multi-User & Sharing
+
+- **Admin + regular users**: administrators can create users, reset passwords, disable/delete accounts, and manage user data boundaries.
+- **Per-user data namespaces**: admin data and each user's data, source setting, and backups are stored separately in KV.
+- **Public share links**: each user can expose a public slug such as `/u/alice` or `?u=alice`; private/encrypted sections are stripped from public responses.
+- **Slug safety**: reserved words, uniqueness checks, old-slug redirects, and IP-based failed-slug lockout help reduce accidental conflicts and enumeration.
+- **Inbox sharing**: users can send cards to another user's inbox, include a short Markdown message, and track sent history.
+- **Admin push**: admins can push cards to selected users either as inbox items for review or as a forced direct insertion with a visible push badge.
+- **Encrypted acceptance flow**: cards sent from encrypted sections can only be accepted into encrypted categories, preserving the privacy boundary.
+
+### 🧰 Data Management
+
+- **Dual deployment modes**:
+  - ☁️ **Online mode**: Cloudflare Pages Functions + KV, editable from any device after login.
+  - 💻 **Local mode**: directly edit local `data.js` from Chrome/Edge through the File System Access API.
+- **Data source switching**: online mode can switch between KV live data and static repository `data.js`.
+- **Automatic fallback**: if KV data is unavailable, admin/public pages can fall back to static `data.js` or an empty first-use stub.
+- **Backups and restore**: save history is stored per namespace; backups can be listed, previewed, restored, downloaded, or pruned by retention settings.
+- **Permanent archives**: forced user deletion archives data, source settings, and backups before cleanup; admins can list, download, and delete archives.
+- **Large data split storage**: the backend can store section-level snapshots in KV while still reconstructing a normal `data.js` export.
+- **Migration tool**: `/api/migrate-v2` migrates legacy KV keys into the newer `admin:*` namespace safely and idempotently.
+
+### 🧩 Browser Extension
+
+The `extensions/open-tabs-importer` Chrome/Edge extension imports open browser tabs into SmartTools:
+
+- Import the current window or all windows.
+- Skip non-HTTP(S) tabs and the SmartTools admin page itself.
+- Review selected tabs in the admin UI before inserting.
+- Create one expandable parent card with the imported tabs as sub-cards.
+- Preserve tab title, URL, and non-base64 favicon URL when available.
+
+---
 
 ## 🚀 Getting Started
 
-### Option 1: Deploy to Cloudflare Pages (Recommended — Online Editing)
+### Option 1: Cloudflare Pages (Recommended)
 
-#### 1. Fork / Import the Repository
+1. Fork or import this repository.
+2. In Cloudflare Dashboard, go to **Workers & Pages → Create application → Pages → Connect to Git**.
+3. Use the default build settings:
 
-1. Fork this repo to your GitHub account.
-2. Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**, and select the repo.
-3. Keep the default build settings (pure static + Functions, no build step needed):
-   - Build command: *leave empty*
-   - Build output directory: `/`
+| Setting | Value |
+|---|---|
+| Build command | leave empty |
+| Build output directory | `/` |
 
-After the first deployment completes, **don't rush to visit the site yet** — you still need to configure environment variables and bind KV.
+After the first deployment, configure environment variables and KV before using the site.
 
-#### 2. Configure Environment Variables
+### Required Environment Variables
 
-Go to **Project → Settings → Environment variables → Production** and add the following **3 variables** (it's recommended to mark all of them as **Encrypt / Secret**):
+Add these variables in **Project → Settings → Environment variables → Production**. Mark them as encrypted secrets.
 
-| Variable | Required | Example | Description |
-|---|---|---|---|
-| `ADMIN_USER` | ✅ | `admin` | Admin login username |
-| `ADMIN_PASS` | ✅ | `YourStrongPassword!2026` | Admin login password — use a strong one |
-| `AUTH_SECRET` | ✅ | *(see generation commands below)* | Secret key used to HMAC-SHA256-sign the session cookie |
+| Variable | Required | Description |
+|---|---|---|
+| `ADMIN_USER` | ✅ | Initial administrator username |
+| `ADMIN_PASS` | ✅ | Initial administrator password |
+| `AUTH_SECRET` | ✅ | Secret used to HMAC-sign session cookies |
 
-> ⚠️ **`AUTH_SECRET` MUST be changed!**
-> ~~There is a fallback default value `please-change-this-secret` in the code. If you forget to set it, the system will still work, but the signing key becomes a public string, and **anyone can forge a valid login session**.~~
-
-Recommended ways to generate a secret (pick any):
+Generate a strong `AUTH_SECRET`:
 
 ```bash
-# macOS / Linux
 openssl rand -base64 48
-
-# Node.js
-node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
-
-# Python
-python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-Paste the generated random string (at least 32 characters) into `AUTH_SECRET`.
+Or with Node.js:
 
-#### 3. Create and Bind a KV Namespace
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+```
 
-**3.1 Create a KV namespace**
+### KV Binding
 
-Go to **Workers & Pages → KV → Create a namespace**. Pick any name, e.g. `smarttools-fav`.
-
-**3.2 Bind it to the Pages project**
-
-Back in your Pages project → **Settings → Functions → KV namespace bindings → Add binding**:
+Create a KV namespace and bind it to the Pages project:
 
 | Variable name | KV namespace |
 |---|---|
-| **`FAV_KV`** | Select the namespace you just created |
+| `FAV_KV` | Your SmartTools KV namespace |
 
-> ⚠️ **The Variable name MUST be exactly `FAV_KV`** (uppercase, underscore).
-> The code accesses this KV via `env.FAV_KV`; any typo will break saving and silently fall back to read-only mode.
+The binding name must be exactly `FAV_KV`.
 
-**3.3 Keys stored in KV** (no manual setup required — the system writes them automatically)
+### First Login
 
-| Key | Type | Description |
-|---|---|---|
-| `data_js` | text | Full content of `data.js` (all bookmark data) |
-| `data_source` | `kv` / `static` | Data source switch — determines what the frontend reads |
+1. Redeploy the Pages project after setting variables and KV.
+2. Open `https://<your-project>.pages.dev/config.html`.
+3. Log in with `ADMIN_USER` / `ADMIN_PASS`.
+4. Save once from the admin panel to initialize KV data.
 
-#### 4. Trigger a Redeployment
+### Option 2: Local Mode
 
-Once the environment variables and KV binding are ready, go to **Deployments → latest deployment → Retry deployment** so the new configuration takes effect.
+1. Clone or download this repository.
+2. Serve the folder locally, for example:
 
-#### 5. First Login and Initialization
-
-1. Open your site: `https://<your-project-name>.pages.dev`
-2. Visit `/config.html` and log in with `ADMIN_USER` / `ADMIN_PASS`.
-3. Edit your content and click **Save**.
-4. On a successful save, `data_js` is written into KV and the frontend will start reading from KV.
-
----
-
-### Option 2: Local Mode (Zero Backend, Pure Static)
-
-1. Clone or download the repo locally.
-2. Open `index.html` using **Chrome / Edge** (preferably through a local server such as `python -m http.server`; do **not** use `file://`).
-3. Visit `config.html` and choose **"💻 Local Mode"**.
-4. Set a username and password on first use (hashed and stored only in the current browser).
-5. Click **"📂 Connect Folder"** and select the repo directory — you can now edit the local `data.js` directly.
-
-### Option 3: Pure Static, Read-Only
-
-If you only want to display your bookmarks without editing them, just modify `data.js` manually and deploy to any static host (GitHub Pages / Vercel / Netlify, etc.). You don't need to open or expose `config.html` at all.
-
----
-
-## 🔄 Data Source Switching
-
-In online mode, the system supports two data sources, controlled by the `data_source` key in KV:
-
-| Value | Frontend data source | Use case |
-|---|---|---|
-| `kv` (recommended default) | `data_js` in KV | Daily use — saves take effect immediately |
-| `static` | `data.js` in the repo | Emergency rollback / debugging / read-only display |
-
-You can toggle this from the top of `config.html` with one click, or preview via query parameters:
-
-```
-/api/data?format=json                 # Returns the currently active content
-/api/data?format=json&source=kv       # Force-preview the KV version
-/api/data?format=json&source=static   # Force-preview the static repo version
+```bash
+python -m http.server
 ```
 
-**Automatic fallback**: when `kv` is selected but KV is empty, the system falls back to the repo's `data.js`, and the response includes `X-Data-Source: static-fallback` — ensuring the page is never blank.
+3. Open `http://localhost:8000/config.html` in Chrome or Edge.
+4. Choose local mode, create local credentials, connect the project folder, and edit `data.js` directly.
+
+### Option 3: Static Read-Only
+
+Edit `data.js` manually and deploy the repository to any static host. You do not need to expose `config.html`.
 
 ---
 
-## 🔑 Authentication (Online Mode)
+## 🌐 Public Links
 
-- On successful login, the server issues a token and sets it as a cookie named `auth`.
-- Token format: `base64url(payload).base64url(HMAC-SHA256(payload, AUTH_SECRET))`
-- Payload: `{ "u": "<username>", "exp": <millisecond timestamp> }`
-- Cookie attributes: `HttpOnly; Secure; SameSite=Strict; Max-Age=604800` (7 days)
-- On every request to a protected endpoint, the server:
-  1. Reads the `auth` cookie.
-  2. Recomputes the signature using `AUTH_SECRET` and compares.
-  3. Verifies `exp` has not expired.
-  4. Allows the request if valid; otherwise returns `401`.
+Users can enable a public slug in the admin UI.
+
+Examples:
+
+```text
+/u/alice
+/u/alice?theme=stripe
+/index2.html?u=alice
+```
+
+Public responses remove private/encrypted sections before returning data. When a slug is renamed, old-slug redirects can keep previous links working for a limited period.
+
+---
+
+## 🧩 Extension Usage
+
+The unpacked extension lives at `extensions/open-tabs-importer`.
+
+1. Open Chrome/Edge extension management.
+2. Enable developer mode.
+3. Load `extensions/open-tabs-importer` as an unpacked extension.
+4. Open and log in to SmartTools `config.html`.
+5. Click the extension and import current-window or all-window tabs.
+6. Confirm the generated expandable card in the SmartTools admin UI, then save.
+
+The packaged zip is also included as `extensions/open-tabs-importer.zip`.
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 /
-├── index.html              # Bookmark homepage
-├── login.html              # Login page
-├── config.html             # Admin panel (supports both online & local modes)
-├── data.js                 # Static data file (fallback when KV is empty)
-├── functions/              # Cloudflare Pages Functions (online-mode API)
-│   ├── _shared/
-│   │   └── auth.js         # Auth utilities (issue / verify tokens)
-│   └── api/
-│       ├── login.js        # POST /api/login
-│       ├── logout.js       # POST /api/logout
-│       ├── data.js         # GET  /api/data
-│       ├── save.js         # POST /api/save
-│       ├── source.js       # GET/POST /api/source
-│       └── backups.js      # Version history management
+├── index.html              # Default entry page
+├── index1.html             # Nebula theme
+├── index2.html             # Notion theme
+├── index3.html             # Stripe theme
+├── index4.html             # Dark theme
+├── index5.html             # Mint theme
+├── config.html             # Admin panel and local-mode editor
+├── data.js                 # Static fallback / read-only data
+├── shared/                 # Frontend shared modules
+│   ├── data-loader.js
+│   ├── enc-unlock.js
+│   ├── enc-rerender.js
+│   ├── fav-page.js
+│   ├── note-modal.js
+│   ├── zip-adapter.js
+│   └── xlsx-adapter.js
+├── functions/              # Cloudflare Pages Functions
+│   ├── _shared/            # Auth, slug, data split, metadata helpers
+│   ├── api/                # JSON APIs
+│   └── u/[[slug]].js       # /u/<slug> public share route
+├── extensions/
+│   └── open-tabs-importer/ # Chrome/Edge open-tabs importer
 ├── scripts/
-│   └── update-timestamp.js # Helper for stamping data.js version/timestamp
+│   └── update-timestamp.js
+├── screenshot/
 └── README.md
 ```
-
-> Directories starting with `_` are **not** treated as routes by Cloudflare Pages — they're used for shared modules.
 
 ---
 
 ## 🎨 Card Types
 
-| Type | Purpose | Example |
-|------|---------|---------|
-| `simple` | Entire card is clickable | Regular URL bookmarks |
-| `desc-clickable` | Title links to A, description links to B | "GitHub" → homepage; description "My Repos" → repos page |
-| `expandable` | Shows multiple sub-cards when expanded | Grouped items, e.g. an "AI Tools" card containing many AI sites |
+| Type | Purpose |
+|---|---|
+| `simple` | Entire card opens one URL |
+| `desc-clickable` | Title/card opens `url`; description opens `descUrl` |
+| `expandable` | Parent card expands to show `subCards` |
 
-Sub-cards also support two styles: **two-line** (icon + title + description) and **compact** (icon + single line).
+Sub-cards support two-line cards (`icon`, `title`, `desc`, `url`) and compact cards (`icon`, `content`, `url`).
 
 ---
 
-## 🧩 API Reference (Online Mode)
+## 🧩 API Reference
+
+### Session & Account
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/api/login` | No | Log in; body: `{username, password}` |
-| `POST` | `/api/logout` | No | Log out and clear the cookie |
-| `GET`  | `/api/data` | No | Returns raw `data.js` text; `?format=json` returns JSON |
-| `POST` | `/api/save` | Yes | Save data into KV; body: `{content}` |
-| `GET`  | `/api/source` | Yes | Get the current data-source setting |
-| `POST` | `/api/source` | Yes | Switch data source; body: `{source: "kv" \| "static"}` |
-| `GET`  | `/api/backups` | Yes | List / preview / restore historical versions |
+| `POST` | `/api/login` | No | Login with admin or KV user credentials |
+| `POST` | `/api/logout` | No | Clear login cookie |
+| `GET` | `/api/check` | No | Session status, role, KV/admin availability, migration hint |
+| `POST` | `/api/change-password` | Yes | Logged-in user changes own password |
+| `GET/POST/DELETE` | `/api/users` | Admin | List, create/reset, archive/delete users |
+
+### Data & Configuration
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/data` | No | Read active `data.js`; supports `format=json`, `source=kv/static`, `u=<slug>` |
+| `GET` | `/api/data-meta` | No | Lightweight version/hash/ETag metadata |
+| `POST` | `/api/save` | Yes | Save full data or section-level deltas |
+| `POST` | `/api/comment` | Yes | Patch a single card note/comment or remove push badge metadata |
+| `GET/POST` | `/api/source` | GET public, POST auth | Read or switch data source |
+| `GET/POST` | `/api/site-config` | GET public, POST auth | Read or save site title/theme/backup settings |
+
+### Sharing & Publishing
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET/POST/DELETE` | `/api/public-slug` | Yes | Manage public slugs |
+| `GET/POST` | `/api/inbox` | Yes | Receive, accept, reject, delete, send, and configure inbox messages |
+| `POST` | `/api/push` | Admin | Push cards to selected users as inbox or forced insertion |
+| `GET` | `/u/<slug>` | No | Public themed page route |
+
+### Backup, Archive, Migration
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET/POST/DELETE` | `/api/backups` | Yes | List, create, preview, restore, delete backups |
+| `GET/DELETE` | `/api/archives` | Admin | List, download, and delete permanent user archives |
+| `POST` | `/api/migrate-v2` | Admin | Migrate legacy KV keys to `admin:*` namespace |
+
+---
+
+## 🔑 Authentication
+
+- Sessions use an `auth` cookie.
+- Tokens are HMAC-SHA256 signed with `AUTH_SECRET`.
+- Cookie attributes: `HttpOnly; Secure; SameSite=Strict; Max-Age=604800`.
+- KV users are stored with PBKDF2-SHA256 password hashes and per-user salts.
+- Legacy SHA-256 user hashes are still readable and are upgraded on successful login or password change.
+- Login failures are rate-limited by client IP.
+
+---
+
+## 🔄 Data Model Notes
+
+Current data uses:
+
+```js
+var sections = [
+  { key: 'usbDriveData', kind: 'card', label: '...', cards: [] }
+];
+```
+
+Older top-level arrays such as `var usbDriveData = []` are still supported by migration and merge paths.
+
+Important KV namespaces:
+
+| Key pattern | Meaning |
+|---|---|
+| `admin:data_js` | Admin bookmark data |
+| `admin:data_source` | Admin data source setting |
+| `admin:backup:<timestamp>` | Admin backups |
+| `user:<uid>:data_js` | User bookmark data |
+| `user:<uid>:data_source` | User data source setting |
+| `user:<uid>:backup:<timestamp>` | User backups |
+| `users` | User table and public slug settings |
+| `inbox:<uid>:<msgId>` | Inbox message |
+| `archive:<uid>:<timestamp>:*` | Permanent deletion archive |
 
 ---
 
 ## 🖼 Screenshots
 
 ### Bookmark Homepage
-![Homepage — Notion theme](./screenshot/screenshot1.png)
-![Homepage — Framer theme](./screenshot/screenshot2.png)
+
+![Homepage - Notion theme](./screenshot/screenshot1.png)
+![Homepage - alternate theme](./screenshot/screenshot2.png)
 
 ### Admin Panel
-![Admin panel](./screenshot/screenshot6.png)
 
-### Card Editor
-![Card editor](./screenshot/screenshot5.png)
+![Admin panel](./screenshot/screenshot3.png)
+![Card editor](./screenshot/screenshot4.png)
+![Card editor details](./screenshot/screenshot5.png)
+![Admin panel details](./screenshot/screenshot6.png)
 
 ---
 
 ## 📱 Compatibility
 
-- **Bookmark homepage**: all modern browsers (Chrome / Edge / Firefox / Safari / mobile). Responsive design works on phones, tablets, and desktops.
-- **Admin panel (online mode)**: all modern browsers.
-- **Admin panel (local mode)**: requires **Chrome 86+ / Edge 86+** (depends on the File System Access API) and must be served over `http://` or `https://` — `file://` is **not** supported.
+- **Bookmark pages**: modern Chrome, Edge, Firefox, Safari, and mobile browsers.
+- **Online admin panel**: modern browsers.
+- **Local mode**: Chrome 86+ or Edge 86+, served through `http://` or `https://`; `file://` is not supported.
+- **Browser extension**: Chromium-based Chrome/Edge with Manifest V3 support.
 
 ---
 
 ## 🛡️ Security Recommendations
 
-1. **Always set a strong `AUTH_SECRET`** — never leave it at the default.
-2. **Use a strong password** for `ADMIN_PASS`, and don't reuse it elsewhere.
-3. Mark `ADMIN_USER` / `ADMIN_PASS` / `AUTH_SECRET` all as **Secret** (encrypted) variables.
-4. Cloudflare Pages enforces HTTPS by default — don't disable it.
-5. If the site is used by multiple people, consider adding a **Cloudflare Access / Zero Trust** policy in front.
-6. Rotate `AUTH_SECRET` periodically (note that after rotation, all logged-in devices will need to log in again).
-7. **Use a dedicated password for encrypted categories — never reuse your login password**: Encryption uses PBKDF2 (SHA-256, 250,000 iterations) for key derivation + AES-GCM for encryption. Security depends entirely on the strength of your password. If forgotten, **no one (including the author) can recover the data** — be sure to save it in a password manager.
-- **📝 Card Notes / Markdown Mini-Notebook**: Any top-level card or sub-card can carry a Markdown note. Clicking a card first pops up the note preview; clicking the note area again then follows the link, while cards without a note keep the original direct-jump behavior. Common Markdown syntax is supported — headings, bold/italic, lists, quotes, inline code, code blocks, links, images — and the admin editor ships with a toolbar plus `Ctrl+B / Ctrl+I / Ctrl+K` shortcuts. This effectively turns the bookmark manager into a **lightweight Markdown scratchpad / short-text collection** for URL memos, code snippets, API cheatsheets, study points, and more. Logged-in admins can edit and save inline; notes inside encrypted sections are AES-GCM encrypted together with their card and only become readable after unlock.
+1. Set a strong `AUTH_SECRET`; never use a predictable value.
+2. Use strong admin and user passwords.
+3. Mark `ADMIN_USER`, `ADMIN_PASS`, and `AUTH_SECRET` as encrypted Cloudflare secrets.
+4. Keep Cloudflare Pages HTTPS enabled.
+5. Use Cloudflare Access / Zero Trust if the admin panel is shared in a sensitive environment.
+6. Use a dedicated password for encrypted categories and store it in a password manager. Lost encrypted-category passwords cannot be recovered.
+7. Do not store secrets in plain card notes. Put sensitive notes only inside encrypted categories.
+8. Review public slug pages after enabling them to confirm private categories are not intended for public display.
 
 ---
 
 ## 🔒 Privacy
 
-- **Online mode**: all data is stored in your own Cloudflare KV account — nothing passes through any third-party server.
-- **Local mode**: data and credentials are kept entirely on your local device; nothing is uploaded.
-- The browser open-tabs importer only reads the current browser tab list and submits it to your own admin endpoint.
+- Online data stays in your own Cloudflare KV namespace.
+- Local mode keeps data and credentials on your local device.
+- Public pages filter private/encrypted sections before returning data.
+- The browser extension only reads open tab metadata and sends it to your own logged-in SmartTools admin page.
 
 ---
 
 ## ❓ FAQ
 
-**Q1: I saved from the admin panel, but the frontend didn't change. Why?**
-A: Check that the KV binding's Variable name is exactly `FAV_KV` (case-sensitive), and that the data source in `config.html` is set to `kv`.
+**Q1: I saved data but the frontend did not change.**
+Check that `FAV_KV` is bound correctly and that the active source is `kv`.
 
-**Q2: Login shows "Server has not configured ADMIN_USER / ADMIN_PASS environment variables".**
-A: Go to Pages → Settings → Environment variables, confirm the variables are added to the **Production** environment, and **trigger a fresh deployment** so they take effect.
+**Q2: Login says environment variables are missing.**
+Confirm `ADMIN_USER`, `ADMIN_PASS`, and `AUTH_SECRET` are configured in the Production environment, then redeploy.
 
-**Q3: Login succeeds, but I have to log in again after a refresh.**
-A: Usually `AUTH_SECRET` changed between requests (e.g. you edited the variable but didn't redeploy, causing inconsistency). Make sure the value is stable and redeploy.
+**Q3: I am asked to log in again after refresh.**
+`AUTH_SECRET` may have changed or not been applied consistently. Keep it stable and redeploy.
 
-**Q4: Can I develop locally?**
-A: Yes — use Cloudflare's official tool [Wrangler](https://developers.cloudflare.com/workers/wrangler/):
+**Q4: How do I develop locally with Cloudflare Functions?**
 
 ```bash
 npm i -g wrangler
 wrangler pages dev . --kv FAV_KV
 ```
 
-Provide environment variables via a `.dev.vars` file.
+Use `.dev.vars` for local environment variables.
 
-**Q5: How do I export my data for backup?**
-A: Visit `/api/data?format=json` and save the `content` field as `data.js`. You can also download any historical version with one click from the "Version Management" section of the admin panel.
+**Q5: How do I back up my data?**
+Use the admin panel backup/export tools, or request `/api/data?format=json` and save the returned `content` as `data.js`.
 
 ---
 
@@ -285,8 +371,8 @@ MIT License
 
 ## 🙏 Acknowledgements
 
-- Some icons come from Emoji sets and the official logos of the respective sites.
-- Hosted on [Cloudflare Pages](https://pages.cloudflare.com/) with [Workers KV](https://developers.cloudflare.com/kv/).
+- Hosted with [Cloudflare Pages](https://pages.cloudflare.com/) and [Workers KV](https://developers.cloudflare.com/kv/).
+- Some icons come from Emoji sets and official site logos.
 
 ---
 

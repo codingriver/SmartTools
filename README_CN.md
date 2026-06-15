@@ -1,277 +1,365 @@
-# SmartTools - 可编辑的在线收藏夹系统
+# SmartTools - 可编辑的在线收藏夹与分享系统
 
 > 🌏 [ENGLISH README](./README.md)
 
-一个**支持多种卡片样式、可视化配置、双模式部署**的个人收藏夹系统。
+SmartTools 是一个可自托管的收藏夹仪表盘，用来管理个人网址、常用工具、Markdown 笔记和轻量协作分享。
 
-收藏的网址、书签、常用工具都可以通过 Web 界面直接编辑，**无需改代码、无需重新部署**。
+它既可以作为纯静态站点运行，也可以部署为 Cloudflare Pages + Functions 应用，获得在线编辑、多用户、公开短链、收件箱分享、版本备份和浏览器标签页导入等能力。
 
 ---
 
 ## ✨ 核心特性
 
-### 📚 收藏夹系统
+### 📚 收藏夹主页
 
-- **多种卡片样式**：整卡跳转（simple）、描述可点击（desc-clickable）、可展开子菜单（expandable，带多级子卡片）
-- **丰富的图标支持**：Emoji / 文字 / 图片 URL / 内联 SVG 任选
-- **可视化配置后台**：所有卡片、子卡片、分类均可通过网页直接增删改、拖动排序、跨分类移动
-- **自定义大类**：除内置的「在线U盘、授课资料、网络资源、视频聚合、邮箱、其他联系方式」之外，可自由新增/删除/重命名/排序自定义分类，并可设置手机端展开折叠行为
-- **🔐 加密大类（隐私保护）**：任意自定义大类均可一键开启加密，内容使用 **AES-GCM 256 位** 在浏览器本地加密后再存入 `data.js`，服务端和仓库中只留密文；访问时需输入独立密码解锁，密码正确才会在内存中解密渲染。解锁状态仅保留在当前标签页的 `sessionStorage` 中，关闭标签页即自动锁定；页面右下角还提供浮动「立即锁定」按钮，可随时一键清除解锁态。锁定状态下连大类标题都会隐藏，只显示一个不起眼的小药丸入口，**即使 `data.js` 被公开到 GitHub 也无法反推出内容**
-- **📝 卡片注释 / Markdown 迷你笔记**：任意主卡片或子卡片都可以附加一段 Markdown 注释，点击卡片时先弹出注释预览，再次点击注释区域才继续跳转；无注释则保持原先的直接跳转行为。支持标题、粗体 / 斜体、列表、引用、行内代码、代码块、链接、图片等常用 Markdown 语法，配置后台的编辑器还自带快捷工具栏和 `Ctrl+B / Ctrl+I / Ctrl+K` 快捷键，等于顺手把收藏夹变成了一个**轻量 Markdown 速记本 / 短文收藏夹**，适合保存网址备忘、代码片段、接口用法、学习要点等短文本。已登录管理员可直接在卡片上编辑保存；加密大类下的注释也会随卡片一起用 AES-GCM 加密存储，解锁后才可见。
+- **多种卡片样式**：整卡跳转（`simple`）、描述可点击（`desc-clickable`）、可展开分组（`expandable`，支持子卡片）。
+- **丰富图标支持**：Emoji、文字、图片 URL、内联 SVG 均可使用。
+- **可视化后台**：卡片、子卡片、分类均可在浏览器中增删改、拖动排序、跨分类移动。
+- **自定义大类**：支持新增、重命名、排序、隐藏，并设置移动端展开/折叠行为。
+- **五套内置主题**：Nebula、Notion、Stripe、Dark、Mint，对应 `index1.html` - `index5.html`。
+- **站点基础设置**：可在后台配置标题、页眉、页脚、默认主题、自动备份、备份保留数量、删除二次确认等。
+
+### 🔐 隐私与笔记
+
+- **加密大类**：任意自定义分类可在浏览器本地使用 AES-GCM 加密，服务端和仓库只保存密文。
+- **隐藏标题**：加密大类锁定时连真实标题也会隐藏，只显示一个低调的解锁入口。
+- **会话级解锁**：解锁态只保存在当前标签页 `sessionStorage`，关闭标签页自动锁定；右下角可一键立即锁定。
+- **Markdown 卡片注释**：任意主卡片或子卡片可保存 Markdown 注释，支持常用语法、工具栏和快捷键。
+- **加密笔记**：加密大类中的注释会随卡片一起加密保存，解锁后才可见。
+
+### 👥 多用户与分享
+
+- **管理员 + 普通用户**：管理员可创建用户、重置密码、禁用/删除账号，并管理用户数据边界。
+- **用户数据隔离**：管理员和每个普通用户拥有独立的数据、数据源设置和备份命名空间。
+- **公开短链**：用户可启用公开 slug，例如 `/u/alice` 或 `?u=alice`；公开响应会过滤私密/加密分类。
+- **Slug 安全机制**：保留词、唯一性校验、旧 slug 重定向、失败访问 IP 限速，减少冲突和枚举风险。
+- **收件箱分享**：用户之间可发送卡片，附带简短 Markdown 留言；发件方可查看发送历史。
+- **管理员推送**：管理员可向指定用户推送卡片，既可进入对方收件箱待确认，也可强制直写并显示推送标记。
+- **加密接收流程**：来自加密来源的卡片只能被接收到加密大类，避免隐私边界被绕过。
+
+### 🧰 数据管理
+
 - **双模式部署**：
-  - ☁️ **在线模式**：部署到 Cloudflare Pages，数据存于 KV，任何设备/浏览器都可登录编辑
-  - 💻 **本地模式**：浏览器直接读写本地 `data.js` 文件（基于 File System Access API，需 Chrome / Edge）
-- **版本管理**：每次保存自动备份旧版本，支持预览、下载、一键恢复任意历史版本
-- **数据源切换**：在线模式下可一键在「KV 实时数据」与「GitHub 仓库静态 `data.js`」之间切换，切换即时生效
-- **自动回退**：选择 KV 数据源但 KV 中暂无数据时，自动回退读取仓库内的静态 `data.js`，不会出现空白页面
-- **导入 / 导出**：支持从任意 `data.js` 文件导入，也可随时预览或下载当前数据
-- **安全机制**：在线模式使用 HttpOnly Cookie + HMAC-SHA256 签名令牌会话；本地模式凭据经 SHA-256 哈希后存储于浏览器
+  - ☁️ **在线模式**：Cloudflare Pages Functions + KV，登录后可跨设备编辑。
+  - 💻 **本地模式**：Chrome/Edge 通过 File System Access API 直接读写本地 `data.js`。
+- **数据源切换**：在线模式可在 KV 实时数据与仓库静态 `data.js` 之间切换。
+- **自动回退**：KV 数据缺失时，可回退到静态 `data.js` 或首次使用空白模板。
+- **版本备份与恢复**：每个命名空间拥有独立备份，可列表、预览、恢复、下载和按保留策略清理。
+- **永久归档**：强制删除用户前会归档数据、数据源和备份；管理员可查看、下载、删除归档。
+- **大数据分片存储**：后端支持按分类写入 KV 分片，同时仍可重建标准 `data.js`。
+- **迁移工具**：`/api/migrate-v2` 可将旧 KV 键安全、幂等地迁移到新的 `admin:*` 命名空间。
+
+### 🧩 浏览器扩展
+
+`extensions/open-tabs-importer` 提供 Chrome/Edge 标签页导入能力：
+
+- 导入当前窗口或所有窗口的标签页。
+- 自动跳过非 HTTP(S) 标签和 SmartTools 后台页。
+- 在后台确认界面勾选需要导入的标签。
+- 生成一个可展开父卡片，标签页作为子卡片。
+- 保存标题、URL，以及可用的非 base64 favicon 地址。
+
+---
 
 ## 🚀 快速开始
 
-### 方式一：Cloudflare Pages 部署（推荐，可在线编辑）
+### 方式一：Cloudflare Pages（推荐）
 
-#### 1. Fork / 导入仓库
+1. Fork 或导入本仓库。
+2. 在 Cloudflare Dashboard 进入 **Workers & Pages → Create application → Pages → Connect to Git**。
+3. 构建设置保持默认：
 
-1. Fork 本仓库到你的 GitHub 账号
-2. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**，选择该仓库
-3. 构建设置保持默认（纯静态 + Functions，无需构建命令）：
-   - Build command: *留空*
-   - Build output directory: `/`
+| 设置项 | 值 |
+|---|---|
+| Build command | 留空 |
+| Build output directory | `/` |
 
-首次部署完成后**先不要急着访问**，还需要完成下面的环境变量和 KV 绑定。
+首次部署完成后，先配置环境变量和 KV，再访问使用。
 
-#### 2. 配置环境变量
+### 必需环境变量
 
-进入 **项目 → Settings → Environment variables → Production**，添加以下 **3 个变量**（建议全部勾选 **Encrypt / Secret**）：
+在 **Project → Settings → Environment variables → Production** 添加以下变量，建议全部设为加密 Secret：
 
-| 变量名 | 必填 | 示例值 | 说明 |
-|---|---|---|---|
-| `ADMIN_USER` | ✅ | `admin` | 后台登录用户名 |
-| `ADMIN_PASS` | ✅ | `YourStrongPassword!2026` | 后台登录密码，请使用强密码 |
-| `AUTH_SECRET` | ✅ | *（见下方生成命令）* | 用于对登录 Cookie 进行 HMAC-SHA256 签名的密钥 |
+| 变量名 | 必填 | 说明 |
+|---|---|---|
+| `ADMIN_USER` | ✅ | 初始管理员用户名 |
+| `ADMIN_PASS` | ✅ | 初始管理员密码 |
+| `AUTH_SECRET` | ✅ | 登录 Cookie 的 HMAC 签名密钥 |
 
-> ⚠️ **`AUTH_SECRET` 必须修改！**
-> ~~代码里有一个兜底默认值 `please-change-this-secret`，如果你忘了配置，系统依然能运行，但签名密钥是公开字符串，**任何人都可以伪造登录态**。~~
-
-推荐的密钥生成方式（任选其一）：
+生成强 `AUTH_SECRET`：
 
 ```bash
-# macOS / Linux
 openssl rand -base64 48
-
-# Node.js
-node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
-
-# Python
-python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-将生成出的随机字符串（至少 32 位）整串粘贴到 `AUTH_SECRET` 即可。
+或使用 Node.js：
 
-#### 3. 创建并绑定 KV 命名空间
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+```
 
-**3.1 创建 KV 命名空间**
+### 绑定 KV
 
-进入 **Workers & Pages → KV → Create a namespace**，名字随意，例如 `smarttools-fav`。
-
-**3.2 绑定到 Pages 项目**
-
-回到 Pages 项目 → **Settings → Functions → KV namespace bindings → Add binding**：
+创建 KV 命名空间，并绑定到 Pages 项目：
 
 | Variable name | KV namespace |
 |---|---|
-| **`FAV_KV`** | 选择上一步创建的命名空间 |
+| `FAV_KV` | 你的 SmartTools KV 命名空间 |
 
-> ⚠️ **Variable name 必须严格写成 `FAV_KV`**（大写、下划线）。
-> 代码里通过 `env.FAV_KV` 访问该 KV，写错名字会导致保存功能失效，并自动回退为只读状态。
+绑定变量名必须严格为 `FAV_KV`。
 
-**3.3 KV 中的 Key 说明**（无需手动创建，系统会自动写入）
+### 首次登录
 
-| Key | 类型 | 说明 |
-|---|---|---|
-| `data_js` | 文本 | 完整的 `data.js` 内容（所有收藏数据） |
-| `data_source` | `kv` / `static` | 数据源开关，决定前台读取哪边 |
+1. 配置变量和 KV 后重新部署 Pages 项目。
+2. 打开 `https://<你的项目>.pages.dev/config.html`。
+3. 使用 `ADMIN_USER` / `ADMIN_PASS` 登录。
+4. 在后台保存一次，初始化 KV 数据。
 
-#### 4. 触发重新部署
+### 方式二：本地模式
 
-完成环境变量和 KV 绑定后，进入 **Deployments → 最新一次部署 → Retry deployment**，让新配置生效。
+1. 克隆或下载本仓库。
+2. 在目录内启动本地服务，例如：
 
-#### 5. 首次登录与初始化
+```bash
+python -m http.server
+```
 
-1. 打开你的站点：`https://<你的项目名>.pages.dev`
-2. 访问 `/config.html`，用 `ADMIN_USER` / `ADMIN_PASS` 登录
-3. 编辑内容并点击**保存**
-4. 保存成功后，KV 中的 `data_js` 被写入，前台开始从 KV 读取数据
-
----
-
-### 方式二：本地模式（零后端，纯静态）
-
-1. 克隆或下载本仓库到本地
-2. 用 **Chrome / Edge** 打开 `index.html`（建议用任意本地服务器，如 `python -m http.server`，不要用 `file://`）
-3. 访问 `config.html`，选择「💻 本地模式」
-4. 首次使用时设置用户名密码（哈希后仅存于当前浏览器）
-5. 点击「📂 连接文件夹」并选中仓库所在目录，即可直接编辑本地 `data.js`
+3. 用 Chrome 或 Edge 打开 `http://localhost:8000/config.html`。
+4. 选择本地模式，创建本地凭据，连接项目文件夹，即可直接编辑 `data.js`。
 
 ### 方式三：纯静态只读
 
-如果只想展示而不想编辑，直接手动修改 `data.js` 并部署到任意静态托管平台（GitHub Pages / Vercel / Netlify 等）即可，`config.html` 可以不访问也不开放。
+手动编辑 `data.js` 并部署到任意静态托管平台即可，不需要开放 `config.html`。
 
 ---
 
-## 🔄 数据源切换机制
+## 🌐 公开链接
 
-在线模式下系统支持两种数据源，由 KV 中的 `data_source` 键控制：
+用户可在后台启用公开 slug。
 
-| 取值 | 前台数据来源 | 适用场景 |
-|---|---|---|
-| `kv`（默认推荐） | KV 中的 `data_js` | 日常使用，后台保存即生效 |
-| `static` | 仓库里的 `data.js` | 紧急回滚 / 调试 / 只读展示 |
+示例：
 
-在 `config.html` 顶部可一键切换，也可通过预览参数临时查看：
-
-```
-/api/data?format=json                 # 查看当前实际生效的内容
-/api/data?format=json&source=kv       # 强制预览 KV 版本
-/api/data?format=json&source=static   # 强制预览仓库静态版本
+```text
+/u/alice
+/u/alice?theme=stripe
+/index2.html?u=alice
 ```
 
-**自动回退规则**：当选择 `kv` 但 KV 里为空时，系统会自动回退读取仓库里的 `data.js`，响应头标注 `X-Data-Source: static-fallback`，不会出现空白页面。
+公开响应会在返回数据前过滤私密/加密分类。slug 改名后，旧 slug 可在一定时间内重定向到新 slug。
 
 ---
 
-## 🔑 鉴权机制说明（在线模式）
+## 🧩 扩展使用
 
-- 登录成功后服务端签发一个令牌，写入名为 `auth` 的 Cookie
-- 令牌格式：`base64url(payload).base64url(HMAC-SHA256(payload, AUTH_SECRET))`
-- Payload：`{ "u": "<username>", "exp": <毫秒时间戳> }`
-- Cookie 属性：`HttpOnly; Secure; SameSite=Strict; Max-Age=604800`（7 天）
-- 每次访问需要鉴权的接口时，服务端会：
-  1. 从 Cookie 读取 `auth`
-  2. 用 `AUTH_SECRET` 重新计算签名比对
-  3. 校验 `exp` 是否过期
-  4. 通过则放行，否则返回 `401`
+未打包扩展目录为 `extensions/open-tabs-importer`。
+
+1. 打开 Chrome/Edge 扩展管理页。
+2. 开启开发者模式。
+3. 加载 `extensions/open-tabs-importer` 作为未打包扩展。
+4. 打开并登录 SmartTools `config.html`。
+5. 点击扩展，导入当前窗口或所有窗口标签页。
+6. 在 SmartTools 后台确认生成的可展开卡片，然后保存。
+
+仓库也包含已打包文件：`extensions/open-tabs-importer.zip`。
 
 ---
 
 ## 📁 目录结构
 
-```
+```text
 /
-├── index.html              # 收藏夹主页
-├── login.html              # 登录页
-├── config.html             # 配置后台（支持在线/本地双模式）
-├── data.js                 # 静态数据文件（KV 为空时的回退）
-├── functions/              # Cloudflare Pages Functions（在线模式 API）
-│   ├── _shared/
-│   │   └── auth.js         # 鉴权工具（签发 / 校验令牌）
-│   └── api/
-│       ├── login.js        # POST /api/login
-│       ├── logout.js       # POST /api/logout
-│       ├── data.js         # GET  /api/data
-│       ├── save.js         # POST /api/save
-│       ├── source.js       # GET/POST /api/source
-│       └── backups.js      # 历史版本管理
+├── index.html              # 默认入口页
+├── index1.html             # Nebula 主题
+├── index2.html             # Notion 主题
+├── index3.html             # Stripe 主题
+├── index4.html             # Dark 主题
+├── index5.html             # Mint 主题
+├── config.html             # 后台与本地模式编辑器
+├── data.js                 # 静态回退 / 只读数据
+├── shared/                 # 前端共享模块
+│   ├── data-loader.js
+│   ├── enc-unlock.js
+│   ├── enc-rerender.js
+│   ├── fav-page.js
+│   ├── note-modal.js
+│   ├── zip-adapter.js
+│   └── xlsx-adapter.js
+├── functions/              # Cloudflare Pages Functions
+│   ├── _shared/            # 鉴权、slug、数据分片、元数据工具
+│   ├── api/                # JSON API
+│   └── u/[[slug]].js       # /u/<slug> 公开访问路由
+├── extensions/
+│   └── open-tabs-importer/ # Chrome/Edge 标签页导入扩展
 ├── scripts/
-│   └── update-timestamp.js         # 更新 data.js 时间戳
+│   └── update-timestamp.js
+├── screenshot/
 └── README.md
 ```
 
-> 以 `_` 开头的目录不会被 Pages 当作路由，用来存放共享模块。
+---
+
+## 🎨 卡片类型
+
+| 类型 | 用途 |
+|---|---|
+| `simple` | 整张卡片打开一个 URL |
+| `desc-clickable` | 标题/卡片打开 `url`，描述打开 `descUrl` |
+| `expandable` | 父卡片展开显示 `subCards` |
+
+子卡片支持两行式（`icon`、`title`、`desc`、`url`）和紧凑式（`icon`、`content`、`url`）。
 
 ---
 
-## 🎨 卡片类型说明
+## 🧩 API 参考
 
-| 类型 | 用途 | 示例 |
-|------|------|------|
-| `simple` | 整卡可点击跳转 | 常规网址收藏 |
-| `desc-clickable` | 主标题跳 A，描述文字跳 B | 「GitHub」→ 主页，描述「我的仓库」→ 仓库页 |
-| `expandable` | 展开后显示多个子卡片 | 分组类：如「AI 工具合集」下挂多个 AI 站点 |
-
-子卡片还支持两种样式：**两行式**（图标 + 标题 + 描述）和 **紧凑式**（图标 + 单行内容）。
-
----
-
-## 🧩 API 参考（在线模式）
+### 会话与账号
 
 | 方法 | 路径 | 鉴权 | 说明 |
 |---|---|---|---|
-| `POST` | `/api/login` | 否 | 登录，body: `{username, password}` |
-| `POST` | `/api/logout` | 否 | 退出登录，清除 Cookie |
-| `GET`  | `/api/data` | 否 | 返回 `data.js` 文本，`?format=json` 返回 JSON |
-| `POST` | `/api/save` | 是 | 保存数据到 KV，body: `{content}` |
-| `GET`  | `/api/source` | 是 | 读取当前数据源设置 |
-| `POST` | `/api/source` | 是 | 切换数据源，body: `{source: "kv" \| "static"}` |
-| `GET`  | `/api/backups` | 是 | 历史版本列表 / 预览 / 恢复 |
+| `POST` | `/api/login` | 否 | 使用管理员或 KV 用户登录 |
+| `POST` | `/api/logout` | 否 | 清除登录 Cookie |
+| `GET` | `/api/check` | 否 | 会话状态、角色、KV/Admin 配置、迁移提示 |
+| `POST` | `/api/change-password` | 是 | 当前用户修改自己的密码 |
+| `GET/POST/DELETE` | `/api/users` | 管理员 | 用户列表、创建/重置、归档/删除 |
+
+### 数据与配置
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|---|---|---|---|
+| `GET` | `/api/data` | 否 | 读取当前 `data.js`，支持 `format=json`、`source=kv/static`、`u=<slug>` |
+| `GET` | `/api/data-meta` | 否 | 轻量版本、哈希、ETag 元数据 |
+| `POST` | `/api/save` | 是 | 保存完整数据或分类级增量 |
+| `POST` | `/api/comment` | 是 | 精准修改单张卡片注释，或移除推送标记 |
+| `GET/POST` | `/api/source` | GET 公开，POST 登录 | 读取或切换数据源 |
+| `GET/POST` | `/api/site-config` | GET 公开，POST 登录 | 读取或保存站点标题、主题、备份设置 |
+
+### 分享与发布
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|---|---|---|---|
+| `GET/POST/DELETE` | `/api/public-slug` | 是 | 管理公开 slug |
+| `GET/POST` | `/api/inbox` | 是 | 收件箱列表、接收、拒绝、删除、发送、策略设置 |
+| `POST` | `/api/push` | 管理员 | 向指定用户推送卡片，进入收件箱或强制写入 |
+| `GET` | `/u/<slug>` | 否 | 公开主题页面路由 |
+
+### 备份、归档、迁移
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|---|---|---|---|
+| `GET/POST/DELETE` | `/api/backups` | 是 | 列表、创建、预览、恢复、删除备份 |
+| `GET/DELETE` | `/api/archives` | 管理员 | 列表、下载、删除用户永久归档 |
+| `POST` | `/api/migrate-v2` | 管理员 | 迁移旧 KV 键到 `admin:*` 命名空间 |
+
+---
+
+## 🔑 鉴权机制
+
+- 会话使用 `auth` Cookie。
+- Token 使用 `AUTH_SECRET` 进行 HMAC-SHA256 签名。
+- Cookie 属性为 `HttpOnly; Secure; SameSite=Strict; Max-Age=604800`。
+- KV 用户密码使用 PBKDF2-SHA256 + 独立盐存储。
+- 老 SHA-256 用户哈希仍可读取，并会在成功登录或改密时升级。
+- 登录失败按客户端 IP 限速。
+
+---
+
+## 🔄 数据模型说明
+
+当前数据格式：
+
+```js
+var sections = [
+  { key: 'usbDriveData', kind: 'card', label: '...', cards: [] }
+];
+```
+
+旧格式的顶层数组（如 `var usbDriveData = []`）仍由迁移和合并路径兼容。
+
+重要 KV 命名空间：
+
+| Key 形式 | 含义 |
+|---|---|
+| `admin:data_js` | 管理员收藏数据 |
+| `admin:data_source` | 管理员数据源设置 |
+| `admin:backup:<timestamp>` | 管理员备份 |
+| `user:<uid>:data_js` | 用户收藏数据 |
+| `user:<uid>:data_source` | 用户数据源设置 |
+| `user:<uid>:backup:<timestamp>` | 用户备份 |
+| `users` | 用户表与公开 slug 设置 |
+| `inbox:<uid>:<msgId>` | 收件箱消息 |
+| `archive:<uid>:<timestamp>:*` | 永久删除归档 |
 
 ---
 
 ## 🖼 截图
 
 ### 收藏夹主页
-![主页Notion主题截图](./screenshot/screenshot1.png)
-![主页Framer主题截图](./screenshot/screenshot2.png)
+
+![主页 Notion 主题](./screenshot/screenshot1.png)
+![主页备用主题](./screenshot/screenshot2.png)
 
 ### 配置后台
-![配置后台截图](./screenshot/screenshot3.png)
 
-### 卡片编辑
-![卡片编辑截图](./screenshot/screenshot4.png)
+![配置后台](./screenshot/screenshot3.png)
+![卡片编辑](./screenshot/screenshot4.png)
+![卡片编辑详情](./screenshot/screenshot5.png)
+![配置后台详情](./screenshot/screenshot6.png)
 
 ---
 
 ## 📱 兼容性
 
-- **收藏夹主页**：所有现代浏览器（Chrome / Edge / Firefox / Safari / 移动端），响应式设计适配手机、平板、桌面
-- **配置后台（在线模式）**：所有现代浏览器
-- **配置后台（本地模式）**：需 **Chrome 86+ / Edge 86+**（依赖 File System Access API），且必须通过 `http://` 或 `https://` 访问（不支持 `file://`）
+- **收藏夹页面**：现代 Chrome、Edge、Firefox、Safari 和移动端浏览器。
+- **在线后台**：现代浏览器。
+- **本地模式**：Chrome 86+ 或 Edge 86+，必须通过 `http://` 或 `https://` 访问；不支持 `file://`。
+- **浏览器扩展**：支持 Manifest V3 的 Chromium 系 Chrome/Edge。
 
 ---
 
 ## 🛡️ 安全建议
 
-1. **务必设置强 `AUTH_SECRET`**，不要使用默认值
-2. **使用强密码**作为 `ADMIN_PASS`，不要与其他站点复用
-3. 将 `ADMIN_USER` / `ADMIN_PASS` / `AUTH_SECRET` 全部设为 **Secret**（加密）类型
-4. Cloudflare Pages 默认全站 HTTPS，不要关闭
-5. 如需多人使用，建议在 Cloudflare 前面再加一层 **Access / Zero Trust** 访问策略
-6. 定期轮换 `AUTH_SECRET`（注意轮换后所有已登录设备需要重新登录）
-7. **加密大类密码请独立设置，切勿与登录密码复用**：加密采用 PBKDF2（SHA-256, 250,000 轮）派生密钥 + AES-GCM 加密，强度取决于你设置的密码。一旦遗忘，**任何人（包括作者）都无法恢复数据**，建议妥善保存到密码管理器中
-8. **注释内容同样会被持久化 / 加密存储**：注释通过后台「💾 保存」写入 `data.js` 或 KV；普通分类下的注释以明文存储，请勿把账号密码、Token 等敏感信息写在普通分类的卡片注释里。确需保存敏感短文本时，请放入**加密大类**中的卡片，注释会随卡片一起以 AES-GCM 加密后再落盘
+1. 设置强 `AUTH_SECRET`，不要使用可预测值。
+2. 管理员和普通用户都应使用强密码。
+3. 将 `ADMIN_USER`、`ADMIN_PASS`、`AUTH_SECRET` 设为 Cloudflare 加密 Secret。
+4. 保持 Cloudflare Pages HTTPS 开启。
+5. 若后台用于敏感场景，建议额外加 Cloudflare Access / Zero Trust。
+6. 加密大类请使用独立密码并保存到密码管理器；忘记后无法恢复。
+7. 不要在普通卡片注释中保存密码、Token 等敏感信息；敏感短文本请放入加密大类。
+8. 启用公开 slug 后，请检查公开页面，确认没有不应公开的分类。
 
 ---
 
 ## 🔒 隐私说明
 
-- **在线模式**：所有数据存储于你自己的 Cloudflare KV 账号内，不经过任何第三方服务器
-- **本地模式**：数据和密码完全保存在本地设备，不上传任何信息
-- 浏览器标签页导入扩展只读取浏览器当前打开的标签信息，并提交到你自己的后台地址
+- 在线数据保存在你自己的 Cloudflare KV 命名空间。
+- 本地模式的数据和凭据只保存在本机。
+- 公开页面返回数据前会过滤私密/加密分类。
+- 浏览器扩展只读取标签页元数据，并发送到你自己已登录的 SmartTools 后台。
 
 ---
 
 ## ❓ 常见问题
 
-**Q1：后台保存后，前台没变化？**
-A：检查 KV 绑定的 Variable name 是否为 `FAV_KV`（严格区分大小写），以及 `config.html` 中数据源是否切换到了 `kv`。
+**Q1：后台保存后，前台没有变化？**
+检查 `FAV_KV` 是否正确绑定，以及当前数据源是否为 `kv`。
 
-**Q2：登录时提示"服务端未配置 ADMIN_USER / ADMIN_PASS 环境变量"？**
-A：去 Pages → Settings → Environment variables 确认变量已添加到 **Production** 环境，并**重新触发一次部署**让其生效。
+**Q2：登录提示环境变量缺失？**
+确认 Production 环境已配置 `ADMIN_USER`、`ADMIN_PASS`、`AUTH_SECRET`，然后重新部署。
 
-**Q3：登录成功，但刷新后又要重新登录？**
-A：通常是 `AUTH_SECRET` 在两次请求之间发生了变化（例如改动环境变量后没重新部署导致不一致）。确认值稳定后重新部署即可。
+**Q3：刷新后又要重新登录？**
+通常是 `AUTH_SECRET` 发生变化或未一致生效。保持密钥稳定并重新部署。
 
-**Q4：能否在本地开发？**
-A：可以使用 Cloudflare 官方工具 [Wrangler](https://developers.cloudflare.com/workers/wrangler/)：
+**Q4：如何用 Cloudflare Functions 本地开发？**
+
 ```bash
 npm i -g wrangler
 wrangler pages dev . --kv FAV_KV
 ```
-并在本地通过 `.dev.vars` 文件提供环境变量。
 
-**Q5：我想把数据导出备份？**
-A：直接访问 `/api/data?format=json`，将返回的 `content` 字段保存为 `data.js` 即可；后台的「版本管理」中也可以一键下载任意历史版本。
+本地环境变量可放在 `.dev.vars`。
+
+**Q5：如何备份数据？**
+使用后台备份/导出工具，或访问 `/api/data?format=json`，将返回的 `content` 保存为 `data.js`。
 
 ---
 
@@ -283,8 +371,8 @@ MIT License
 
 ## 🙏 致谢
 
-- 部分图标来自 Emoji 与各站点官方 Logo
-- [Cloudflare Pages](https://pages.cloudflare.com/) / [Workers KV](https://developers.cloudflare.com/kv/)
+- 基于 [Cloudflare Pages](https://pages.cloudflare.com/) 与 [Workers KV](https://developers.cloudflare.com/kv/) 托管。
+- 部分图标来自 Emoji 与各站点官方 Logo。
 
 ---
 
