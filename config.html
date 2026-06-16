@@ -268,6 +268,24 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     align-items: end;
 }
 .open-tabs-import-fields .form-row { margin: 0; }
+.open-tabs-import-fields .span-all { grid-column: 1 / -1; }
+.open-tabs-parent-mode {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+.open-tabs-parent-mode label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.open-tabs-inline-hint {
+    margin-top: 4px;
+    font-size: 12px;
+}
 .open-tabs-import-list {
     max-height: 52vh;
     overflow: auto;
@@ -1375,15 +1393,33 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 <div id="openTabsImportModal" class="modal-mask hidden">
     <div class="modal-box" style="max-width:720px;">
         <h2 data-i18n="openTabsImportTitle">🧩 导入打开的标签页</h2>
-        <p class="muted" data-i18n-html="openTabsImportDesc">勾选要导入的标签，设置父卡片名称和所属分类。<span class="open-tabs-save-warn">导入后请手动点击「💾 保存」。</span></p>
+        <p class="muted" data-i18n-html="openTabsImportDesc">勾选要导入的标签，先选择所属分类，再决定新建父卡片或追加到已有父卡片。<span class="open-tabs-save-warn">导入后请手动点击「💾 保存」。</span></p>
         <div class="open-tabs-import-fields">
-            <div class="form-row">
-                <label data-i18n="openTabsParentTitleLabel">父卡片名称</label>
-                <input type="text" id="openTabsParentTitle">
-            </div>
             <div class="form-row">
                 <label data-i18n="openTabsSectionLabel">所属分类</label>
                 <select id="openTabsSectionSelect"></select>
+            </div>
+            <div class="form-row">
+                <label data-i18n="openTabsParentModeLabel">父卡片方式</label>
+                <div class="open-tabs-parent-mode">
+                    <label>
+                        <input type="radio" name="openTabsParentMode" value="new" checked>
+                        <span data-i18n="openTabsParentModeNew">新建父卡片</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="openTabsParentMode" value="existing">
+                        <span data-i18n="openTabsParentModeExisting">追加到已有父卡片</span>
+                    </label>
+                </div>
+            </div>
+            <div class="form-row span-all" id="openTabsParentTitleRow">
+                <label data-i18n="openTabsParentTitleLabel">新父卡片名称</label>
+                <input type="text" id="openTabsParentTitle">
+            </div>
+            <div class="form-row span-all hidden" id="openTabsExistingParentRow">
+                <label data-i18n="openTabsExistingParentLabel">已有父卡片</label>
+                <select id="openTabsExistingParentSelect"></select>
+                <div class="muted open-tabs-inline-hint" id="openTabsExistingParentHint" data-i18n="openTabsExistingParentHint">若目标不是 expandable，导入时会自动升级并追加子卡。</div>
             </div>
         </div>
         <div style="display:flex; gap:8px; margin:8px 0;">
@@ -1779,8 +1815,16 @@ const I18N = {
         openTabsImportDone: '已导入父卡片「{title}」及 {n} 个子标签到「{section}」。请记得点「💾 保存」。',
         openTabsImportEmpty: '没有可导入的标签页',
         openTabsImportTitle: '🧩 导入打开的标签页',
-        openTabsImportDesc: '勾选要导入的标签，设置父卡片名称和所属分类。<span class="open-tabs-save-warn">导入后请手动点击「💾 保存」。</span>',
-        openTabsParentTitleLabel: '父卡片名称',
+        openTabsImportDesc: '勾选要导入的标签，先选择所属分类，再决定新建父卡片或追加到已有父卡片。<span class="open-tabs-save-warn">导入后请手动点击「💾 保存」。</span>',
+        openTabsParentModeLabel: '父卡片方式',
+        openTabsParentModeNew: '新建父卡片',
+        openTabsParentModeExisting: '追加到已有父卡片',
+        openTabsParentTitleLabel: '新父卡片名称',
+        openTabsExistingParentLabel: '已有父卡片',
+        openTabsExistingParentHint: '若目标不是 expandable，导入时会自动升级并追加子卡。',
+        openTabsExistingParentEmpty: '当前分类暂无可选父卡片，请改为新建',
+        openTabsExistingParentPlaceholder: '请选择已有父卡片',
+        openTabsNeedExistingParent: '请选择一个已有父卡片',
         openTabsSectionLabel: '所属分类',
         openTabsSelectAll: '全选',
         openTabsSelectNone: '全不选',
@@ -2388,8 +2432,16 @@ const I18N = {
         openTabsImportDone: 'Imported parent card "{title}" with {n} tab sub-card(s) into "{section}". Remember to click 「💾 Save」.',
         openTabsImportEmpty: 'No importable open tabs',
         openTabsImportTitle: '🧩 Import Open Tabs',
-        openTabsImportDesc: 'Select tabs to import, then set the parent card name and target section. <span class="open-tabs-save-warn">Click 「💾 Save」 afterwards.</span>',
-        openTabsParentTitleLabel: 'Parent card name',
+        openTabsImportDesc: 'Select tabs to import, then choose the target section before creating a new parent card or appending to an existing one. <span class="open-tabs-save-warn">Click 「💾 Save」 afterwards.</span>',
+        openTabsParentModeLabel: 'Parent card mode',
+        openTabsParentModeNew: 'Create new parent',
+        openTabsParentModeExisting: 'Append to existing parent',
+        openTabsParentTitleLabel: 'New parent card name',
+        openTabsExistingParentLabel: 'Existing parent card',
+        openTabsExistingParentHint: 'If the target is not expandable, it will be upgraded automatically before appending sub-cards.',
+        openTabsExistingParentEmpty: 'No available parent card in this section. Switch to creating a new one.',
+        openTabsExistingParentPlaceholder: 'Select an existing parent card',
+        openTabsNeedExistingParent: 'Please select an existing parent card',
         openTabsSectionLabel: 'Target section',
         openTabsSelectAll: 'Select all',
         openTabsSelectNone: 'Select none',
@@ -7279,6 +7331,60 @@ function renderOpenTabsSectionOptions() {
     else sel.value = UNCLASSIFIED_KEY;
 }
 
+function getOpenTabsParentMode() {
+    var checked = document.querySelector('input[name="openTabsParentMode"]:checked');
+    return checked ? checked.value : 'new';
+}
+
+function getOpenTabsParentCandidates(sectionKey) {
+    var cards = Array.isArray(store[sectionKey]) ? store[sectionKey] : [];
+    return cards.map(function(card, idx) {
+        return {
+            idx: idx,
+            card: card,
+            title: (card && (card.title || card.content || card.address)) || ('#' + (idx + 1)),
+            type: (card && card.type) || 'simple',
+            subCount: Array.isArray(card && card.subCards) ? card.subCards.length : 0
+        };
+    });
+}
+
+function renderOpenTabsExistingParentOptions() {
+    var sel = $('openTabsExistingParentSelect');
+    var sectionKey = $('openTabsSectionSelect').value || UNCLASSIFIED_KEY;
+    var candidates = getOpenTabsParentCandidates(sectionKey);
+    var placeholder = t('openTabsExistingParentPlaceholder') || '请选择已有父卡片';
+    if (!candidates.length) {
+        sel.innerHTML = '<option value="">' + escapeHtml(t('openTabsExistingParentEmpty') || '当前分类暂无可选父卡片，请改为新建') + '</option>';
+        sel.value = '';
+        return candidates;
+    }
+    sel.innerHTML = '<option value="">' + escapeHtml(placeholder) + '</option>' + candidates.map(function(item) {
+        var label = item.title + ' [' + item.type + ']';
+        if (item.type === 'expandable' || item.subCount > 0) label += ' · ' + item.subCount + ' subCards';
+        return '<option value="' + item.idx + '">' + escapeHtml(label) + '</option>';
+    }).join('');
+    sel.value = '';
+    return candidates;
+}
+
+function syncOpenTabsParentMode() {
+    var mode = getOpenTabsParentMode();
+    var candidates = renderOpenTabsExistingParentOptions();
+    if (mode === 'existing' && !candidates.length) {
+        var fallback = document.querySelector('input[name="openTabsParentMode"][value="new"]');
+        if (fallback) fallback.checked = true;
+        mode = 'new';
+    }
+    if (mode === 'existing') {
+        hide('openTabsParentTitleRow');
+        show('openTabsExistingParentRow');
+    } else {
+        show('openTabsParentTitleRow');
+        hide('openTabsExistingParentRow');
+    }
+}
+
 function updateOpenTabsImportCount() {
     var total = $('openTabsImportList').querySelectorAll('.open-tabs-check').length;
     var sel = $('openTabsImportList').querySelectorAll('.open-tabs-check:checked').length;
@@ -7314,6 +7420,9 @@ function openOpenTabsImportModal(payload) {
     __openTabsImportPayload = normalized;
     $('openTabsParentTitle').value = '打开的标签页 ' + new Date().toLocaleString();
     renderOpenTabsSectionOptions();
+    var defaultMode = document.querySelector('input[name="openTabsParentMode"][value="new"]');
+    if (defaultMode) defaultMode.checked = true;
+    syncOpenTabsParentMode();
     renderOpenTabsImportList(normalized.subCards);
     show('openTabsImportModal');
 }
@@ -7344,6 +7453,7 @@ function applyOpenTabsImport() {
     }
     var sectionKey = $('openTabsSectionSelect').value || UNCLASSIFIED_KEY;
     setOpenTabsCookie(LS_OPEN_TABS_LAST_SECTION, sectionKey);
+    var mode = getOpenTabsParentMode();
     var cardPayload = {
         parentTitle: $('openTabsParentTitle').value,
         scope: payload.scope,
@@ -7353,9 +7463,24 @@ function applyOpenTabsImport() {
     var targetKey = pickOpenTabsImportTargetSection(cardPayload);
     if (!Array.isArray(store[targetKey])) store[targetKey] = [];
     var existing = store[targetKey];
-    var parentCard = buildOpenTabsParentCard(cardPayload, selected);
-    parentCard.id = generateUniqueCardId(existing);
-    existing.push(parentCard);
+    var parentCard = null;
+    if (mode === 'existing') {
+        var selectedIdx = parseInt($('openTabsExistingParentSelect').value, 10);
+        if (isNaN(selectedIdx) || !existing[selectedIdx]) {
+            toast(t('openTabsNeedExistingParent') || '请选择一个已有父卡片');
+            return;
+        }
+        parentCard = existing[selectedIdx];
+        if (parentCard.type !== 'expandable') parentCard.type = 'expandable';
+        if (!Array.isArray(parentCard.subCards)) parentCard.subCards = [];
+        selected.forEach(function(subCard) {
+            parentCard.subCards.push(deepClone(subCard));
+        });
+    } else {
+        parentCard = buildOpenTabsParentCard(cardPayload, selected);
+        parentCard.id = generateUniqueCardId(existing);
+        existing.push(parentCard);
+    }
     currentSection = targetKey;
     renderSectionTabs();
     renderCurrentSection();
@@ -9810,6 +9935,10 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnOpenTabsSelectAll').onclick = () => setOpenTabsImportChecked(true);
     $('btnOpenTabsSelectNone').onclick = () => setOpenTabsImportChecked(false);
     $('btnOpenTabsImportApply').onclick = applyOpenTabsImport;
+    $('openTabsSectionSelect').onchange = syncOpenTabsParentMode;
+    document.querySelectorAll('input[name="openTabsParentMode"]').forEach(function(radio) {
+        radio.addEventListener('change', syncOpenTabsParentMode);
+    });
     $('btnBookmarkImportCancel').onclick = () => closeChildOrReturnHub('bookmarkImportModal');
     $('btnBookmarkImportPreview').onclick = doBookmarkImportPreview;
     $('btnBookmarkImportApply').onclick = doBookmarkImportApply;
