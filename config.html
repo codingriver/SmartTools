@@ -1461,13 +1461,13 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
                 <div style="font-size:14px; font-weight:600;" data-i18n="ioHubImportBookmarks">📥 导入浏览器收藏夹</div>
                 <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubImportBookmarksDesc">导入 Chrome / Edge 导出的书签 HTML</div>
             </button>
-            <button type="button" class="btn btn-ghost ioHubItem" id="btnIoHubImportOpenTabsClipboard" style="text-align:left; padding:12px; height:auto; line-height:1.4;">
-                <div style="font-size:14px; font-weight:600;" data-i18n="ioHubImportOpenTabsClipboard">🧩 从剪贴板导入打开的标签页</div>
-                <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubImportOpenTabsClipboardDesc">支持插件 JSON、书签 HTML、网页链接片段和纯文本 URL</div>
-            </button>
             <button type="button" class="btn btn-ghost ioHubItem" id="btnIoHubExportBookmarks" style="text-align:left; padding:12px; height:auto; line-height:1.4;">
                 <div style="font-size:14px; font-weight:600;" data-i18n="ioHubExportBookmarks">📤 导出浏览器收藏夹</div>
                 <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubExportBookmarksDesc">导出 Chrome / Edge 可导入的 HTML</div>
+            </button>
+            <button type="button" class="btn btn-ghost ioHubItem" id="btnIoHubImportOpenTabsClipboard" style="text-align:left; padding:12px; height:auto; line-height:1.4;">
+                <div style="font-size:14px; font-weight:600;" data-i18n="ioHubImportOpenTabsClipboard">🧩 从剪贴板批量导入标签页</div>
+                <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubImportOpenTabsClipboardDesc">支持插件 JSON、书签 HTML、网页链接片段和纯文本 URL</div>
             </button>
         </div>
         <div class="modal-footer">
@@ -1498,10 +1498,10 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 <!-- 从剪贴板/手动粘贴导入打开的标签页 -->
 <div id="openTabsClipboardModal" class="modal-mask hidden">
     <div class="modal-box" style="max-width:720px;">
-        <h2 data-i18n="openTabsClipboardTitle">🧩 从剪贴板导入打开的标签页</h2>
+        <h2 data-i18n="openTabsClipboardTitle">🧩 从剪贴板批量导入标签页</h2>
         <p class="muted" data-i18n="openTabsClipboardDesc">可粘贴插件导出的 JSON、Chrome/Edge 书签 HTML、网页链接片段，或一行一个 URL 的纯文本。解析后会进入导入确认面板。</p>
         <div class="form-row">
-            <label data-i18n="openTabsClipboardInputLabel">剪贴板内容</label>
+            <label data-i18n="openTabsClipboardInputLabel">输入内容</label>
             <textarea id="openTabsClipboardText" style="min-height:260px; font-family:ui-monospace, SFMono-Regular, Consolas, monospace;" data-i18n-placeholder="openTabsClipboardPlaceholder" placeholder='例如：{"tabs":[{"title":"Example","url":"https://example.com"}]} 或 bookmarks.html 内容'></textarea>
         </div>
         <div id="openTabsClipboardError" class="open-tabs-import-error" style="min-height:18px;"></div>
@@ -1875,7 +1875,7 @@ const I18N = {
         ioHubImportTableDesc: '从 CSV / XLSX 文件导入卡片',
         ioHubImportBookmarks: '📥 导入浏览器收藏夹',
         ioHubImportBookmarksDesc: '导入 Chrome / Edge 导出的书签 HTML',
-        ioHubImportOpenTabsClipboard: '🧩 从剪贴板导入打开的标签页',
+        ioHubImportOpenTabsClipboard: '🧩 从剪贴板批量导入标签页',
         ioHubImportOpenTabsClipboardDesc: '支持插件 JSON、书签 HTML、网页链接片段和纯文本 URL',
         ioHubExportBookmarks: '📤 导出浏览器收藏夹',
         ioHubExportBookmarksDesc: '导出 Chrome / Edge 可导入的 HTML',
@@ -1944,9 +1944,9 @@ const I18N = {
         openTabsImportEmpty: '没有可导入的标签页',
         openTabsImportTitle: '🧩 导入打开的标签页',
         openTabsImportDesc: '勾选要导入的标签，先选择所属分类，再决定新建父卡片或追加到已有父卡片。<span class="open-tabs-save-warn">导入后请手动点击「💾 保存」。</span>',
-        openTabsClipboardTitle: '🧩 从剪贴板导入打开的标签页',
+        openTabsClipboardTitle: '🧩 从剪贴板批量导入标签页',
         openTabsClipboardDesc: '可粘贴插件导出的 JSON、Chrome/Edge 书签 HTML、网页链接片段，或一行一个 URL 的纯文本。解析后会进入导入确认面板。',
-        openTabsClipboardInputLabel: '剪贴板内容',
+        openTabsClipboardInputLabel: '输入内容',
         openTabsClipboardPlaceholder: '例如：{"tabs":[{"title":"Example","url":"https://example.com"}]} 或 bookmarks.html 内容',
         openTabsClipboardRead: '重新读取剪贴板',
         openTabsClipboardParse: '解析并导入',
@@ -2516,7 +2516,7 @@ const I18N = {
         ioHubImportTableDesc: 'Import cards from a CSV / XLSX file',
         ioHubImportBookmarks: '📥 Import Browser Bookmarks',
         ioHubImportBookmarksDesc: 'Import bookmarks HTML exported by Chrome / Edge',
-        ioHubImportOpenTabsClipboard: '🧩 Import Open Tabs from Clipboard',
+        ioHubImportOpenTabsClipboard: '🧩 Batch Import Tabs from Clipboard',
         ioHubImportOpenTabsClipboardDesc: 'Supports plugin JSON, bookmarks HTML, copied links, and plain URL text',
         ioHubExportBookmarks: '📤 Export Browser Bookmarks',
         ioHubExportBookmarksDesc: 'Export HTML importable by Chrome / Edge',
@@ -2585,9 +2585,9 @@ const I18N = {
         openTabsImportEmpty: 'No importable open tabs',
         openTabsImportTitle: '🧩 Import Open Tabs',
         openTabsImportDesc: 'Select tabs to import, then choose the target section before creating a new parent card or appending to an existing one. <span class="open-tabs-save-warn">Click 「💾 Save」 afterwards.</span>',
-        openTabsClipboardTitle: '🧩 Import Open Tabs from Clipboard',
+        openTabsClipboardTitle: '🧩 Batch Import Tabs from Clipboard',
         openTabsClipboardDesc: 'Paste plugin JSON, Chrome/Edge bookmarks HTML, copied link snippets, or plain text with one URL per line. Parsed links will open the import confirmation panel.',
-        openTabsClipboardInputLabel: 'Clipboard content',
+        openTabsClipboardInputLabel: 'Input content',
         openTabsClipboardPlaceholder: 'Example: {"tabs":[{"title":"Example","url":"https://example.com"}]} or bookmarks.html content',
         openTabsClipboardRead: 'Read clipboard again',
         openTabsClipboardParse: 'Parse and import',
@@ -7907,8 +7907,8 @@ function openOpenTabsImportModal(payload) {
     show('openTabsImportModal');
 }
 
-function showOpenTabsClipboardModal(text, error) {
-    $('openTabsClipboardText').value = text || '';
+function showOpenTabsClipboardModal(error) {
+    $('openTabsClipboardText').value = '';
     $('openTabsClipboardError').textContent = error || '';
     hide('ioHubModal');
     show('openTabsClipboardModal');
@@ -7943,7 +7943,7 @@ async function openOpenTabsImportFromClipboard() {
     try {
         var text = await readOpenTabsClipboardText();
         if (!String(text || '').trim()) {
-            showOpenTabsClipboardModal('', t('openTabsClipboardEmpty') || '剪贴板内容为空，请复制 JSON / HTML / URL 后再试。');
+            showOpenTabsClipboardModal(t('openTabsClipboardEmpty') || '剪贴板内容为空，请复制 JSON / HTML / URL 后再试。');
             return;
         }
         var result = buildOpenTabsPayloadFromText(text, 'smarttools-open-tabs-clipboard');
@@ -7953,9 +7953,9 @@ async function openOpenTabsImportFromClipboard() {
             toast(t('openTabsClipboardParsed', { n: result.count, skip: result.skipped }) || ('已识别 ' + result.count + ' 个链接，已跳过 ' + result.skipped + ' 个重复或无效项。'), 3200);
             return;
         }
-        showOpenTabsClipboardModal(text, t('openTabsClipboardParseFail') || '未识别到可导入的链接，请粘贴插件 JSON、书签 HTML 或 URL 文本。');
+        showOpenTabsClipboardModal(t('openTabsClipboardParseFail') || '未识别到可导入的链接，请粘贴插件 JSON、书签 HTML 或 URL 文本。');
     } catch (e) {
-        showOpenTabsClipboardModal('', t('openTabsClipboardReadFail') || '无法直接读取剪贴板，请手动粘贴内容后解析。');
+        showOpenTabsClipboardModal(t('openTabsClipboardReadFail') || '无法直接读取剪贴板，请手动粘贴内容后解析。');
     }
 }
 
