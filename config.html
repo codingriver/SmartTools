@@ -90,6 +90,23 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 .hidden { display: none !important; }
 .move-hint { font-size: 12px; color: #888; margin-top: 6px; padding: 8px 10px; background: #fff3e0; border-radius: 6px; border-left: 3px solid #ff9800; }
 .enc-hint { font-size: 12px; color: #555; margin-top: 6px; padding: 8px 10px; background: #f3e5f5; border-radius: 6px; border-left: 3px solid #9c27b0; }
+.cm-toolbar { display: grid; grid-template-columns: 1.1fr .9fr .9fr 1.2fr; gap: 8px; margin-bottom: 12px; }
+.cm-toolbar input, .cm-toolbar select { min-width: 0; }
+.cm-layout { display: grid; grid-template-columns: minmax(0,1fr) 280px; gap: 14px; align-items: start; }
+.cm-list { border: 1px solid #e5e5e5; border-radius: 8px; max-height: 52vh; overflow: auto; background: #fcfcfc; }
+.cm-row { display: grid; grid-template-columns: 28px 40px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 9px 10px; border-bottom: 1px solid #eee; background: #fff; }
+.cm-row:last-child { border-bottom: 0; }
+.cm-row:hover { background: #f8f9ff; }
+.cm-row input { width: auto; }
+.cm-title { font-weight: 700; font-size: 13px; word-break: break-all; }
+.cm-meta { color: #777; font-size: 11px; line-height: 1.5; word-break: break-all; }
+.cm-badge { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #eef2ff; color: #3949ab; white-space: nowrap; }
+.cm-badge.sub { background: #fff3e0; color: #e65100; }
+.cm-side { border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; background: #fafafa; }
+.cm-actions { display: grid; gap: 8px; margin-top: 10px; }
+.cm-actions .btn { width: 100%; }
+.cm-preview { margin-top: 10px; padding: 8px 10px; border-radius: 6px; background: #fff; border: 1px dashed #ddd; color: #666; font-size: 12px; line-height: 1.5; min-height: 34px; }
+.cm-list-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
 .mode-card { border: 2px solid #e5e5e5; border-radius: 10px; padding: 20px; cursor: pointer; transition: all .2s; margin-bottom: 12px; }
 .mode-card:hover { border-color: #667eea; box-shadow: 0 4px 15px rgba(102,126,234,.2); }
 .mode-card.disabled { opacity: .5; cursor: not-allowed; }
@@ -450,6 +467,10 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     .open-tabs-import-edit {
         grid-column: 1 / -1;
     }
+    .cm-toolbar, .cm-layout { grid-template-columns: 1fr; }
+    .cm-list { max-height: 46vh; }
+    .cm-row { grid-template-columns: 24px 36px minmax(0,1fr); }
+    .cm-row .cm-badge { grid-column: 3; justify-self: start; }
 }
 
 .tree-section-header {
@@ -582,9 +603,77 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     <div class="card-panel">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
             <h2 id="currentSectionTitle"></h2>
-            <button class="btn btn-primary btn-sm" id="btnAddCard" data-i18n="btnAddCard">➕ 新增卡片</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-ghost btn-sm" id="btnCardManage" data-i18n="btnCardManage">🗂 卡片管理</button>
+                <button class="btn btn-primary btn-sm" id="btnAddCard" data-i18n="btnAddCard">➕ 新增卡片</button>
+            </div>
         </div>
         <div id="cardList"></div>
+    </div>
+</div>
+
+<!-- 卡片管理 -->
+<div id="cardManageModal" class="modal-mask hidden">
+    <div class="modal-box" style="max-width:1080px;">
+        <h2 data-i18n="cardManageTitle">🗂 卡片管理</h2>
+        <p class="muted" data-i18n="cardManageDesc">全局管理所有已解锁分类内的主卡片和子卡片，支持批量移动、删除、转换和整理。</p>
+        <div class="cm-toolbar">
+            <input type="text" id="cmSearch" data-i18n-placeholder="cardManageSearchPh" placeholder="搜索标题 / URL / 描述">
+            <select id="cmSectionFilter"></select>
+            <select id="cmKindFilter">
+                <option value="all" data-i18n="cardManageKindAll">全部卡片</option>
+                <option value="card" data-i18n="cardManageKindCard">仅主卡片</option>
+                <option value="subcard" data-i18n="cardManageKindSub">仅子卡片</option>
+            </select>
+            <select id="cmTypeFilter">
+                <option value="all" data-i18n="cardManageTypeAll">全部类型</option>
+                <option value="simple">simple</option>
+                <option value="desc-clickable">desc-clickable</option>
+                <option value="expandable">expandable</option>
+            </select>
+        </div>
+        <div class="cm-layout">
+            <div>
+                <div class="cm-list-head">
+                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;">
+                        <input type="checkbox" id="cmSelectAll"> <span data-i18n="cardManageSelectAll">选择当前结果</span>
+                    </label>
+                    <span class="muted" id="cmStats" style="margin:0;"></span>
+                </div>
+                <div class="cm-list" id="cmList"></div>
+            </div>
+            <div class="cm-side">
+                <h3 data-i18n="cardManageBatchOps">批量操作</h3>
+                <div class="form-row">
+                    <label data-i18n="moveTargetSection">目标大类</label>
+                    <select id="cmTargetSection"></select>
+                </div>
+                <div class="form-row">
+                    <label data-i18n="moveTargetCard">目标卡片</label>
+                    <select id="cmTargetParent"></select>
+                </div>
+                <div class="form-row">
+                    <label data-i18n="fldType">卡片类型</label>
+                    <select id="cmTargetType">
+                        <option value="simple">simple</option>
+                        <option value="desc-clickable">desc-clickable</option>
+                    </select>
+                </div>
+                <div class="cm-actions">
+                    <button class="btn btn-primary btn-sm" id="cmMoveSection" data-i18n="cardManageMoveSection">移动到目标大类</button>
+                    <button class="btn btn-warn btn-sm" id="cmMoveParent" data-i18n="cardManageMoveParent">移动为目标卡片的子卡片</button>
+                    <button class="btn btn-success btn-sm" id="cmStandardize" data-i18n="cardManageStandardize">转为标准主卡片</button>
+                    <button class="btn btn-ghost btn-sm" id="cmConvertType" data-i18n="cardManageConvertType">批量转换类型</button>
+                    <button class="btn btn-danger btn-sm" id="cmDelete" data-i18n="cardManageDelete">批量删除</button>
+                    <button class="btn btn-ghost btn-sm" id="cmDedupe" data-i18n="cardManageDedupe">按 URL 去重</button>
+                    <button class="btn btn-ghost btn-sm" id="cmCleanEmpty" data-i18n="cardManageCleanEmpty">清理空父卡</button>
+                </div>
+                <div class="cm-preview" id="cmPreview"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="btnCardManageClose" data-i18n="btnClose">关闭</button>
+        </div>
     </div>
 </div>
 
@@ -2243,7 +2332,34 @@ const I18N = {
         secVideo: '🎬 视频聚合', secEmail: '📨 联系方式', secContact: '📨 其他联系方式',
         secUnclassified: '📦 未分类', secManageTab: '🗂 大类管理',
         secCustomTag: '大类', secCustomTitle: '大类',
-        btnAddCard: '➕ 新增卡片', titleItems: '（共 {n} 项）', titleItemsWithSubs: '（共 {n} 项，共 {sub} 子项，共 {links} 链接）',
+        btnAddCard: '➕ 新增卡片', btnCardManage: '🗂 卡片管理', titleItems: '（共 {n} 项）', titleItemsWithSubs: '（共 {n} 项，共 {sub} 子项，共 {links} 链接）',
+        cardManageTitle: '🗂 卡片管理',
+        cardManageDesc: '全局管理所有已解锁分类内的主卡片和子卡片，支持批量移动、删除、转换和整理。',
+        cardManageSearchPh: '搜索标题 / URL / 描述',
+        cardManageKindAll: '全部卡片', cardManageKindCard: '仅主卡片', cardManageKindSub: '仅子卡片',
+        cardManageTypeAll: '全部类型', cardManageAllSections: '全部大类',
+        cardManageSelectAll: '选择当前结果', cardManageBatchOps: '批量操作',
+        cardManageMoveSection: '移动到目标大类', cardManageMoveParent: '移动为目标卡片的子卡片',
+        cardManageStandardize: '转为标准主卡片', cardManageConvertType: '批量转换类型',
+        cardManageDelete: '批量删除', cardManageDedupe: '按 URL 去重', cardManageCleanEmpty: '清理空父卡',
+        cardManageEmpty: '没有匹配卡片', cardManageSubBadge: '子卡',
+        cardManageParentPrefix: '父卡：',
+        cardManageStats: '显示 {shown} 项，已选 {selected} 项（主卡 {root}，子卡 {sub}）',
+        cardManagePreviewEmpty: '先勾选卡片，再执行右侧批量操作。',
+        cardManagePreviewSelected: '将操作 {n} 项：主卡 {root}，子卡 {sub}。',
+        cardManageNeedSelection: '请先选择卡片', cardManageNeedRootSelection: '请至少选择一张主卡片',
+        cardManageNoop: '没有需要移动的卡片', cardManageNoMovable: '没有可执行的卡片（expandable 主卡会被跳过）',
+        cardManageMoved: '已移动 {n} 张到目标大类（跳过 {skipped} 张）',
+        cardManageMovedToParent: '已移动 {n} 张为目标子卡片（跳过 {skipped} 张）',
+        cardManageStandardized: '已转为 {n} 张标准主卡片（跳过 {skipped} 张）',
+        cardManageConverted: '已转换 {n} 张主卡类型（跳过 {skipped} 张）',
+        cardManageDeleted: '已删除 {n} 项（未保存）',
+        cardManageConfirmDelete: '确认删除选中的 {n} 项？其中 {expandable} 张主卡带有子卡片，会一并删除。',
+        cardManageNoDupes: '没有发现重复 URL', cardManageConfirmDedupe: '将删除 {n} 个重复 URL 卡片，保留第一次出现的卡片。继续？',
+        cardManageDedupeDone: '已删除 {n} 个重复 URL 卡片',
+        cardManageNoEmptyParents: '没有空的 expandable 父卡',
+        cardManageConfirmCleanEmpty: '将删除 {n} 张没有子卡片的 expandable 父卡。继续？',
+        cardManageCleanedEmpty: '已清理 {n} 张空父卡',
         privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 私密</span>',
         encBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#f3e5f5; color:#6a1b9a; border-radius:10px; vertical-align:middle;">🔐 加密</span>',
         lockedBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffebee; color:#c62828; border-radius:10px; vertical-align:middle;">🔒 已锁定</span>',
@@ -2886,7 +3002,34 @@ const I18N = {
         secVideo: '🎬 Videos', secEmail: '📨 Contacts', secContact: '📨 Contact Cards',
         secUnclassified: '📦 Unclassified', secManageTab: '🗂 Sections',
         secCustomTag: 'Section', secCustomTitle: 'Section',
-        btnAddCard: '➕ Add Card', titleItems: ' ({n} items)', titleItemsWithSubs: ' ({n} items, {sub} sub-items, {links} links)',
+        btnAddCard: '➕ Add Card', btnCardManage: '🗂 Card Manager', titleItems: ' ({n} items)', titleItemsWithSubs: ' ({n} items, {sub} sub-items, {links} links)',
+        cardManageTitle: '🗂 Card Manager',
+        cardManageDesc: 'Manage top-level cards and sub-cards across all unlocked sections with batch move, delete, convert, and cleanup actions.',
+        cardManageSearchPh: 'Search title / URL / description',
+        cardManageKindAll: 'All cards', cardManageKindCard: 'Top-level only', cardManageKindSub: 'Sub-cards only',
+        cardManageTypeAll: 'All types', cardManageAllSections: 'All sections',
+        cardManageSelectAll: 'Select current results', cardManageBatchOps: 'Batch actions',
+        cardManageMoveSection: 'Move to target section', cardManageMoveParent: 'Move under target card',
+        cardManageStandardize: 'Convert to standard cards', cardManageConvertType: 'Convert type',
+        cardManageDelete: 'Batch delete', cardManageDedupe: 'Deduplicate by URL', cardManageCleanEmpty: 'Clean empty parents',
+        cardManageEmpty: 'No matching cards', cardManageSubBadge: 'Sub',
+        cardManageParentPrefix: 'Parent: ',
+        cardManageStats: 'Showing {shown}, selected {selected} (top-level {root}, sub {sub})',
+        cardManagePreviewEmpty: 'Select cards first, then run a batch action on the right.',
+        cardManagePreviewSelected: 'Will operate on {n} items: top-level {root}, sub {sub}.',
+        cardManageNeedSelection: 'Select cards first', cardManageNeedRootSelection: 'Select at least one top-level card',
+        cardManageNoop: 'No cards need moving', cardManageNoMovable: 'No movable cards (expandable top-level cards are skipped)',
+        cardManageMoved: 'Moved {n} cards to target section (skipped {skipped})',
+        cardManageMovedToParent: 'Moved {n} cards under target card (skipped {skipped})',
+        cardManageStandardized: 'Converted {n} cards to standard top-level cards (skipped {skipped})',
+        cardManageConverted: 'Converted {n} top-level card types (skipped {skipped})',
+        cardManageDeleted: 'Deleted {n} items (unsaved)',
+        cardManageConfirmDelete: 'Delete selected {n} items? {expandable} selected top-level cards have sub-cards and will delete them too.',
+        cardManageNoDupes: 'No duplicate URLs found', cardManageConfirmDedupe: 'Delete {n} duplicate URL cards and keep the first occurrence?',
+        cardManageDedupeDone: 'Deleted {n} duplicate URL cards',
+        cardManageNoEmptyParents: 'No empty expandable parents found',
+        cardManageConfirmCleanEmpty: 'Delete {n} expandable parent cards with no sub-cards?',
+        cardManageCleanedEmpty: 'Cleaned {n} empty parent cards',
         privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 Private</span>',
         encBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#f3e5f5; color:#6a1b9a; border-radius:10px; vertical-align:middle;">🔐 Encrypted</span>',
         lockedBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#ffebee; color:#c62828; border-radius:10px; vertical-align:middle;">🔒 Locked</span>',
@@ -3302,6 +3445,7 @@ let folderHandle = null, dataJsHandle = null;
 let moveFromIndex = -1;
 let movingItem = null;
 let promotingSubIndex = -1;
+let cardManageSelectedKeys = new Set();
 let editingCustomSectionIdx = -2;
 const deletedBackupNamesOnline = new Set();
 
@@ -6259,6 +6403,386 @@ function confirmMoveSubCard() {
     markConfigDirty();
     movingItem = null;
     moveFromIndex = -1;
+}
+
+/* ================================================================
+   Card manager
+================================================================ */
+function getCardManageSections() {
+    return getSections().filter(s => s.kind === 'card' && !s.locked);
+}
+
+function cardTitleText(card) {
+    return (card && (card.title || card.content || card.id || card.address)) || t('noTitle');
+}
+
+function cardUrlText(card) {
+    return (card && (card.url || card.descUrl || card.mailto || card.address)) || '';
+}
+
+function buildManagedCardItems() {
+    const items = [];
+    getCardManageSections().forEach(sec => {
+        const arr = store[sec.key] || [];
+        arr.forEach((card, cardIdx) => {
+            const type = card.type || ((card.subCards && card.subCards.length) ? 'expandable' : 'simple');
+            items.push({
+                key: 'card|' + sec.key + '|' + cardIdx,
+                kind: 'card',
+                sectionKey: sec.key,
+                sectionLabel: sec.label,
+                cardIndex: cardIdx,
+                subIndex: -1,
+                parentTitle: '',
+                type,
+                card
+            });
+            (card.subCards || []).forEach((sub, subIdx) => {
+                items.push({
+                    key: 'subcard|' + sec.key + '|' + cardIdx + '|' + subIdx,
+                    kind: 'subcard',
+                    sectionKey: sec.key,
+                    sectionLabel: sec.label,
+                    cardIndex: cardIdx,
+                    subIndex: subIdx,
+                    parentTitle: cardTitleText(card),
+                    type: 'subcard',
+                    card: sub
+                });
+            });
+        });
+    });
+    return items;
+}
+
+function getManagedFilteredItems() {
+    const q = (($('cmSearch') || {}).value || '').trim().toLowerCase();
+    const sec = (($('cmSectionFilter') || {}).value || 'all');
+    const kind = (($('cmKindFilter') || {}).value || 'all');
+    const type = (($('cmTypeFilter') || {}).value || 'all');
+    return buildManagedCardItems().filter(item => {
+        if (sec !== 'all' && item.sectionKey !== sec) return false;
+        if (kind !== 'all' && item.kind !== kind) return false;
+        if (type !== 'all' && item.type !== type) return false;
+        if (!q) return true;
+        const c = item.card || {};
+        const hay = [
+            item.sectionLabel, item.parentTitle, c.id, c.title, c.content, c.url,
+            c.desc, c.descClickable, c.descUrl, c.comment, c.address
+        ].filter(Boolean).join(' ').toLowerCase();
+        return hay.indexOf(q) >= 0;
+    });
+}
+
+function populateCardManageSelects() {
+    const secFilter = $('cmSectionFilter');
+    const targetSec = $('cmTargetSection');
+    if (!secFilter || !targetSec) return;
+    const sections = getCardManageSections();
+    const prevFilter = secFilter.value || 'all';
+    const prevTarget = targetSec.value || currentSection;
+    secFilter.innerHTML = '<option value="all">' + escapeHtml(t('cardManageAllSections')) + '</option>';
+    targetSec.innerHTML = '';
+    sections.forEach(s => {
+        const label = (s.encrypted ? '🔐 ' : '') + s.label;
+        const f = document.createElement('option'); f.value = s.key; f.textContent = label; secFilter.appendChild(f);
+        const o = document.createElement('option'); o.value = s.key; o.textContent = label; targetSec.appendChild(o);
+    });
+    secFilter.value = sections.some(s => s.key === prevFilter) ? prevFilter : 'all';
+    targetSec.value = sections.some(s => s.key === prevTarget) ? prevTarget : (sections[0] ? sections[0].key : '');
+    renderCardManageParentOptions();
+}
+
+function renderCardManageParentOptions() {
+    const sel = $('cmTargetParent');
+    if (!sel) return;
+    const key = $('cmTargetSection').value;
+    const prev = sel.value || '';
+    const selected = new Set(getCardManageSelectedKeys());
+    sel.innerHTML = '';
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = t('moveTgtAsRoot');
+    sel.appendChild(none);
+    (store[key] || []).forEach((card, idx) => {
+        const ownKey = 'card|' + key + '|' + idx;
+        if (selected.has(ownKey)) return;
+        const opt = document.createElement('option');
+        opt.value = String(idx);
+        opt.textContent = (card.type === 'expandable' ? '📁 ' : '• ') + cardTitleText(card);
+        sel.appendChild(opt);
+    });
+    if (Array.from(sel.options).some(opt => opt.value === prev)) sel.value = prev;
+}
+
+function renderCardManageList() {
+    const list = $('cmList');
+    if (!list) return;
+    const prevSelected = cardManageSelectedKeys;
+    const items = getManagedFilteredItems();
+    list.innerHTML = '';
+    if (!items.length) {
+        list.innerHTML = '<div class="empty-hint">' + escapeHtml(t('cardManageEmpty')) + '</div>';
+    } else {
+        items.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'cm-row';
+            const checked = prevSelected.has(item.key) ? ' checked' : '';
+            const badge = item.kind === 'subcard'
+                ? '<span class="cm-badge sub">' + escapeHtml(t('cardManageSubBadge')) + '</span>'
+                : '<span class="cm-badge">' + escapeHtml(item.type || 'simple') + '</span>';
+            const parent = item.kind === 'subcard' ? ' / ' + t('cardManageParentPrefix') + escapeHtml(item.parentTitle) : '';
+            row.innerHTML =
+                '<input type="checkbox" class="cm-check" data-key="' + escapeHtml(item.key) + '"' + checked + '>' +
+                '<div class="card-icon-preview" style="width:36px;height:36px;font-size:18px;"></div>' +
+                '<div><div class="cm-title">' + escapeHtml(cardTitleText(item.card)) + '</div>' +
+                '<div class="cm-meta">' + escapeHtml(item.sectionLabel) + parent + ' · ' + escapeHtml(cardUrlText(item.card)) + '</div></div>' +
+                badge;
+            renderIconTo(row.querySelector('.card-icon-preview'), item.card);
+            list.appendChild(row);
+        });
+    }
+    list.querySelectorAll('.cm-check').forEach(cb => cb.onchange = () => {
+        if (cb.checked) cardManageSelectedKeys.add(cb.dataset.key);
+        else cardManageSelectedKeys.delete(cb.dataset.key);
+        updateCardManageState();
+    });
+    $('cmSelectAll').checked = !!items.length && items.every(item => prevSelected.has(item.key));
+    updateCardManageState();
+}
+
+function getCardManageSelectedKeys() {
+    return Array.from(cardManageSelectedKeys);
+}
+
+function getCardManageSelectedItems() {
+    const keys = new Set(getCardManageSelectedKeys());
+    return buildManagedCardItems().filter(item => keys.has(item.key));
+}
+
+function updateCardManageState() {
+    const selected = getCardManageSelectedItems();
+    const total = getManagedFilteredItems().length;
+    const rootCount = selected.filter(x => x.kind === 'card').length;
+    const subCount = selected.length - rootCount;
+    $('cmStats').textContent = t('cardManageStats', { shown: total, selected: selected.length, root: rootCount, sub: subCount });
+    $('cmPreview').innerHTML = selected.length
+        ? escapeHtml(t('cardManagePreviewSelected', { n: selected.length, root: rootCount, sub: subCount }))
+        : escapeHtml(t('cardManagePreviewEmpty'));
+    renderCardManageParentOptions();
+}
+
+function openCardManageModal() {
+    cardManageSelectedKeys = new Set();
+    populateCardManageSelects();
+    renderCardManageList();
+    show('cardManageModal');
+}
+
+function normalizeManagedSelection(items) {
+    const rootKeys = new Set(items.filter(x => x.kind === 'card').map(x => x.sectionKey + '|' + x.cardIndex));
+    return items.filter(x => !(x.kind === 'subcard' && rootKeys.has(x.sectionKey + '|' + x.cardIndex)));
+}
+
+function managedSortForRemoval(items) {
+    return items.slice().sort((a, b) => {
+        if (a.sectionKey !== b.sectionKey) return a.sectionKey < b.sectionKey ? -1 : 1;
+        if (a.cardIndex !== b.cardIndex) return b.cardIndex - a.cardIndex;
+        if (a.kind !== b.kind) return a.kind === 'subcard' ? -1 : 1;
+        return b.subIndex - a.subIndex;
+    });
+}
+
+function removeManagedItems(items) {
+    managedSortForRemoval(items).forEach(item => {
+        const arr = store[item.sectionKey] || [];
+        if (item.kind === 'subcard') {
+            const parent = arr[item.cardIndex];
+            if (parent && Array.isArray(parent.subCards)) parent.subCards.splice(item.subIndex, 1);
+        } else {
+            arr.splice(item.cardIndex, 1);
+        }
+    });
+}
+
+function subCardToStandardCard(sub, targetArr) {
+    const card = { id: generateUniqueCardId(targetArr, -1), type: 'simple' };
+    if (sub.title) card.title = sub.title;
+    else if (sub.content) card.title = sub.content;
+    else card.title = t('noTitle');
+    if (sub.url) card.url = sub.url;
+    if (sub.desc) card.desc = sub.desc;
+    if (sub.icon) card.icon = sub.icon;
+    if (sub.iconImg) card.iconImg = sub.iconImg;
+    if (sub.comment) card.comment = sub.comment;
+    if (sub.isLocal) card.isLocal = true;
+    return card;
+}
+
+function cardToSubCard(card) {
+    const sub = {};
+    if (card.title) sub.title = card.title;
+    else if (card.content) sub.content = card.content;
+    if (card.desc) sub.desc = card.desc;
+    else if (card.descClickable) sub.desc = card.descClickable;
+    if (card.url) sub.url = card.url;
+    if (card.icon) sub.icon = card.icon;
+    if (card.iconImg) sub.iconImg = card.iconImg;
+    if (card.comment) sub.comment = card.comment;
+    if (card.isLocal) sub.isLocal = true;
+    return sub;
+}
+
+function simpleCardFromCard(card, targetArr) {
+    const c = deepClone(card);
+    c.id = c.id || generateUniqueCardId(targetArr, -1);
+    c.title = c.title || c.content || t('noTitle');
+    c.type = 'simple';
+    if (!c.desc && c.descClickable) c.desc = c.descClickable;
+    delete c.content;
+    delete c.descClickable;
+    delete c.descUrl;
+    delete c.subCards;
+    return c;
+}
+
+function finishCardManageMutation(message) {
+    cardManageSelectedKeys = new Set();
+    clearSectionExpanded(currentSection);
+    renderSectionTabs();
+    renderCurrentSection();
+    renderCardManageList();
+    markConfigDirty();
+    toast(message || t('toastUpdatedUnsaved'));
+}
+
+function cardManageMoveToSection() {
+    const selected = normalizeManagedSelection(getCardManageSelectedItems());
+    const targetKey = $('cmTargetSection').value;
+    if (!selected.length) { toast(t('cardManageNeedSelection')); return; }
+    if (!targetKey) { toast(t('toastNeedTargetSec')); return; }
+    if (!Array.isArray(store[targetKey])) store[targetKey] = [];
+    const targetArr = store[targetKey];
+    const moving = [];
+    let skipped = 0;
+    selected.forEach(item => {
+        if (item.kind === 'card') {
+            if (item.sectionKey === targetKey) { skipped++; return; }
+            moving.push(deepClone(item.card));
+        } else {
+            moving.push(subCardToStandardCard(item.card, targetArr.concat(moving)));
+        }
+    });
+    if (!moving.length) { toast(t('cardManageNoop')); return; }
+    removeManagedItems(selected.filter(item => !(item.kind === 'card' && item.sectionKey === targetKey)));
+    targetArr.push(...moving);
+    finishCardManageMutation(t('cardManageMoved', { n: moving.length, skipped }));
+}
+
+function cardManageMoveToParent() {
+    const selected = normalizeManagedSelection(getCardManageSelectedItems());
+    const targetKey = $('cmTargetSection').value;
+    const parentIdx = parseInt($('cmTargetParent').value, 10);
+    if (!selected.length) { toast(t('cardManageNeedSelection')); return; }
+    if (!targetKey || isNaN(parentIdx)) { toast(t('toastNeedTarget')); return; }
+    const targetCard = store[targetKey] && store[targetKey][parentIdx];
+    if (!targetCard) { toast(t('toastTargetNotExist')); return; }
+    const movable = [];
+    let skipped = 0;
+    selected.forEach(item => {
+        if (item.kind === 'card' && item.sectionKey === targetKey && item.cardIndex === parentIdx) { skipped++; return; }
+        if (item.kind === 'card' && item.card && item.card.type === 'expandable') { skipped++; return; }
+        movable.push(item);
+    });
+    if (!movable.length) { toast(t('cardManageNoMovable')); return; }
+    if (targetCard.type !== 'expandable') targetCard.type = 'expandable';
+    if (!Array.isArray(targetCard.subCards)) targetCard.subCards = [];
+    movable.forEach(item => {
+        targetCard.subCards.push(item.kind === 'subcard' ? deepClone(item.card) : cardToSubCard(item.card));
+    });
+    removeManagedItems(movable);
+    finishCardManageMutation(t('cardManageMovedToParent', { n: movable.length, skipped }));
+}
+
+function cardManageStandardize() {
+    const selected = normalizeManagedSelection(getCardManageSelectedItems());
+    const targetKey = $('cmTargetSection').value;
+    if (!selected.length) { toast(t('cardManageNeedSelection')); return; }
+    if (!targetKey) { toast(t('toastNeedTargetSec')); return; }
+    if (!Array.isArray(store[targetKey])) store[targetKey] = [];
+    const targetArr = store[targetKey];
+    const created = [];
+    let skipped = 0;
+    selected.forEach(item => {
+        if (item.kind === 'subcard') created.push(subCardToStandardCard(item.card, targetArr.concat(created)));
+        else if (item.card && item.card.type === 'expandable') skipped++;
+        else created.push(simpleCardFromCard(item.card, targetArr.concat(created)));
+    });
+    if (!created.length) { toast(t('cardManageNoMovable')); return; }
+    removeManagedItems(selected.filter(item => !(item.kind === 'card' && item.card && item.card.type === 'expandable')));
+    targetArr.push(...created);
+    finishCardManageMutation(t('cardManageStandardized', { n: created.length, skipped }));
+}
+
+function cardManageConvertType() {
+    const selected = getCardManageSelectedItems().filter(item => item.kind === 'card');
+    const type = $('cmTargetType').value || 'simple';
+    if (!selected.length) { toast(t('cardManageNeedRootSelection')); return; }
+    let changed = 0, skipped = 0;
+    selected.forEach(item => {
+        const card = store[item.sectionKey] && store[item.sectionKey][item.cardIndex];
+        if (!card || card.type === 'expandable') { skipped++; return; }
+        card.type = type;
+        if (type === 'simple') {
+            if (!card.desc && card.descClickable) card.desc = card.descClickable;
+            delete card.descClickable; delete card.descUrl;
+        } else if (type === 'desc-clickable') {
+            card.descClickable = card.descClickable || card.desc || card.title || '';
+            card.descUrl = card.descUrl || card.url || '';
+            delete card.desc;
+        }
+        changed++;
+    });
+    if (!changed) { toast(t('cardManageNoMovable')); return; }
+    finishCardManageMutation(t('cardManageConverted', { n: changed, skipped }));
+}
+
+function cardManageDeleteSelected() {
+    const selected = normalizeManagedSelection(getCardManageSelectedItems());
+    if (!selected.length) { toast(t('cardManageNeedSelection')); return; }
+    const expandable = selected.filter(x => x.kind === 'card' && x.card && x.card.subCards && x.card.subCards.length).length;
+    const msg = t('cardManageConfirmDelete', { n: selected.length, expandable });
+    if (!confirmDeleteAction(msg)) return;
+    removeManagedItems(selected);
+    finishCardManageMutation(t('cardManageDeleted', { n: selected.length }));
+}
+
+function cardManageDedupeByUrl() {
+    const seen = new Set();
+    const remove = [];
+    buildManagedCardItems().forEach(item => {
+        const url = cardUrlText(item.card).trim().toLowerCase();
+        if (!url) return;
+        if (seen.has(url)) remove.push(item);
+        else seen.add(url);
+    });
+    if (!remove.length) { toast(t('cardManageNoDupes')); return; }
+    if (!confirmDeleteAction(t('cardManageConfirmDedupe', { n: remove.length }))) return;
+    removeManagedItems(remove);
+    finishCardManageMutation(t('cardManageDedupeDone', { n: remove.length }));
+}
+
+function cardManageCleanEmptyParents() {
+    const remove = [];
+    buildManagedCardItems().forEach(item => {
+        if (item.kind === 'card' && item.card && item.card.type === 'expandable' && (!Array.isArray(item.card.subCards) || !item.card.subCards.length)) {
+            remove.push(item);
+        }
+    });
+    if (!remove.length) { toast(t('cardManageNoEmptyParents')); return; }
+    if (!confirmDeleteAction(t('cardManageConfirmCleanEmpty', { n: remove.length }))) return;
+    removeManagedItems(remove);
+    finishCardManageMutation(t('cardManageCleanedEmpty', { n: remove.length }));
 }
 
 /* ================================================================
@@ -10566,6 +11090,27 @@ window.addEventListener('DOMContentLoaded', () => {
             openCardModal(-1);
         }
     };
+    $('btnCardManage').onclick = openCardManageModal;
+    $('btnCardManageClose').onclick = () => hide('cardManageModal');
+    ['cmSearch','cmSectionFilter','cmKindFilter','cmTypeFilter'].forEach(id => {
+        $(id).addEventListener(id === 'cmSearch' ? 'input' : 'change', renderCardManageList);
+    });
+    $('cmTargetSection').onchange = () => { renderCardManageParentOptions(); updateCardManageState(); };
+    $('cmSelectAll').onchange = () => {
+        const checked = $('cmSelectAll').checked;
+        getManagedFilteredItems().forEach(item => {
+            if (checked) cardManageSelectedKeys.add(item.key);
+            else cardManageSelectedKeys.delete(item.key);
+        });
+        renderCardManageList();
+    };
+    $('cmMoveSection').onclick = cardManageMoveToSection;
+    $('cmMoveParent').onclick = cardManageMoveToParent;
+    $('cmStandardize').onclick = cardManageStandardize;
+    $('cmConvertType').onclick = cardManageConvertType;
+    $('cmDelete').onclick = cardManageDeleteSelected;
+    $('cmDedupe').onclick = cardManageDedupeByUrl;
+    $('cmCleanEmpty').onclick = cardManageCleanEmptyParents;
     $('btnCardCancel').onclick = () => hide('cardModal');
     $('btnCardSave').onclick = saveCardFromModal;
     $('btnFetchCardTitle').onclick = () => fetchPageTitleIntoField('f_url', 'f_title', 'btnFetchCardTitle');
