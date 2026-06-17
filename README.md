@@ -53,11 +53,15 @@ It can run as a pure static site, or as a Cloudflare Pages + Functions app with 
 
 The `extensions/open-tabs-importer` Chrome/Edge extension imports open browser tabs into SmartTools:
 
-- Import the current window or all windows.
+- Send tabs from the current window or all windows to the SmartTools admin import dialog.
+- Copy open tabs as JSON or plain text; text export can be URL-only.
+- Download open tabs as browser-compatible HTML bookmarks or SmartTools JSON.
+- Open the configured admin page, or open the site home page by stripping the admin path.
 - Skip non-HTTP(S) tabs and the SmartTools admin page itself.
 - Review selected tabs in the admin UI before inserting.
-- Create one expandable parent card with the imported tabs as sub-cards.
+- Create a new expandable parent card or append tabs to an existing expandable parent card.
 - Preserve tab title, URL, and non-base64 favicon URL when available.
+- If the admin page is not already open, the extension opens it and delivers the pending import once the admin UI is ready.
 
 ---
 
@@ -156,9 +160,12 @@ The unpacked extension lives at `extensions/open-tabs-importer`.
 1. Open Chrome/Edge extension management.
 2. Enable developer mode.
 3. Load `extensions/open-tabs-importer` as an unpacked extension.
-4. Open and log in to SmartTools `config.html`.
-5. Click the extension and import current-window or all-window tabs.
-6. Confirm the generated expandable card in the SmartTools admin UI, then save.
+4. Click the extension icon and confirm the SmartTools admin URL.
+5. Use **Open admin** to go to `config.html`, or **Open home** to open the site root.
+6. Under **Send tabs to admin for confirmation**, choose current-window or all-window tabs.
+7. Confirm selected tabs, target section, and parent-card mode in the SmartTools admin UI, then save.
+
+The same popup can also copy tabs as JSON/text or download them as HTML/JSON bookmark files.
 
 The packaged zip is also included as `extensions/open-tabs-importer.zip`.
 

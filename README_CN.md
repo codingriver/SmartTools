@@ -53,11 +53,15 @@ SmartTools 是一个可自托管的收藏夹仪表盘，用来管理个人网址
 
 `extensions/open-tabs-importer` 提供 Chrome/Edge 标签页导入能力：
 
-- 导入当前窗口或所有窗口的标签页。
+- 将当前窗口或所有窗口的标签页发送到 SmartTools 后台确认导入。
+- 可复制为 JSON 或普通文本；文本模式支持默认只复制 URL。
+- 可下载为浏览器兼容的 HTML 书签文件，或 SmartTools 可继续处理的 JSON 文件。
+- 可打开配置的后台地址，也可去掉后台路径后打开站点主页。
 - 自动跳过非 HTTP(S) 标签和 SmartTools 后台页。
 - 在后台确认界面勾选需要导入的标签。
-- 生成一个可展开父卡片，标签页作为子卡片。
+- 可新建可展开父卡片，也可追加到已有可展开父卡片。
 - 保存标题、URL，以及可用的非 base64 favicon 地址。
+- 如果后台页尚未打开，扩展会自动打开后台，并在后台界面准备好后投递待导入标签。
 
 ---
 
@@ -156,9 +160,12 @@ python -m http.server
 1. 打开 Chrome/Edge 扩展管理页。
 2. 开启开发者模式。
 3. 加载 `extensions/open-tabs-importer` 作为未打包扩展。
-4. 打开并登录 SmartTools `config.html`。
-5. 点击扩展，导入当前窗口或所有窗口标签页。
-6. 在 SmartTools 后台确认生成的可展开卡片，然后保存。
+4. 点击扩展图标，确认 SmartTools 后台地址。
+5. 使用「打开后台」进入 `config.html`，或用「打开主页」进入站点根地址。
+6. 在「发送标签到后台确认导入」中选择当前窗口或所有窗口标签页。
+7. 在 SmartTools 后台确认标签、所属分类和父卡片方式，然后保存。
+
+同一个弹窗也支持复制为 JSON/文本，或下载为 HTML/JSON 书签文件。
 
 仓库也包含已打包文件：`extensions/open-tabs-importer.zip`。
 
