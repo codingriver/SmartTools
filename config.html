@@ -730,20 +730,6 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
     </div>
 </div>
 
-<!-- 主卡片移动 -->
-<div id="cardMoveModal" class="modal-mask hidden">
-    <div class="modal-box" style="max-width:520px;">
-        <h2 data-i18n="cardMoveTitle">📦 移动卡片到其他大类</h2>
-        <p class="muted" id="cardMoveSrcHint"></p>
-        <div class="form-row"><label data-i18n="moveTargetSection">目标大类</label><select id="cardMove_section"></select></div>
-        <div class="move-hint" data-i18n="cardMoveHint">💡 卡片会原样转移，类型、子卡片、所有字段都保留。</div>
-        <div class="modal-footer">
-            <button class="btn btn-ghost" id="btnCardMoveCancel" data-i18n="btnCancel">取消</button>
-            <button class="btn btn-primary" id="btnCardMoveConfirm" data-i18n="moveConfirm">确认移动</button>
-        </div>
-    </div>
-</div>
-
 <!-- 子卡片升级为独立卡片 -->
 <div id="promoteSubModal" class="modal-mask hidden">
     <div class="modal-box">
@@ -2284,13 +2270,14 @@ const I18N = {
         subStyleCompact: '紧凑式（icon + content）',
         fldSubTitle: '标题 title', fldSubDesc: '描述 desc', fldSubContent: '内容 content',
         fldSubUrl: '链接 url（可留空）', compactTag: '[紧凑]',
-        moveModalTitle: '➡ 移动子卡片', moveTargetSection: '目标大类', moveTargetCard: '目标卡片',
+        moveModalTitle: '➡ 移动卡片', moveTargetSection: '目标大类', moveTargetCard: '目标卡片',
         moveConfirm: '确认移动', moveSrcHint: '将子卡片 <b>{sub}</b> 从 <b>{src}</b> 移动到：',
         moveTgtNone: '(该大类无可选目标)',
+        moveTgtAsRoot: '无（作为目标大类下的主卡片）',
+        moveHintAsRoot: '✓ 将作为目标大类下的主卡片。',
         moveHintExpandable: '✓ 目标已是 <b>expandable</b>，将追加到其 subCards 末尾。',
         moveHintUpgrade: '⚠️ 目标类型为 <b>{type}</b>，移动后将自动升级为 <b>expandable</b>。',
-        cardMoveTitle: '➡ 移动卡片到其他大类',
-        cardMoveHint: '💡 卡片会原样转移，类型、子卡片、所有字段都保留。',
+        moveExpandableRootOnly: '当前移动对象是 <b>expandable</b> 主卡片，只能作为主卡片移动，不能嵌套为子卡片。',
         cardMoveSrcHint: '将卡片 <b>{card}</b> 从 <b>{src}</b> 移动到：',
         promoteTitle: '🆙 升级子卡片为独立卡片',
         promoteSrcHint: '将子卡片 <b>{sub}</b> 从母卡片 <b>{src}</b> 升级为独立卡片：',
@@ -2425,6 +2412,7 @@ const I18N = {
         toastSubNotExist: '子卡片不存在', toastCardNotExist: '卡片不存在',
         toastNeedTarget: '请选择目标卡片', toastCantMoveSelf: '不能移动到当前卡片自身',
         toastTargetNotExist: '目标卡片不存在',
+        toastExpandableCantNest: 'expandable 主卡片不能移动为子卡片',
         toastMovedToUnsaved: '已移动到 「{tgt}」（未保存）',
         toastMovedSubToUnsaved: '已移动到 「{sec} / {card}」（未保存）',
         toastNeedTargetSec: '请选择目标大类', toastNoMoveTargets: '没有可移动的目标大类',
@@ -2925,13 +2913,14 @@ const I18N = {
         subStyleCompact: 'Compact (icon + content)',
         fldSubTitle: 'Title', fldSubDesc: 'Description', fldSubContent: 'Content',
         fldSubUrl: 'URL (optional)', compactTag: '[compact]',
-        moveModalTitle: '➡ Move Sub-card', moveTargetSection: 'Target section', moveTargetCard: 'Target card',
+        moveModalTitle: '➡ Move Card', moveTargetSection: 'Target section', moveTargetCard: 'Target card',
         moveConfirm: 'Confirm', moveSrcHint: 'Move sub-card <b>{sub}</b> from <b>{src}</b> to:',
         moveTgtNone: '(No available targets)',
+        moveTgtAsRoot: 'None (as a top-level card in target section)',
+        moveHintAsRoot: '✓ Will be moved as a top-level card in the target section.',
         moveHintExpandable: '✓ Target is <b>expandable</b>; will be appended.',
         moveHintUpgrade: '⚠️ Target is <b>{type}</b>; will be auto-upgraded to <b>expandable</b>.',
-        cardMoveTitle: '➡ Move Card to Another Section',
-        cardMoveHint: '💡 Card moved as-is; all fields preserved.',
+        moveExpandableRootOnly: 'The selected item is an <b>expandable</b> top-level card, so it can only move as a top-level card.',
         cardMoveSrcHint: 'Move card <b>{card}</b> from <b>{src}</b> to:',
         promoteTitle: '🆙 Promote Sub-card to Card',
         promoteSrcHint: 'Promote sub-card <b>{sub}</b> from parent <b>{src}</b> to a standalone card:',
@@ -3065,6 +3054,7 @@ const I18N = {
         toastSubNotExist: 'Sub-card not found', toastCardNotExist: 'Card not found',
         toastNeedTarget: 'Select a target card', toastCantMoveSelf: 'Cannot move to the same card',
         toastTargetNotExist: 'Target card not found',
+        toastExpandableCantNest: 'Expandable top-level cards cannot be moved as sub-cards',
         toastMovedToUnsaved: 'Moved to "{tgt}" (unsaved)',
         toastMovedSubToUnsaved: 'Moved to "{sec} / {card}" (unsaved)',
         toastNeedTargetSec: 'Select a target section', toastNoMoveTargets: 'No target sections available',
@@ -3310,7 +3300,7 @@ let editingCardIndex = -1, editingSubIndex = -1, editingCardDraft = null;
 let listSubEditContext = null;
 let folderHandle = null, dataJsHandle = null;
 let moveFromIndex = -1;
-let movingCardSourceSection = null, movingCardSourceIndex = -1;
+let movingItem = null;
 let promotingSubIndex = -1;
 let editingCustomSectionIdx = -2;
 const deletedBackupNamesOnline = new Set();
@@ -5348,6 +5338,10 @@ function clearListSubContext() {
 
 function cancelListSubModal(modalId) {
     hide(modalId);
+    if (modalId === 'moveModal') {
+        movingItem = null;
+        moveFromIndex = -1;
+    }
     if (listSubEditContext) {
         refreshAfterListSubAction();
         clearListSubContext();
@@ -5418,45 +5412,70 @@ function handlePushedByDelete(idx) {
 }
 
 /* ================================================================
-   Move card cross-section
+   Unified move card / sub-card
 ================================================================ */
-function openMoveCardModal(sectionKey, cardIdx) {
+function getMovingItemCard() {
+    if (!movingItem) return null;
+    if (movingItem.kind === 'card') {
+        return store[movingItem.sourceSection] && store[movingItem.sourceSection][movingItem.sourceCardIndex];
+    }
+    if (movingItem.kind === 'subcard') {
+        const parent = store[movingItem.sourceSection] && store[movingItem.sourceSection][movingItem.sourceCardIndex];
+        if (listSubEditContext && editingCardDraft && movingItem.sourceSection === currentSection && movingItem.sourceCardIndex === editingCardIndex) {
+            return editingCardDraft.subCards && editingCardDraft.subCards[movingItem.sourceSubIndex];
+        }
+        if (editingCardDraft && movingItem.sourceSection === currentSection && movingItem.sourceCardIndex === editingCardIndex) {
+            return editingCardDraft.subCards && editingCardDraft.subCards[movingItem.sourceSubIndex];
+        }
+        return parent && parent.subCards && parent.subCards[movingItem.sourceSubIndex];
+    }
+    return null;
+}
+
+function openMoveItemModal(kind, sectionKey, cardIdx, subIdx) {
     if (isLockedKey(sectionKey)) { toast(t('toastEncCantEditLocked')); return; }
-    const card = store[sectionKey] && store[sectionKey][cardIdx]; if (!card) return;
-    movingCardSourceSection = sectionKey; movingCardSourceIndex = cardIdx;
+    const parent = (store[sectionKey] && store[sectionKey][cardIdx]) ||
+        (kind === 'subcard' && sectionKey === currentSection && cardIdx === editingCardIndex ? editingCardDraft : null);
+    if (!parent) return;
+    const movingCard = (kind === 'subcard')
+        ? ((editingCardDraft && editingCardDraft.subCards && editingCardDraft.subCards[subIdx]) || (parent.subCards && parent.subCards[subIdx]))
+        : parent;
+    if (!movingCard) return;
+
+    movingItem = {
+        kind: kind,
+        sourceSection: sectionKey,
+        sourceCardIndex: cardIdx,
+        sourceSubIndex: kind === 'subcard' ? subIdx : -1
+    };
+    moveFromIndex = kind === 'subcard' ? subIdx : -1;
+
     const srcSec = getSections().find(s => s.key === sectionKey);
     const srcLabel = (srcSec || {}).label || sectionKey;
-    const cardName = card.title || card.id || card.content || t('noTitle');
-    $('cardMoveSrcHint').innerHTML = t('cardMoveSrcHint', { card: escapeHtml(cardName), src: escapeHtml(srcLabel) });
-    const sel = $('cardMove_section'); sel.innerHTML = '';
-    getSections().filter(s => s.kind === 'card' && s.key !== sectionKey && !s.locked).forEach(s => {
+    const itemName = movingCard.title || movingCard.content || movingCard.id || t('noTitle');
+    const parentName = parent.title || parent.id || t('noTitle');
+    $('moveSrcHint').innerHTML = kind === 'subcard'
+        ? t('moveSrcHint', { sub: escapeHtml(itemName), src: escapeHtml(parentName) })
+        : t('cardMoveSrcHint', { card: escapeHtml(itemName), src: escapeHtml(srcLabel) });
+
+    const selSec = $('move_section'); selSec.innerHTML = '';
+    getSections().filter(s => s.kind === 'card' && !s.locked).forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.key;
         let lbl = s.label;
         if (s.encrypted) lbl = '🔐 ' + lbl;
         opt.textContent = lbl;
-        sel.appendChild(opt);
+        selSec.appendChild(opt);
     });
-    if (!sel.options.length) { toast(t('toastNoMoveTargets')); return; }
-    show('cardMoveModal');
+    if (!selSec.options.length) { toast(t('toastNoMoveTargets')); movingItem = null; return; }
+    selSec.value = sectionKey;
+    selSec.onchange = renderMoveTargetList;
+    renderMoveTargetList();
+    show('moveModal');
 }
-function confirmMoveCard() {
-    if (!movingCardSourceSection || movingCardSourceIndex < 0) return;
-    const srcArr = store[movingCardSourceSection];
-    if (!srcArr || !srcArr[movingCardSourceIndex]) { toast(t('toastCardNotExist')); return; }
-    const targetSection = $('cardMove_section').value;
-    if (!targetSection || targetSection === movingCardSourceSection) { toast(t('toastNeedTargetSec')); return; }
-    if (isLockedKey(targetSection)) { toast(t('toastLockedSkippedInMove')); return; }
-    const card = deepClone(srcArr[movingCardSourceIndex]);
-    if (!Array.isArray(store[targetSection])) store[targetSection] = [];
-    store[targetSection].push(card);
-    srcArr.splice(movingCardSourceIndex, 1);
-    hide('cardMoveModal');
-    renderCurrentSection();
-    const tgtLabel = (getSections().find(s => s.key === targetSection) || {}).label || targetSection;
-    toast(t('toastMovedToUnsaved', { tgt: tgtLabel }));
-    markConfigDirty();
-    movingCardSourceSection = null; movingCardSourceIndex = -1;
+
+function openMoveCardModal(sectionKey, cardIdx) {
+    openMoveItemModal('card', sectionKey, cardIdx, -1);
 }
 
 /* ================================================================
@@ -6131,75 +6150,115 @@ function saveSubFromModal() {
     }
 }
 function openMoveSubModal(subIdx) {
-    moveFromIndex = subIdx;
-    const sub = editingCardDraft.subCards[subIdx];
-    const srcTitle = editingCardDraft.title || editingCardDraft.id || t('noTitle');
-    const subName = sub.title || sub.content || t('noTitle');
-    $('moveSrcHint').innerHTML = t('moveSrcHint', { sub: escapeHtml(subName), src: escapeHtml(srcTitle) });
-    const selSec = $('move_section'); selSec.innerHTML = '';
-    getSections().filter(s => s.kind === 'card' && !s.locked).forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.key;
-        let lbl = s.label;
-        if (s.encrypted) lbl = '🔐 ' + lbl;
-        opt.textContent = lbl;
-        selSec.appendChild(opt);
-    });
-    selSec.value = currentSection;
-    selSec.onchange = renderMoveTargetList;
-    renderMoveTargetList();
-    show('moveModal');
+    openMoveItemModal('subcard', currentSection, editingCardIndex, subIdx);
 }
 function renderMoveTargetList() {
     const key = $('move_section').value; const tgt = $('move_target'); tgt.innerHTML = '';
-    const arr = store[key] || []; let count = 0;
+    const movingCard = getMovingItemCard();
+    const canPickParent = !(movingCard && movingCard.type === 'expandable');
+    const noneOpt = document.createElement('option');
+    noneOpt.value = '';
+    noneOpt.textContent = t('moveTgtAsRoot');
+    tgt.appendChild(noneOpt);
+    const arr = store[key] || []; let count = 1;
     arr.forEach((c, i) => {
-        if (key === currentSection && i === editingCardIndex) return;
+        if (movingItem && movingItem.kind === 'card' && key === movingItem.sourceSection && i === movingItem.sourceCardIndex) return;
         const opt = document.createElement('option'); opt.value = i;
         const typeTag = c.type === 'expandable' ? '📁' : (c.type === 'desc-clickable' ? '🔗' : '•');
         const subInfo = (c.type === 'expandable' && c.subCards) ? t('subCardCount2', { n: c.subCards.length }) : '';
         opt.textContent = typeTag + ' ' + (c.title || c.id || t('noTitle')) + subInfo;
-        tgt.appendChild(opt); count++;
+        opt.disabled = !canPickParent;
+        tgt.appendChild(opt);
+        if (canPickParent) count++;
     });
-    if (count === 0) { const opt = document.createElement('option'); opt.value = ''; opt.textContent = t('moveTgtNone'); opt.disabled = true; tgt.appendChild(opt); }
     tgt.onchange = updateMoveTypeHint;
-    if (tgt.options.length) { tgt.selectedIndex = 0; updateMoveTypeHint(); } else $('moveTypeHint').textContent = '';
+    tgt.selectedIndex = 0;
+    if (!canPickParent) tgt.title = t('moveExpandableRootOnly');
+    else tgt.removeAttribute('title');
+    updateMoveTypeHint();
 }
 function updateMoveTypeHint() {
-    const key = $('move_section').value; const idx = parseInt($('move_target').value, 10);
+    const key = $('move_section').value; const raw = $('move_target').value; const idx = parseInt(raw, 10);
     const hint = $('moveTypeHint');
-    if (isNaN(idx)) { hint.textContent = ''; return; }
+    const movingCard = getMovingItemCard();
+    if (movingCard && movingCard.type === 'expandable') {
+        hint.innerHTML = t('moveExpandableRootOnly');
+        return;
+    }
+    if (raw === '' || isNaN(idx)) { hint.innerHTML = t('moveHintAsRoot'); return; }
     const tgt = store[key][idx]; if (!tgt) { hint.textContent = ''; return; }
     if (tgt.type === 'expandable') hint.innerHTML = t('moveHintExpandable');
     else hint.innerHTML = t('moveHintUpgrade', { type: tgt.type || 'simple' });
 }
 function confirmMoveSubCard() {
-    const sub = editingCardDraft && editingCardDraft.subCards && editingCardDraft.subCards[moveFromIndex];
-    if (!sub) { toast(t('toastSubNotExist')); return; }
-    const targetSection = $('move_section').value; const targetIndex = parseInt($('move_target').value, 10);
-    if (isNaN(targetIndex)) { toast(t('toastNeedTarget')); return; }
-    if (editingCardIndex >= 0 && targetSection === currentSection && targetIndex === editingCardIndex) { toast(t('toastCantMoveSelf')); return; }
-    const tgtCard = store[targetSection][targetIndex]; if (!tgtCard) { toast(t('toastTargetNotExist')); return; }
-    if (tgtCard.type !== 'expandable') tgtCard.type = 'expandable';
-    if (!Array.isArray(tgtCard.subCards)) tgtCard.subCards = [];
-    tgtCard.subCards.push(deepClone(sub));
-    editingCardDraft.subCards.splice(moveFromIndex, 1);
-    if (editingCardIndex >= 0) {
-        const src = store[currentSection][editingCardIndex];
-        if (src) { if (!Array.isArray(src.subCards)) src.subCards = []; src.subCards = deepClone(editingCardDraft.subCards); }
+    if (!movingItem) return;
+    const sourceCard = getMovingItemCard();
+    if (!sourceCard) { toast(movingItem.kind === 'subcard' ? t('toastSubNotExist') : t('toastCardNotExist')); return; }
+    const targetSection = $('move_section').value;
+    const targetRaw = $('move_target').value;
+    const targetIndex = targetRaw === '' ? -1 : parseInt(targetRaw, 10);
+    if (!targetSection) { toast(t('toastNeedTargetSec')); return; }
+    if (isLockedKey(targetSection)) { toast(t('toastLockedSkippedInMove')); return; }
+    if (targetRaw !== '' && isNaN(targetIndex)) { toast(t('toastNeedTarget')); return; }
+
+    const movingClone = deepClone(sourceCard);
+    let targetCard = null;
+    if (targetIndex >= 0) {
+        if (movingItem.kind === 'card' && targetSection === movingItem.sourceSection && targetIndex === movingItem.sourceCardIndex) {
+            toast(t('toastCantMoveSelf')); return;
+        }
+        targetCard = store[targetSection] && store[targetSection][targetIndex];
+        if (!targetCard) { toast(t('toastTargetNotExist')); return; }
+        if (movingClone.type === 'expandable') { toast(t('toastExpandableCantNest')); return; }
     }
+    if (!Array.isArray(store[targetSection])) store[targetSection] = [];
+
+    if (movingItem.kind === 'card') {
+        const srcArr = store[movingItem.sourceSection];
+        if (!srcArr || !srcArr[movingItem.sourceCardIndex]) { toast(t('toastCardNotExist')); return; }
+        if (targetIndex < 0 && targetSection === movingItem.sourceSection) { toast(t('toastNeedTargetSec')); return; }
+        srcArr.splice(movingItem.sourceCardIndex, 1);
+    } else {
+        const sourceSubs = editingCardDraft && editingCardDraft.subCards;
+        if (!sourceSubs || !sourceSubs[movingItem.sourceSubIndex]) { toast(t('toastSubNotExist')); return; }
+        sourceSubs.splice(movingItem.sourceSubIndex, 1);
+        if (movingItem.sourceCardIndex >= 0) {
+            const src = store[movingItem.sourceSection][movingItem.sourceCardIndex];
+            if (src) {
+                if (!Array.isArray(src.subCards)) src.subCards = [];
+                src.subCards = deepClone(sourceSubs);
+            }
+        }
+    }
+
+    if (targetCard) {
+        if (targetCard.type !== 'expandable') targetCard.type = 'expandable';
+        if (!Array.isArray(targetCard.subCards)) targetCard.subCards = [];
+        targetCard.subCards.push(movingClone);
+    } else {
+        store[targetSection].push(movingClone);
+    }
+
     hide('moveModal');
     if (listSubEditContext) {
         refreshAfterListSubAction();
         clearListSubContext();
-    } else {
+    } else if (movingItem.kind === 'subcard') {
         renderSubCardsList();
+        renderCurrentSection();
+    } else {
         renderCurrentSection();
     }
     const tgtSecLabel = (getSections().find(s => s.key === targetSection) || {}).label || targetSection;
-    const tgtCardLabel = tgtCard.title || tgtCard.id || t('noTitle');
-    toast(t('toastMovedSubToUnsaved', { sec: tgtSecLabel, card: tgtCardLabel }));
+    if (targetCard) {
+        const tgtCardLabel = targetCard.title || targetCard.id || t('noTitle');
+        toast(t('toastMovedSubToUnsaved', { sec: tgtSecLabel, card: tgtCardLabel }));
+    } else {
+        toast(t('toastMovedToUnsaved', { tgt: tgtSecLabel }));
+    }
     markConfigDirty();
+    movingItem = null;
+    moveFromIndex = -1;
 }
 
 /* ================================================================
@@ -10549,8 +10608,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     $('btnMoveCancel').onclick = () => cancelListSubModal('moveModal');
     $('btnMoveConfirm').onclick = confirmMoveSubCard;
-    $('btnCardMoveCancel').onclick = () => hide('cardMoveModal');
-    $('btnCardMoveConfirm').onclick = confirmMoveCard;
 
     $('btnPromoteCancel').onclick = () => cancelListSubModal('promoteSubModal');
     $('btnPromoteConfirm').onclick = confirmPromoteSub;
