@@ -90,8 +90,9 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 .hidden { display: none !important; }
 .move-hint { font-size: 12px; color: #888; margin-top: 6px; padding: 8px 10px; background: #fff3e0; border-radius: 6px; border-left: 3px solid #ff9800; }
 .enc-hint { font-size: 12px; color: #555; margin-top: 6px; padding: 8px 10px; background: #f3e5f5; border-radius: 6px; border-left: 3px solid #9c27b0; }
-.cm-toolbar { display: grid; grid-template-columns: 1.1fr .9fr .9fr 1.2fr; gap: 8px; margin-bottom: 12px; }
+.cm-toolbar { display: grid; grid-template-columns: minmax(180px,1.1fr) minmax(130px,.9fr) minmax(120px,.9fr) minmax(130px,1fr) auto; gap: 8px; margin-bottom: 12px; align-items: center; }
 .cm-toolbar input, .cm-toolbar select { min-width: 0; }
+.cm-toolbar .btn { white-space: nowrap; }
 .cm-layout { display: grid; grid-template-columns: minmax(0,1fr) 280px; gap: 14px; align-items: start; }
 .cm-list { border: 1px solid #e5e5e5; border-radius: 8px; max-height: 52vh; overflow: auto; background: #fcfcfc; }
 .cm-row { display: grid; grid-template-columns: 28px 40px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 9px 10px; border-bottom: 1px solid #eee; background: #fff; }
@@ -107,6 +108,11 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 .cm-actions .btn { width: 100%; }
 .cm-preview { margin-top: 10px; padding: 8px 10px; border-radius: 6px; background: #fff; border: 1px dashed #ddd; color: #666; font-size: 12px; line-height: 1.5; min-height: 34px; }
 .cm-list-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+.cm-dupe-list { display: grid; gap: 6px; margin-top: 8px; }
+.cm-dupe-row { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 6px; align-items: center; padding: 6px 8px; border: 1px solid #eee; border-radius: 6px; background: #fafafa; }
+.cm-dupe-row input { width: auto; }
+.cm-dupe-url { word-break: break-all; color: #444; }
+.cm-dupe-count { color: #999; white-space: nowrap; }
 .mode-card { border: 2px solid #e5e5e5; border-radius: 10px; padding: 20px; cursor: pointer; transition: all .2s; margin-bottom: 12px; }
 .mode-card:hover { border-color: #667eea; box-shadow: 0 4px 15px rgba(102,126,234,.2); }
 .mode-card.disabled { opacity: .5; cursor: not-allowed; }
@@ -631,6 +637,11 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
                 <option value="desc-clickable">desc-clickable</option>
                 <option value="expandable">expandable</option>
             </select>
+            <select id="cmQuickCheck">
+                <option value="" data-i18n="cardManageQuickCheck">快捷检查</option>
+                <option value="dupes" data-i18n="cardManageDedupe">查看重复 URL</option>
+                <option value="emptyParents" data-i18n="cardManageCleanEmpty">查看空父卡</option>
+            </select>
         </div>
         <div class="cm-layout">
             <div>
@@ -664,9 +675,8 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
                     <button class="btn btn-warn btn-sm" id="cmMoveParent" data-i18n="cardManageMoveParent">移动为目标卡片的子卡片</button>
                     <button class="btn btn-success btn-sm" id="cmStandardize" data-i18n="cardManageStandardize">转为标准主卡片</button>
                     <button class="btn btn-ghost btn-sm" id="cmConvertType" data-i18n="cardManageConvertType">批量转换类型</button>
+                    <button class="btn btn-info btn-sm" id="cmFetchTitles" data-i18n="cardManageFetchTitles">批量抓取标题</button>
                     <button class="btn btn-danger btn-sm" id="cmDelete" data-i18n="cardManageDelete">批量删除</button>
-                    <button class="btn btn-ghost btn-sm" id="cmDedupe" data-i18n="cardManageDedupe">按 URL 去重</button>
-                    <button class="btn btn-ghost btn-sm" id="cmCleanEmpty" data-i18n="cardManageCleanEmpty">清理空父卡</button>
                 </div>
                 <div class="cm-preview" id="cmPreview"></div>
             </div>
@@ -1541,8 +1551,8 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
                 <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubExportBookmarksDesc">导出 Chrome / Edge 可导入的 HTML</div>
             </button>
             <button type="button" class="btn btn-ghost ioHubItem" id="btnIoHubImportOpenTabsClipboard" style="text-align:left; padding:12px; height:auto; line-height:1.4;">
-                <div style="font-size:14px; font-weight:600;" data-i18n="ioHubImportOpenTabsClipboard">🧩 从剪贴板批量导入标签页</div>
-                <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubImportOpenTabsClipboardDesc">支持插件 JSON、书签 HTML、网页链接片段和纯文本 URL</div>
+                <div style="font-size:14px; font-weight:600;" data-i18n="ioHubImportOpenTabsClipboard">🧩 批量导入标签页</div>
+                <div class="muted" style="font-size:11px; margin-top:4px;" data-i18n="ioHubImportOpenTabsClipboardDesc">支持剪贴板、插件 JSON、书签 HTML、网页链接片段和纯文本 URL</div>
             </button>
         </div>
         <div class="modal-footer">
@@ -1573,7 +1583,7 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 <!-- 从剪贴板/手动粘贴导入打开的标签页 -->
 <div id="openTabsClipboardModal" class="modal-mask hidden">
     <div class="modal-box" style="max-width:720px;">
-        <h2 data-i18n="openTabsClipboardTitle">🧩 从剪贴板批量导入标签页</h2>
+        <h2 data-i18n="openTabsClipboardTitle">🧩 批量导入标签页</h2>
         <p class="muted" data-i18n="openTabsClipboardDesc">可粘贴插件导出的 JSON、Chrome/Edge 书签 HTML、网页链接片段，或一行一个 URL 的纯文本。解析后会进入导入确认面板。</p>
         <div class="form-row">
             <label data-i18n="openTabsClipboardInputLabel">输入内容</label>
@@ -1591,7 +1601,7 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
 <!-- 导入浏览器当前打开标签 -->
 <div id="openTabsImportModal" class="modal-mask hidden">
     <div class="modal-box" style="max-width:720px;">
-        <h2 data-i18n="openTabsImportTitle">🧩 导入打开的标签页</h2>
+        <h2 data-i18n="openTabsImportTitle">🧩 批量导入标签页</h2>
         <p class="muted" data-i18n-html="openTabsImportDesc">勾选要导入的标签，先选择所属分类，再决定新建父卡片或追加到已有父卡片。<span class="open-tabs-save-warn">导入后请手动点击「💾 保存」。</span></p>
         <div class="open-tabs-import-fields">
             <div class="form-row">
@@ -1626,6 +1636,7 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
         <div style="display:flex; gap:8px; margin:8px 0;">
             <button type="button" class="btn btn-ghost btn-sm" id="btnOpenTabsSelectAll" data-i18n="openTabsSelectAll">全选</button>
             <button type="button" class="btn btn-ghost btn-sm" id="btnOpenTabsSelectNone" data-i18n="openTabsSelectNone">全不选</button>
+            <button type="button" class="btn btn-info btn-sm" id="btnOpenTabsFetchSelectedTitles" data-i18n="openTabsFetchSelectedTitles">批量抓取标题</button>
             <span class="muted" id="openTabsImportCount" style="align-self:center; font-size:12px;"></span>
         </div>
         <div id="openTabsImportList" class="open-tabs-import-list"></div>
@@ -1950,8 +1961,8 @@ const I18N = {
         ioHubImportTableDesc: '从 CSV / XLSX 文件导入卡片',
         ioHubImportBookmarks: '📥 导入浏览器收藏夹',
         ioHubImportBookmarksDesc: '导入 Chrome / Edge 导出的书签 HTML',
-        ioHubImportOpenTabsClipboard: '🧩 从剪贴板批量导入标签页',
-        ioHubImportOpenTabsClipboardDesc: '支持插件 JSON、书签 HTML、网页链接片段和纯文本 URL',
+        ioHubImportOpenTabsClipboard: '🧩 批量导入标签页',
+        ioHubImportOpenTabsClipboardDesc: '支持剪贴板、插件 JSON、书签 HTML、网页链接片段和纯文本 URL',
         ioHubExportBookmarks: '📤 导出浏览器收藏夹',
         ioHubExportBookmarksDesc: '导出 Chrome / Edge 可导入的 HTML',
         csvExportTitle: '📤 导出表格',
@@ -2017,9 +2028,9 @@ const I18N = {
         bookmarkExportFail: '浏览器收藏夹导出失败：{msg}',
         openTabsImportDone: '已导入父卡片「{title}」及 {n} 个子标签到「{section}」。请记得点「💾 保存」。',
         openTabsImportEmpty: '没有可导入的标签页',
-        openTabsImportTitle: '🧩 导入打开的标签页',
+        openTabsImportTitle: '🧩 批量导入标签页',
         openTabsImportDesc: '勾选要导入的标签，先选择所属分类，再决定新建父卡片或追加到已有父卡片。<span class="open-tabs-save-warn">导入后请手动点击「💾 保存」。</span>',
-        openTabsClipboardTitle: '🧩 从剪贴板批量导入标签页',
+        openTabsClipboardTitle: '🧩 批量导入标签页',
         openTabsClipboardDesc: '可粘贴插件导出的 JSON、Chrome/Edge 书签 HTML、网页链接片段，或一行一个 URL 的纯文本。解析后会进入导入确认面板。',
         openTabsClipboardInputLabel: '输入内容',
         openTabsClipboardPlaceholder: '例如：{"tabs":[{"title":"Example","url":"https://example.com"}]} 或 bookmarks.html 内容',
@@ -2050,6 +2061,9 @@ const I18N = {
         openTabsFetchTitleDone: '已更新标题',
         openTabsFetchTitleNeedUrl: '请先填写有效的 http(s) URL',
         openTabsFetchTitleFail: '抓取标题失败：{msg}',
+        openTabsFetchSelectedTitles: '批量抓取标题',
+        openTabsFetchSelectedTitlesDone: '已抓取并更新 {n} 个标题（跳过 {skipped}，失败 {failed}）',
+        openTabsFetchSelectedTitlesNone: '没有更新标题（跳过 {skipped}，失败 {failed}）',
         openTabsSectionLabel: '所属分类',
         openTabsSelectAll: '全选',
         openTabsSelectNone: '全不选',
@@ -2338,10 +2352,11 @@ const I18N = {
         cardManageSearchPh: '搜索标题 / URL / 描述',
         cardManageKindAll: '全部卡片', cardManageKindCard: '仅主卡片', cardManageKindSub: '仅子卡片',
         cardManageTypeAll: '全部类型', cardManageAllSections: '全部大类',
-        cardManageSelectAll: '选择当前结果', cardManageBatchOps: '批量操作',
+        cardManageSelectAll: '选择当前结果', cardManageBatchOps: '批量操作', cardManageQuickCheck: '快捷检查',
         cardManageMoveSection: '移动到目标大类', cardManageMoveParent: '移动为目标卡片的子卡片',
         cardManageStandardize: '转为标准主卡片', cardManageConvertType: '批量转换类型',
-        cardManageDelete: '批量删除', cardManageDedupe: '按 URL 去重', cardManageCleanEmpty: '清理空父卡',
+        cardManageFetchTitles: '批量抓取标题',
+        cardManageDelete: '批量删除', cardManageDedupe: '查看重复 URL', cardManageCleanEmpty: '查看空父卡',
         cardManageEmpty: '没有匹配卡片', cardManageSubBadge: '子卡',
         cardManageParentPrefix: '父卡：',
         cardManageStats: '显示 {shown} 项，已选 {selected} 项（主卡 {root}，子卡 {sub}）',
@@ -2353,11 +2368,22 @@ const I18N = {
         cardManageMovedToParent: '已移动 {n} 张为目标子卡片（跳过 {skipped} 张）',
         cardManageStandardized: '已转为 {n} 张标准主卡片（跳过 {skipped} 张）',
         cardManageConverted: '已转换 {n} 张主卡类型（跳过 {skipped} 张）',
+        cardManageFetchTitlesDone: '已抓取并更新 {n} 个标题（跳过 {skipped}，失败 {failed}）',
+        cardManageFetchTitlesNone: '没有更新标题（跳过 {skipped}，失败 {failed}）',
         cardManageDeleted: '已删除 {n} 项（未保存）',
         cardManageConfirmDelete: '确认删除选中的 {n} 项？其中 {expandable} 张主卡带有子卡片，会一并删除。',
-        cardManageNoDupes: '没有发现重复 URL', cardManageConfirmDedupe: '将删除 {n} 个重复 URL 卡片，保留第一次出现的卡片。继续？',
+        cardManageNoDupes: '没有发现重复 URL',
+        cardManageDupeTitle: '发现 {n} 个重复 URL，请选择要清理的 URL：',
+        cardManageDupeCount: '重复 {n} 项',
+        cardManageDeleteDupes: '删除选中重复项',
+        cardManageNeedDupeSelection: '请先选择重复 URL',
+        cardManageConfirmDedupe: '将删除选中 URL 的 {n} 个后续重复卡片，保留第一次出现的卡片。继续？',
         cardManageDedupeDone: '已删除 {n} 个重复 URL 卡片',
         cardManageNoEmptyParents: '没有空的 expandable 父卡',
+        cardManageEmptyParentTitle: '发现 {n} 张空父卡，请选择要删除的父卡：',
+        cardManageEmptyParentTag: '空父卡',
+        cardManageDeleteEmptyParents: '删除选中空父卡',
+        cardManageNeedEmptySelection: '请先选择空父卡',
         cardManageConfirmCleanEmpty: '将删除 {n} 张没有子卡片的 expandable 父卡。继续？',
         cardManageCleanedEmpty: '已清理 {n} 张空父卡',
         privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 私密</span>',
@@ -2620,8 +2646,8 @@ const I18N = {
         ioHubImportTableDesc: 'Import cards from a CSV / XLSX file',
         ioHubImportBookmarks: '📥 Import Browser Bookmarks',
         ioHubImportBookmarksDesc: 'Import bookmarks HTML exported by Chrome / Edge',
-        ioHubImportOpenTabsClipboard: '🧩 Batch Import Tabs from Clipboard',
-        ioHubImportOpenTabsClipboardDesc: 'Supports plugin JSON, bookmarks HTML, copied links, and plain URL text',
+        ioHubImportOpenTabsClipboard: '🧩 Batch Import Tabs',
+        ioHubImportOpenTabsClipboardDesc: 'Supports clipboard, plugin JSON, bookmarks HTML, copied links, and plain URL text',
         ioHubExportBookmarks: '📤 Export Browser Bookmarks',
         ioHubExportBookmarksDesc: 'Export HTML importable by Chrome / Edge',
         csvExportTitle: '📤 Export Table',
@@ -2687,9 +2713,9 @@ const I18N = {
         bookmarkExportFail: 'Browser bookmarks export failed: {msg}',
         openTabsImportDone: 'Imported parent card "{title}" with {n} tab sub-card(s) into "{section}". Remember to click 「💾 Save」.',
         openTabsImportEmpty: 'No importable open tabs',
-        openTabsImportTitle: '🧩 Import Open Tabs',
+        openTabsImportTitle: '🧩 Batch Import Tabs',
         openTabsImportDesc: 'Select tabs to import, then choose the target section before creating a new parent card or appending to an existing one. <span class="open-tabs-save-warn">Click 「💾 Save」 afterwards.</span>',
-        openTabsClipboardTitle: '🧩 Batch Import Tabs from Clipboard',
+        openTabsClipboardTitle: '🧩 Batch Import Tabs',
         openTabsClipboardDesc: 'Paste plugin JSON, Chrome/Edge bookmarks HTML, copied link snippets, or plain text with one URL per line. Parsed links will open the import confirmation panel.',
         openTabsClipboardInputLabel: 'Input content',
         openTabsClipboardPlaceholder: 'Example: {"tabs":[{"title":"Example","url":"https://example.com"}]} or bookmarks.html content',
@@ -2720,6 +2746,9 @@ const I18N = {
         openTabsFetchTitleDone: 'Title updated',
         openTabsFetchTitleNeedUrl: 'Please enter a valid http(s) URL first',
         openTabsFetchTitleFail: 'Failed to fetch title: {msg}',
+        openTabsFetchSelectedTitles: 'Fetch selected titles',
+        openTabsFetchSelectedTitlesDone: 'Fetched and updated {n} titles (skipped {skipped}, failed {failed})',
+        openTabsFetchSelectedTitlesNone: 'No titles updated (skipped {skipped}, failed {failed})',
         openTabsSectionLabel: 'Target section',
         openTabsSelectAll: 'Select all',
         openTabsSelectNone: 'Select none',
@@ -3008,10 +3037,11 @@ const I18N = {
         cardManageSearchPh: 'Search title / URL / description',
         cardManageKindAll: 'All cards', cardManageKindCard: 'Top-level only', cardManageKindSub: 'Sub-cards only',
         cardManageTypeAll: 'All types', cardManageAllSections: 'All sections',
-        cardManageSelectAll: 'Select current results', cardManageBatchOps: 'Batch actions',
+        cardManageSelectAll: 'Select current results', cardManageBatchOps: 'Batch actions', cardManageQuickCheck: 'Quick checks',
         cardManageMoveSection: 'Move to target section', cardManageMoveParent: 'Move under target card',
         cardManageStandardize: 'Convert to standard cards', cardManageConvertType: 'Convert type',
-        cardManageDelete: 'Batch delete', cardManageDedupe: 'Deduplicate by URL', cardManageCleanEmpty: 'Clean empty parents',
+        cardManageFetchTitles: 'Fetch titles',
+        cardManageDelete: 'Batch delete', cardManageDedupe: 'View duplicate URLs', cardManageCleanEmpty: 'View empty parents',
         cardManageEmpty: 'No matching cards', cardManageSubBadge: 'Sub',
         cardManageParentPrefix: 'Parent: ',
         cardManageStats: 'Showing {shown}, selected {selected} (top-level {root}, sub {sub})',
@@ -3023,11 +3053,22 @@ const I18N = {
         cardManageMovedToParent: 'Moved {n} cards under target card (skipped {skipped})',
         cardManageStandardized: 'Converted {n} cards to standard top-level cards (skipped {skipped})',
         cardManageConverted: 'Converted {n} top-level card types (skipped {skipped})',
+        cardManageFetchTitlesDone: 'Fetched and updated {n} titles (skipped {skipped}, failed {failed})',
+        cardManageFetchTitlesNone: 'No titles updated (skipped {skipped}, failed {failed})',
         cardManageDeleted: 'Deleted {n} items (unsaved)',
         cardManageConfirmDelete: 'Delete selected {n} items? {expandable} selected top-level cards have sub-cards and will delete them too.',
-        cardManageNoDupes: 'No duplicate URLs found', cardManageConfirmDedupe: 'Delete {n} duplicate URL cards and keep the first occurrence?',
+        cardManageNoDupes: 'No duplicate URLs found',
+        cardManageDupeTitle: 'Found {n} duplicate URLs. Select URLs to clean:',
+        cardManageDupeCount: '{n} duplicates',
+        cardManageDeleteDupes: 'Delete selected duplicates',
+        cardManageNeedDupeSelection: 'Select duplicate URLs first',
+        cardManageConfirmDedupe: 'Delete {n} later duplicate cards for the selected URLs and keep the first occurrence?',
         cardManageDedupeDone: 'Deleted {n} duplicate URL cards',
         cardManageNoEmptyParents: 'No empty expandable parents found',
+        cardManageEmptyParentTitle: 'Found {n} empty parent cards. Select parents to delete:',
+        cardManageEmptyParentTag: 'Empty parent',
+        cardManageDeleteEmptyParents: 'Delete selected empty parents',
+        cardManageNeedEmptySelection: 'Select empty parent cards first',
         cardManageConfirmCleanEmpty: 'Delete {n} expandable parent cards with no sub-cards?',
         cardManageCleanedEmpty: 'Cleaned {n} empty parent cards',
         privateBadgeHtml: ' <span style="font-size:12px; padding:2px 8px; background:#e8f5e9; color:#166534; border-radius:10px; vertical-align:middle;">🔒 Private</span>',
@@ -3446,6 +3487,8 @@ let moveFromIndex = -1;
 let movingItem = null;
 let promotingSubIndex = -1;
 let cardManageSelectedKeys = new Set();
+let cardManageDuplicateGroups = [];
+let cardManageEmptyParentItems = [];
 let editingCustomSectionIdx = -2;
 const deletedBackupNamesOnline = new Set();
 
@@ -6566,6 +6609,7 @@ function updateCardManageState() {
     const rootCount = selected.filter(x => x.kind === 'card').length;
     const subCount = selected.length - rootCount;
     $('cmStats').textContent = t('cardManageStats', { shown: total, selected: selected.length, root: rootCount, sub: subCount });
+    if (cardManageDuplicateGroups.length || cardManageEmptyParentItems.length) return;
     $('cmPreview').innerHTML = selected.length
         ? escapeHtml(t('cardManagePreviewSelected', { n: selected.length, root: rootCount, sub: subCount }))
         : escapeHtml(t('cardManagePreviewEmpty'));
@@ -6574,6 +6618,9 @@ function updateCardManageState() {
 
 function openCardManageModal() {
     cardManageSelectedKeys = new Set();
+    cardManageDuplicateGroups = [];
+    cardManageEmptyParentItems = [];
+    $('cmQuickCheck').value = '';
     populateCardManageSelects();
     renderCardManageList();
     show('cardManageModal');
@@ -6648,6 +6695,9 @@ function simpleCardFromCard(card, targetArr) {
 
 function finishCardManageMutation(message) {
     cardManageSelectedKeys = new Set();
+    cardManageDuplicateGroups = [];
+    cardManageEmptyParentItems = [];
+    if ($('cmQuickCheck')) $('cmQuickCheck').value = '';
     clearSectionExpanded(currentSection);
     renderSectionTabs();
     renderCurrentSection();
@@ -6747,6 +6797,47 @@ function cardManageConvertType() {
     finishCardManageMutation(t('cardManageConverted', { n: changed, skipped }));
 }
 
+async function cardManageFetchTitles() {
+    const selected = getCardManageSelectedItems();
+    if (!selected.length) { toast(t('cardManageNeedSelection')); return; }
+    const btn = $('cmFetchTitles');
+    const oldText = btn ? btn.textContent : '';
+    let updated = 0, skipped = 0, failed = 0;
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = t('openTabsFetchTitleLoading') || '抓取中...';
+    }
+    try {
+        for (const item of selected) {
+            const card = item.card;
+            const url = card && String(card.url || '').trim();
+            if (!/^https?:/i.test(url)) { skipped++; continue; }
+            try {
+                const title = await fetchPageTitleText(url);
+                if (!title) { failed++; continue; }
+                if (card.content && !card.title) delete card.content;
+                card.title = title;
+                updated++;
+            } catch (e) {
+                failed++;
+            }
+        }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = oldText || t('cardManageFetchTitles');
+        }
+    }
+    if (!updated) {
+        toast(t('cardManageFetchTitlesNone', { skipped, failed }));
+        return;
+    }
+    renderCurrentSection();
+    renderCardManageList();
+    markConfigDirty();
+    toast(t('cardManageFetchTitlesDone', { n: updated, skipped, failed }));
+}
+
 function cardManageDeleteSelected() {
     const selected = normalizeManagedSelection(getCardManageSelectedItems());
     if (!selected.length) { toast(t('cardManageNeedSelection')); return; }
@@ -6758,21 +6849,60 @@ function cardManageDeleteSelected() {
 }
 
 function cardManageDedupeByUrl() {
-    const seen = new Set();
-    const remove = [];
+    const groups = new Map();
     buildManagedCardItems().forEach(item => {
         const url = cardUrlText(item.card).trim().toLowerCase();
         if (!url) return;
-        if (seen.has(url)) remove.push(item);
-        else seen.add(url);
+        if (!groups.has(url)) groups.set(url, []);
+        groups.get(url).push(item);
     });
-    if (!remove.length) { toast(t('cardManageNoDupes')); return; }
+    cardManageDuplicateGroups = Array.from(groups.entries())
+        .filter(([, items]) => items.length > 1)
+        .map(([url, items]) => ({ url, items }));
+    if (!cardManageDuplicateGroups.length) { toast(t('cardManageNoDupes')); return; }
+    renderCardManageDuplicateList();
+    cardManageEmptyParentItems = [];
+    if ($('cmQuickCheck')) $('cmQuickCheck').value = '';
+}
+
+function renderCardManageDuplicateList() {
+    const box = $('cmPreview');
+    if (!box) return;
+    const rows = cardManageDuplicateGroups.map((group, idx) => {
+        const count = group.items.length - 1;
+        return '<label class="cm-dupe-row">' +
+            '<input type="checkbox" class="cm-dupe-check" data-dupe-idx="' + idx + '">' +
+            '<span class="cm-dupe-url">' + escapeHtml(group.url) + '</span>' +
+            '<span class="cm-dupe-count">' + escapeHtml(t('cardManageDupeCount', { n: count })) + '</span>' +
+            '</label>';
+    }).join('');
+    box.innerHTML =
+        '<div><b>' + escapeHtml(t('cardManageDupeTitle', { n: cardManageDuplicateGroups.length })) + '</b></div>' +
+        '<div class="cm-dupe-list">' + rows + '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">' +
+        '<button type="button" class="btn btn-danger btn-sm" id="cmDeleteDupes">' + escapeHtml(t('cardManageDeleteDupes')) + '</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" id="cmCancelDupes">' + escapeHtml(t('btnCancel')) + '</button>' +
+        '</div>';
+    $('cmDeleteDupes').onclick = cardManageDeleteSelectedDuplicateUrls;
+    $('cmCancelDupes').onclick = () => { cardManageDuplicateGroups = []; updateCardManageState(); };
+}
+
+function cardManageDeleteSelectedDuplicateUrls() {
+    const checks = Array.from($('cmPreview').querySelectorAll('.cm-dupe-check:checked'));
+    if (!checks.length) { toast(t('cardManageNeedDupeSelection')); return; }
+    const remove = [];
+    checks.forEach(cb => {
+        const idx = parseInt(cb.dataset.dupeIdx, 10);
+        const group = cardManageDuplicateGroups[idx];
+        if (group && group.items.length > 1) remove.push(...group.items.slice(1));
+    });
+    if (!remove.length) { toast(t('cardManageNoop')); return; }
     if (!confirmDeleteAction(t('cardManageConfirmDedupe', { n: remove.length }))) return;
     removeManagedItems(remove);
     finishCardManageMutation(t('cardManageDedupeDone', { n: remove.length }));
 }
 
-function cardManageCleanEmptyParents() {
+function cardManageReviewEmptyParents() {
     const remove = [];
     buildManagedCardItems().forEach(item => {
         if (item.kind === 'card' && item.card && item.card.type === 'expandable' && (!Array.isArray(item.card.subCards) || !item.card.subCards.length)) {
@@ -6780,6 +6910,44 @@ function cardManageCleanEmptyParents() {
         }
     });
     if (!remove.length) { toast(t('cardManageNoEmptyParents')); return; }
+    cardManageEmptyParentItems = remove;
+    cardManageDuplicateGroups = [];
+    renderCardManageEmptyParentList();
+    if ($('cmQuickCheck')) $('cmQuickCheck').value = '';
+}
+
+function renderCardManageEmptyParentList() {
+    const box = $('cmPreview');
+    if (!box) return;
+    const rows = cardManageEmptyParentItems.map((item, idx) => {
+        const card = item.card || {};
+        return '<label class="cm-dupe-row">' +
+            '<input type="checkbox" class="cm-empty-check" data-empty-idx="' + idx + '">' +
+            '<span class="cm-dupe-url">' + escapeHtml(cardTitleText(card)) + ' · ' + escapeHtml(item.sectionLabel) + '</span>' +
+            '<span class="cm-dupe-count">' + escapeHtml(t('cardManageEmptyParentTag')) + '</span>' +
+            '</label>';
+    }).join('');
+    box.innerHTML =
+        '<div><b>' + escapeHtml(t('cardManageEmptyParentTitle', { n: cardManageEmptyParentItems.length })) + '</b></div>' +
+        '<div class="cm-dupe-list">' + rows + '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">' +
+        '<button type="button" class="btn btn-danger btn-sm" id="cmDeleteEmptyParents">' + escapeHtml(t('cardManageDeleteEmptyParents')) + '</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" id="cmCancelEmptyParents">' + escapeHtml(t('btnCancel')) + '</button>' +
+        '</div>';
+    $('cmDeleteEmptyParents').onclick = cardManageDeleteSelectedEmptyParents;
+    $('cmCancelEmptyParents').onclick = () => { cardManageEmptyParentItems = []; updateCardManageState(); };
+}
+
+function cardManageDeleteSelectedEmptyParents() {
+    const checks = Array.from($('cmPreview').querySelectorAll('.cm-empty-check:checked'));
+    if (!checks.length) { toast(t('cardManageNeedEmptySelection')); return; }
+    const remove = [];
+    checks.forEach(cb => {
+        const idx = parseInt(cb.dataset.emptyIdx, 10);
+        const item = cardManageEmptyParentItems[idx];
+        if (item) remove.push(item);
+    });
+    if (!remove.length) { toast(t('cardManageNoop')); return; }
     if (!confirmDeleteAction(t('cardManageConfirmCleanEmpty', { n: remove.length }))) return;
     removeManagedItems(remove);
     finishCardManageMutation(t('cardManageCleanedEmpty', { n: remove.length }));
@@ -8344,6 +8512,60 @@ async function fetchOpenTabsImportItemTitle(idx) {
     }
 }
 
+async function fetchOpenTabsImportSelectedTitles() {
+    var payload = __openTabsImportPayload;
+    if (!payload || !Array.isArray(payload.items)) return;
+    var items = payload.items;
+    var selectedIdx = [];
+    items.forEach(function(item, idx) {
+        if (item && item.checked) selectedIdx.push(idx);
+    });
+    if (!selectedIdx.length) {
+        toast(t('openTabsImportEmpty') || '没有可导入的标签页');
+        return;
+    }
+    var btn = $('btnOpenTabsFetchSelectedTitles');
+    var oldText = btn ? btn.textContent : '';
+    var updated = 0, skipped = 0, failed = 0;
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = t('openTabsFetchTitleLoading') || '抓取中...';
+    }
+    selectedIdx.forEach(function(idx) {
+        if (items[idx]) {
+            items[idx].fetchingTitle = true;
+            items[idx].error = '';
+        }
+    });
+    renderOpenTabsImportList(items);
+    try {
+        for (var i = 0; i < selectedIdx.length; i++) {
+            var item = items[selectedIdx[i]];
+            var url = String(item && item.draft && item.draft.url || '').trim();
+            if (!/^https?:/i.test(url)) { skipped++; continue; }
+            try {
+                var title = await fetchPageTitleText(url);
+                if (!title) { failed++; continue; }
+                item.draft.title = title;
+                updated++;
+            } catch (e) {
+                failed++;
+            }
+        }
+    } finally {
+        selectedIdx.forEach(function(idx) {
+            if (items[idx]) items[idx].fetchingTitle = false;
+        });
+        renderOpenTabsImportList(items);
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = oldText || (t('openTabsFetchSelectedTitles') || '批量抓取标题');
+        }
+    }
+    if (updated) toast(t('openTabsFetchSelectedTitlesDone', { n: updated, skipped: skipped, failed: failed }));
+    else toast(t('openTabsFetchSelectedTitlesNone', { skipped: skipped, failed: failed }));
+}
+
 function resetOpenTabsImportItem(idx) {
     var payload = __openTabsImportPayload;
     if (!payload || !payload.items || !payload.items[idx]) return;
@@ -8399,16 +8621,8 @@ async function fetchPageTitleIntoField(urlInputId, titleInputId, buttonId) {
         btn.textContent = t('openTabsFetchTitleLoading') || '抓取中...';
     }
     try {
-        var r = await api('/api/fetch-page-title', {
-            method: 'POST',
-            body: JSON.stringify({ url: url })
-        });
-        if (!r.ok || !r.data || !r.data.ok || !r.data.title) {
-            var msg = r && r.data && r.data.error ? r.data.error : 'unknown error';
-            toast(t('openTabsFetchTitleFail', { msg: msg }) || ('抓取标题失败：' + msg));
-            return;
-        }
-        titleInput.value = String(r.data.title || '').trim();
+        var title = await fetchPageTitleText(url);
+        titleInput.value = title;
         titleInput.dispatchEvent(new Event('input', { bubbles: true }));
         toast(t('openTabsFetchTitleDone') || '已更新标题');
     } catch (err) {
@@ -8420,6 +8634,18 @@ async function fetchPageTitleIntoField(urlInputId, titleInputId, buttonId) {
             btn.textContent = oldText || (t('openTabsFetchTitle') || '抓取标题');
         }
     }
+}
+
+async function fetchPageTitleText(url) {
+    var r = await api('/api/fetch-page-title', {
+        method: 'POST',
+        body: JSON.stringify({ url: url })
+    });
+    if (!r.ok || !r.data || !r.data.ok || !r.data.title) {
+        var msg = r && r.data && r.data.error ? r.data.error : 'unknown error';
+        throw new Error(msg);
+    }
+    return String(r.data.title || '').trim();
 }
 
 function renderOpenTabsImportList(items) {
@@ -11071,6 +11297,7 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnOpenTabsClipboardParse').onclick = () => parseOpenTabsClipboardText($('openTabsClipboardText').value);
     $('btnOpenTabsSelectAll').onclick = () => setOpenTabsImportChecked(true);
     $('btnOpenTabsSelectNone').onclick = () => setOpenTabsImportChecked(false);
+    $('btnOpenTabsFetchSelectedTitles').onclick = fetchOpenTabsImportSelectedTitles;
     $('btnOpenTabsImportApply').onclick = applyOpenTabsImport;
     $('openTabsSectionSelect').onchange = syncOpenTabsParentMode;
     document.querySelectorAll('input[name="openTabsParentMode"]').forEach(function(radio) {
@@ -11108,9 +11335,14 @@ window.addEventListener('DOMContentLoaded', () => {
     $('cmMoveParent').onclick = cardManageMoveToParent;
     $('cmStandardize').onclick = cardManageStandardize;
     $('cmConvertType').onclick = cardManageConvertType;
+    $('cmFetchTitles').onclick = cardManageFetchTitles;
     $('cmDelete').onclick = cardManageDeleteSelected;
-    $('cmDedupe').onclick = cardManageDedupeByUrl;
-    $('cmCleanEmpty').onclick = cardManageCleanEmptyParents;
+    $('cmQuickCheck').onchange = () => {
+        const v = $('cmQuickCheck').value;
+        if (v === 'dupes') cardManageDedupeByUrl();
+        else if (v === 'emptyParents') cardManageReviewEmptyParents();
+        $('cmQuickCheck').value = '';
+    };
     $('btnCardCancel').onclick = () => hide('cardModal');
     $('btnCardSave').onclick = saveCardFromModal;
     $('btnFetchCardTitle').onclick = () => fetchPageTitleIntoField('f_url', 'f_title', 'btnFetchCardTitle');
