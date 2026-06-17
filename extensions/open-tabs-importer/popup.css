@@ -1,5 +1,5 @@
 body {
-  width: 320px;
+  width: 340px;
   margin: 0;
   font: 14px/1.45 "Segoe UI", sans-serif;
   color: #172033;
@@ -11,24 +11,57 @@ main {
 }
 
 h1 {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-size: 17px;
 }
 
-.url-row {
+.group {
+  margin-top: 10px;
+}
+
+.group:first-of-type {
+  margin-top: 0;
+}
+
+.field span,
+h2 {
+  display: block;
+  font-weight: 700;
+  margin: 0 0 5px;
+}
+
+h2 {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.section-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
-.url-input-wrap {
-  flex: 1;
+.section-head h2 {
+  margin-bottom: 0;
 }
 
-.url-input-wrap label {
-  display: block;
-  font-weight: 700;
-  margin-bottom: 5px;
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #514b41;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.check input {
+  box-sizing: border-box;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  padding: 0;
+  border-radius: 2px;
 }
 
 .url-btn-row {
@@ -40,14 +73,18 @@ h1 {
 .url-btn {
   flex: 1;
   width: 100%;
+  min-height: 34px;
   margin: 0;
-  padding: 9px 10px;
+  padding: 7px 6px;
   border: 0;
   border-radius: 9px;
   background: #6b6253;
   color: #fff;
   font-weight: 700;
   cursor: pointer;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: normal;
 }
 
 input {
@@ -68,8 +105,9 @@ input {
 .btn-row button {
   flex: 1;
   width: 100%;
+  min-height: 38px;
   margin: 0;
-  padding: 9px 6px;
+  padding: 8px 6px;
   border: 0;
   border-radius: 9px;
   background: #234236;
@@ -77,11 +115,8 @@ input {
   font-weight: 700;
   cursor: pointer;
   font-size: 12px;
-  line-height: 1.3;
-}
-
-.btn-row button:first-child {
-  background: #7b6b46;
+  line-height: 1.25;
+  white-space: normal;
 }
 
 .btn-row button.copy-btn {

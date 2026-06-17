@@ -10,12 +10,18 @@ const els = {
   configUrl: requireElement('configUrl'),
   saveUrl: requireElement('saveUrl'),
   openBackend: requireElement('openBackend'),
+  openHome: requireElement('openHome'),
   importCurrent: requireElement('importCurrent'),
   importAll: requireElement('importAll'),
   copyCurrent: requireElement('copyCurrent'),
   copyAll: requireElement('copyAll'),
+  copyTextUrlsOnly: requireElement('copyTextUrlsOnly'),
+  copyTextCurrent: requireElement('copyTextCurrent'),
+  copyTextAll: requireElement('copyTextAll'),
   exportCurrentFile: requireElement('exportCurrentFile'),
   exportAllFile: requireElement('exportAllFile'),
+  exportJsonCurrent: requireElement('exportJsonCurrent'),
+  exportJsonAll: requireElement('exportJsonAll'),
   status: requireElement('status')
 };
 
@@ -60,14 +66,46 @@ async function openBackend() {
   setStatus('已打开 SmartTools 后台', 'ok');
 }
 
+function getBackendHomeUrl(configUrl) {
+  const url = new URL(configUrl);
+  return `${url.origin}/`;
+}
+
+async function openHome() {
+  let configUrl;
+  try {
+    configUrl = normalizeConfigUrl(els.configUrl.value || await getConfigUrl());
+  } catch (e) {
+    setStatus('请先填写正确的后台地址', 'err');
+    return;
+  }
+  await chrome.storage.sync.set({ configUrl });
+  els.configUrl.value = configUrl;
+  await chrome.tabs.create({ url: getBackendHomeUrl(configUrl), active: true });
+  setStatus('已打开 SmartTools 主页', 'ok');
+}
+
 function sameConfigPage(tabUrl, configUrl) {
   try {
     const a = new URL(tabUrl);
     const b = new URL(configUrl);
-    return a.origin === b.origin && a.pathname.replace(/\/$/, '') === b.pathname.replace(/\/$/, '');
+    return a.origin === b.origin && sameConfigPath(a.pathname, b.pathname);
   } catch (e) {
     return false;
   }
+}
+
+function normalizePagePath(pathname) {
+  const path = String(pathname || '/').replace(/\/+$/, '') || '/';
+  return path.toLowerCase();
+}
+
+function sameConfigPath(tabPathname, configPathname) {
+  const tabPath = normalizePagePath(tabPathname);
+  const configPath = normalizePagePath(configPathname);
+  if (tabPath === configPath) return true;
+  const configAliases = new Set(['/config', '/config.html']);
+  return configAliases.has(tabPath) && configAliases.has(configPath);
 }
 
 function isImportableUrl(url) {
@@ -119,6 +157,18 @@ async function injectTabs(tabId, payload) {
   });
 }
 
+async function deliverTabsToConfigTab(tabId, payload) {
+  for (let i = 0; i < 6; i++) {
+    try {
+      await injectTabs(tabId, payload);
+      return true;
+    } catch (e) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  }
+  return false;
+}
+
 async function importTabs(scope) {
   let configUrl;
   try {
@@ -151,14 +201,18 @@ async function importTabs(scope) {
     return;
   }
 
-  await chrome.tabs.update(configTab.id, { active: true });
-  await chrome.windows.update(configTab.windowId, { focused: true });
-  await injectTabs(configTab.id, {
+  const delivered = await deliverTabsToConfigTab(configTab.id, {
     source: 'smarttools-open-tabs-extension',
     scope,
     sentAt: new Date().toISOString(),
     tabs
   });
+  await chrome.tabs.update(configTab.id, { active: true });
+  await chrome.windows.update(configTab.windowId, { focused: true });
+  if (!delivered) {
+    setStatus('后台页面还没准备好，请稍后再试', 'err');
+    return;
+  }
   setStatus(`已发送 ${tabs.length} 个标签到 SmartTools 后台`, 'ok');
 }
 
@@ -183,7 +237,43 @@ async function copyTabsToClipboard(scope) {
   const json = JSON.stringify(tabs, null, 2);
   try {
     await navigator.clipboard.writeText(json);
-    setStatus(`已复制 ${tabs.length} 个标签到粘贴板 (JSON)`, 'ok');
+    setStatus(`已复制 ${tabs.length} 个标签到剪切板 (JSON)`, 'ok');
+  } catch (e) {
+    setStatus('复制失败，请检查浏览器权限', 'err');
+  }
+}
+
+function tabsToText(tabs, urlsOnly) {
+  return tabs.map(tab => {
+    if (urlsOnly) return tab.url || '';
+    const title = tab.title || tab.url || '';
+    const url = tab.url || '';
+    return `${title}\t${url}`;
+  }).join('\n');
+}
+
+async function copyTabsAsText(scope) {
+  let configUrl;
+  try {
+    configUrl = normalizeConfigUrl(els.configUrl.value || await getConfigUrl());
+  } catch (e) {
+    setStatus('请先填写正确的后台地址', 'err');
+    return;
+  }
+  await chrome.storage.sync.set({ configUrl });
+  els.configUrl.value = configUrl;
+
+  const tabs = await collectTabs(scope, configUrl);
+  if (!tabs.length) {
+    setStatus('没有可复制的普通网页标签', 'err');
+    return;
+  }
+
+  const urlsOnly = els.copyTextUrlsOnly.checked;
+  const text = tabsToText(tabs, urlsOnly);
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus(`已复制 ${tabs.length} 个标签到剪切板 (${urlsOnly ? '仅 URL' : '文本'})`, 'ok');
   } catch (e) {
     setStatus('复制失败，请检查浏览器权限', 'err');
   }
@@ -242,14 +332,57 @@ async function exportTabsToFile(scope) {
   }
 }
 
+async function exportTabsToJsonFile(scope) {
+  let configUrl;
+  try {
+    configUrl = normalizeConfigUrl(els.configUrl.value || await getConfigUrl());
+  } catch (e) {
+    setStatus('请先填写正确的后台地址', 'err');
+    return;
+  }
+  await chrome.storage.sync.set({ configUrl });
+  els.configUrl.value = configUrl;
+
+  const tabs = await collectTabs(scope, configUrl);
+  if (!tabs.length) {
+    setStatus('没有可导出的普通网页标签', 'err');
+    return;
+  }
+
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+  const filename = `smarttools-tabs-${scope === 'current' ? 'current' : 'all'}-${timestamp}.json`;
+  const json = JSON.stringify(tabs, null, 2);
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setStatus(`已导出 ${tabs.length} 个标签到文件 (JSON)`, 'ok');
+  } catch (e) {
+    setStatus('导出失败，请检查浏览器权限', 'err');
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   els.configUrl.value = await getConfigUrl();
   els.saveUrl.addEventListener('click', saveConfigUrl);
   els.openBackend.addEventListener('click', openBackend);
+  els.openHome.addEventListener('click', openHome);
   els.importCurrent.addEventListener('click', () => importTabs('current'));
   els.importAll.addEventListener('click', () => importTabs('all'));
   els.copyCurrent.addEventListener('click', () => copyTabsToClipboard('current'));
   els.copyAll.addEventListener('click', () => copyTabsToClipboard('all'));
+  els.copyTextCurrent.addEventListener('click', () => copyTabsAsText('current'));
+  els.copyTextAll.addEventListener('click', () => copyTabsAsText('all'));
   els.exportCurrentFile.addEventListener('click', () => exportTabsToFile('current'));
   els.exportAllFile.addEventListener('click', () => exportTabsToFile('all'));
+  els.exportJsonCurrent.addEventListener('click', () => exportTabsToJsonFile('current'));
+  els.exportJsonAll.addEventListener('click', () => exportTabsToJsonFile('all'));
 });

@@ -2,10 +2,23 @@ function sameConfigPage(tabUrl, configUrl) {
   try {
     const a = new URL(tabUrl || '');
     const b = new URL(configUrl || '');
-    return a.origin === b.origin && a.pathname.replace(/\/$/, '') === b.pathname.replace(/\/$/, '');
+    return a.origin === b.origin && sameConfigPath(a.pathname, b.pathname);
   } catch (e) {
     return false;
   }
+}
+
+function normalizePagePath(pathname) {
+  const path = String(pathname || '/').replace(/\/+$/, '') || '/';
+  return path.toLowerCase();
+}
+
+function sameConfigPath(tabPathname, configPathname) {
+  const tabPath = normalizePagePath(tabPathname);
+  const configPath = normalizePagePath(configPathname);
+  if (tabPath === configPath) return true;
+  const configAliases = new Set(['/config', '/config.html']);
+  return configAliases.has(tabPath) && configAliases.has(configPath);
 }
 
 async function postPayloadToTab(tabId, payload) {
