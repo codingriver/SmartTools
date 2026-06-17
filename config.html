@@ -610,6 +610,7 @@ pre.export-pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radi
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
             <h2 id="currentSectionTitle"></h2>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-ghost btn-sm" id="btnOpenTabsImportTop" data-i18n="btnOpenTabsImportTop">🧩 批量导入标签页</button>
                 <button class="btn btn-ghost btn-sm" id="btnCardManage" data-i18n="btnCardManage">🗂 卡片管理</button>
                 <button class="btn btn-primary btn-sm" id="btnAddCard" data-i18n="btnAddCard">➕ 新增卡片</button>
             </div>
@@ -2346,7 +2347,7 @@ const I18N = {
         secVideo: '🎬 视频聚合', secEmail: '📨 联系方式', secContact: '📨 其他联系方式',
         secUnclassified: '📦 未分类', secManageTab: '🗂 大类管理',
         secCustomTag: '大类', secCustomTitle: '大类',
-        btnAddCard: '➕ 新增卡片', btnCardManage: '🗂 卡片管理', titleItems: '（共 {n} 项）', titleItemsWithSubs: '（共 {n} 项，共 {sub} 子项，共 {links} 链接）',
+        btnAddCard: '➕ 新增卡片', btnOpenTabsImportTop: '🧩 批量导入标签页', btnCardManage: '🗂 卡片管理', titleItems: '（共 {n} 项）', titleItemsWithSubs: '（共 {n} 项，共 {sub} 子项，共 {links} 链接）',
         cardManageTitle: '🗂 卡片管理',
         cardManageDesc: '全局管理所有已解锁分类内的主卡片和子卡片，支持批量移动、删除、转换和整理。',
         cardManageSearchPh: '搜索标题 / URL / 描述',
@@ -2362,6 +2363,9 @@ const I18N = {
         cardManageStats: '显示 {shown} 项，已选 {selected} 项（主卡 {root}，子卡 {sub}）',
         cardManagePreviewEmpty: '先勾选卡片，再执行右侧批量操作。',
         cardManagePreviewSelected: '将操作 {n} 项：主卡 {root}，子卡 {sub}。',
+        cardManageDupePreview: '当前左侧显示 {groups} 个重复 URL 的 {items} 个相关条目，可勾选后使用右侧批量操作。',
+        cardManageDupePreviewSelected: '当前为重复 URL 视图，已选择 {n} 项：主卡 {root}，子卡 {sub}。',
+        cardManageClearCheckView: '退出检查视图',
         cardManageNeedSelection: '请先选择卡片', cardManageNeedRootSelection: '请至少选择一张主卡片',
         cardManageNoop: '没有需要移动的卡片', cardManageNoMovable: '没有可执行的卡片（expandable 主卡会被跳过）',
         cardManageMoved: '已移动 {n} 张到目标大类（跳过 {skipped} 张）',
@@ -3031,7 +3035,7 @@ const I18N = {
         secVideo: '🎬 Videos', secEmail: '📨 Contacts', secContact: '📨 Contact Cards',
         secUnclassified: '📦 Unclassified', secManageTab: '🗂 Sections',
         secCustomTag: 'Section', secCustomTitle: 'Section',
-        btnAddCard: '➕ Add Card', btnCardManage: '🗂 Card Manager', titleItems: ' ({n} items)', titleItemsWithSubs: ' ({n} items, {sub} sub-items, {links} links)',
+        btnAddCard: '➕ Add Card', btnOpenTabsImportTop: '🧩 Batch Import Tabs', btnCardManage: '🗂 Card Manager', titleItems: ' ({n} items)', titleItemsWithSubs: ' ({n} items, {sub} sub-items, {links} links)',
         cardManageTitle: '🗂 Card Manager',
         cardManageDesc: 'Manage top-level cards and sub-cards across all unlocked sections with batch move, delete, convert, and cleanup actions.',
         cardManageSearchPh: 'Search title / URL / description',
@@ -3047,6 +3051,9 @@ const I18N = {
         cardManageStats: 'Showing {shown}, selected {selected} (top-level {root}, sub {sub})',
         cardManagePreviewEmpty: 'Select cards first, then run a batch action on the right.',
         cardManagePreviewSelected: 'Will operate on {n} items: top-level {root}, sub {sub}.',
+        cardManageDupePreview: 'The left list is showing {items} item(s) from {groups} duplicate URL group(s). Select items and use the batch actions on the right.',
+        cardManageDupePreviewSelected: 'Duplicate URL view active. Selected {n} item(s): top-level {root}, sub {sub}.',
+        cardManageClearCheckView: 'Exit check view',
         cardManageNeedSelection: 'Select cards first', cardManageNeedRootSelection: 'Select at least one top-level card',
         cardManageNoop: 'No cards need moving', cardManageNoMovable: 'No movable cards (expandable top-level cards are skipped)',
         cardManageMoved: 'Moved {n} cards to target section (skipped {skipped})',
@@ -6503,7 +6510,9 @@ function getManagedFilteredItems() {
     const sec = (($('cmSectionFilter') || {}).value || 'all');
     const kind = (($('cmKindFilter') || {}).value || 'all');
     const type = (($('cmTypeFilter') || {}).value || 'all');
+    const dupeKeys = getCardManageDuplicateItemKeySet();
     return buildManagedCardItems().filter(item => {
+        if (dupeKeys && !dupeKeys.has(item.key)) return false;
         if (sec !== 'all' && item.sectionKey !== sec) return false;
         if (kind !== 'all' && item.kind !== kind) return false;
         if (type !== 'all' && item.type !== type) return false;
@@ -6515,6 +6524,20 @@ function getManagedFilteredItems() {
         ].filter(Boolean).join(' ').toLowerCase();
         return hay.indexOf(q) >= 0;
     });
+}
+
+function getCardManageDuplicateItemKeySet() {
+    if (!cardManageDuplicateGroups.length) return null;
+    const keys = new Set();
+    cardManageDuplicateGroups.forEach(group => {
+        (group.items || []).forEach(item => keys.add(item.key));
+    });
+    return keys;
+}
+
+function getCardManageDuplicateItemCount() {
+    const keys = getCardManageDuplicateItemKeySet();
+    return keys ? keys.size : 0;
 }
 
 function populateCardManageSelects() {
@@ -6609,7 +6632,18 @@ function updateCardManageState() {
     const rootCount = selected.filter(x => x.kind === 'card').length;
     const subCount = selected.length - rootCount;
     $('cmStats').textContent = t('cardManageStats', { shown: total, selected: selected.length, root: rootCount, sub: subCount });
-    if (cardManageDuplicateGroups.length || cardManageEmptyParentItems.length) return;
+    if (cardManageDuplicateGroups.length) {
+        const text = selected.length
+            ? t('cardManageDupePreviewSelected', { groups: cardManageDuplicateGroups.length, items: getCardManageDuplicateItemCount(), n: selected.length, root: rootCount, sub: subCount })
+            : t('cardManageDupePreview', { groups: cardManageDuplicateGroups.length, items: getCardManageDuplicateItemCount() });
+        $('cmPreview').innerHTML = '<div>' + escapeHtml(text) + '</div>' +
+            '<div style="margin-top:8px;"><button type="button" class="btn btn-ghost btn-sm" id="cmClearCheckView">' + escapeHtml(t('cardManageClearCheckView')) + '</button></div>';
+        const clearBtn = $('cmClearCheckView');
+        if (clearBtn) clearBtn.onclick = clearCardManageCheckView;
+        renderCardManageParentOptions();
+        return;
+    }
+    if (cardManageEmptyParentItems.length) return;
     $('cmPreview').innerHTML = selected.length
         ? escapeHtml(t('cardManagePreviewSelected', { n: selected.length, root: rootCount, sub: subCount }))
         : escapeHtml(t('cardManagePreviewEmpty'));
@@ -6624,6 +6658,14 @@ function openCardManageModal() {
     populateCardManageSelects();
     renderCardManageList();
     show('cardManageModal');
+}
+
+function clearCardManageCheckView() {
+    cardManageSelectedKeys = new Set();
+    cardManageDuplicateGroups = [];
+    cardManageEmptyParentItems = [];
+    if ($('cmQuickCheck')) $('cmQuickCheck').value = '';
+    renderCardManageList();
 }
 
 function normalizeManagedSelection(items) {
@@ -6859,10 +6901,23 @@ function cardManageDedupeByUrl() {
     cardManageDuplicateGroups = Array.from(groups.entries())
         .filter(([, items]) => items.length > 1)
         .map(([url, items]) => ({ url, items }));
-    if (!cardManageDuplicateGroups.length) { toast(t('cardManageNoDupes')); return; }
-    renderCardManageDuplicateList();
+    if (!cardManageDuplicateGroups.length) {
+        cardManageSelectedKeys = new Set();
+        cardManageEmptyParentItems = [];
+        renderCardManageList();
+        toast(t('cardManageNoDupes'));
+        return;
+    }
+    cardManageSelectedKeys = new Set();
+    if ($('cmSearch')) $('cmSearch').value = '';
+    if ($('cmSectionFilter')) $('cmSectionFilter').value = 'all';
+    if ($('cmKindFilter')) $('cmKindFilter').value = 'all';
+    if ($('cmTypeFilter')) $('cmTypeFilter').value = 'all';
     cardManageEmptyParentItems = [];
     if ($('cmQuickCheck')) $('cmQuickCheck').value = '';
+    renderCardManageParentOptions();
+    renderCardManageList();
+    updateCardManageState();
 }
 
 function renderCardManageDuplicateList() {
@@ -8106,6 +8161,7 @@ function doBookmarkImportApply() {
 const LS_OPEN_TABS_LAST_SECTION = 'smarttools_open_tabs_last_section';
 let __openTabsImportPayload = null;
 let __openTabsLastMessageKey = '';
+let __openTabsClipboardReturnHub = false;
 
 function setOpenTabsCookie(name, value) {
     document.cookie = encodeURIComponent(name) + '=' + encodeURIComponent(value || '') + '; Path=/; Max-Age=31536000; SameSite=Lax';
@@ -8716,7 +8772,8 @@ function openOpenTabsImportModal(payload) {
     show('openTabsImportModal');
 }
 
-function showOpenTabsClipboardModal(error) {
+function showOpenTabsClipboardModal(error, returnHub) {
+    __openTabsClipboardReturnHub = !!returnHub;
     $('openTabsClipboardText').value = '';
     $('openTabsClipboardError').textContent = error || '';
     hide('ioHubModal');
@@ -8746,13 +8803,14 @@ function parseOpenTabsClipboardText(text) {
     return true;
 }
 
-async function openOpenTabsImportFromClipboard() {
+async function openOpenTabsImportFromClipboard(returnHub) {
+    __openTabsClipboardReturnHub = !!returnHub;
     __ioHubReturning = false;
     $('openTabsClipboardError').textContent = '';
     try {
         var text = await readOpenTabsClipboardText();
         if (!String(text || '').trim()) {
-            showOpenTabsClipboardModal(t('openTabsClipboardEmpty') || '剪贴板内容为空，请复制 JSON / HTML / URL 后再试。');
+            showOpenTabsClipboardModal(t('openTabsClipboardEmpty') || '剪贴板内容为空，请复制 JSON / HTML / URL 后再试。', returnHub);
             return;
         }
         var result = buildOpenTabsPayloadFromText(text, 'smarttools-open-tabs-clipboard');
@@ -8762,9 +8820,9 @@ async function openOpenTabsImportFromClipboard() {
             toast(t('openTabsClipboardParsed', { n: result.count, skip: result.skipped }) || ('已识别 ' + result.count + ' 个链接，已跳过 ' + result.skipped + ' 个重复或无效项。'), 3200);
             return;
         }
-        showOpenTabsClipboardModal(t('openTabsClipboardParseFail') || '未识别到可导入的链接，请粘贴插件 JSON、书签 HTML 或 URL 文本。');
+        showOpenTabsClipboardModal(t('openTabsClipboardParseFail') || '未识别到可导入的链接，请粘贴插件 JSON、书签 HTML 或 URL 文本。', returnHub);
     } catch (e) {
-        showOpenTabsClipboardModal(t('openTabsClipboardReadFail') || '无法直接读取剪贴板，请手动粘贴内容后解析。');
+        showOpenTabsClipboardModal(t('openTabsClipboardReadFail') || '无法直接读取剪贴板，请手动粘贴内容后解析。', returnHub);
     }
 }
 
@@ -11282,7 +11340,7 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnIoHubExportTable').onclick = () => { __ioHubReturning = true; hide('ioHubModal'); openCsvExportModal(); };
     $('btnIoHubImportTable').onclick = () => { __ioHubReturning = true; hide('ioHubModal'); openCsvImportModal(); };
     $('btnIoHubImportBookmarks').onclick = () => { __ioHubReturning = true; hide('ioHubModal'); openBookmarkImportModal(); };
-    $('btnIoHubImportOpenTabsClipboard').onclick = openOpenTabsImportFromClipboard;
+    $('btnIoHubImportOpenTabsClipboard').onclick = () => openOpenTabsImportFromClipboard(true);
     $('btnIoHubExportBookmarks').onclick = () => { __ioHubReturning = false; hide('ioHubModal'); exportBrowserBookmarks(); };
     $('btnIoCancel').onclick = () => closeChildOrReturnHub('ioModal');
     $('btnIoImportConfirm').onclick = confirmImport;
@@ -11292,7 +11350,11 @@ window.addEventListener('DOMContentLoaded', () => {
     $('btnFullBackupImportApply').onclick = doFullBackupImportApply;
     $('fullBackupImportFile').addEventListener('change', handleFullBackupImportFile);
     $('btnOpenTabsImportCancel').onclick = () => { hide('openTabsImportModal'); __openTabsImportPayload = null; };
-    $('btnOpenTabsClipboardCancel').onclick = () => { hide('openTabsClipboardModal'); show('ioHubModal'); };
+    $('btnOpenTabsClipboardCancel').onclick = () => {
+        hide('openTabsClipboardModal');
+        if (__openTabsClipboardReturnHub) show('ioHubModal');
+        __openTabsClipboardReturnHub = false;
+    };
     $('btnOpenTabsClipboardRead').onclick = refillOpenTabsClipboardText;
     $('btnOpenTabsClipboardParse').onclick = () => parseOpenTabsClipboardText($('openTabsClipboardText').value);
     $('btnOpenTabsSelectAll').onclick = () => setOpenTabsImportChecked(true);
@@ -11317,6 +11379,7 @@ window.addEventListener('DOMContentLoaded', () => {
             openCardModal(-1);
         }
     };
+    $('btnOpenTabsImportTop').onclick = () => openOpenTabsImportFromClipboard(false);
     $('btnCardManage').onclick = openCardManageModal;
     $('btnCardManageClose').onclick = () => hide('cardManageModal');
     ['cmSearch','cmSectionFilter','cmKindFilter','cmTypeFilter'].forEach(id => {
